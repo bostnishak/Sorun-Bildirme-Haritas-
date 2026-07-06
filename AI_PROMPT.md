@@ -32,35 +32,46 @@ Projemiz gizli (private) depoda olduğu için `.env` dosyalarımızı Git üzeri
 4. TEMİZ KOD VE GEREKSİZ SİLME YASAĞI:
 Düzenlediğin dosyalardaki mevcut çalışan mantığı, bana ait olmayan fonksiyonları veya yorum satırlarını durduk yere silme veya refactor etme. Sadece benden istenen özelliği ekle veya ilgili hatayı çöz.
 
-5. OTOMATİK TERMİNAL GİT YÖNETİMİ (GÖREV BAŞLANGICI VE BİTİŞİ):
-Biz Git komutlarında yeniyiz ve terminale manuel komut yazıp yapıştırmakla uğraşmak istemiyoruz! Sen bir IDE Yapay Zeka Asistanısın (Cursor, Windsurf, Antigravity, Copilot vb.) ve terminal komutlarını doğrudan çalıştırma / önerme yetkine (terminal execution / run_command aracı) sahipsin.
-- GÖREVE BAŞLARKEN (İLK İŞ OLARAK): Benden terminale komut kopyalayıp yapıştırmamı ASLA İSTEME! Yazdığım göreve uygun kısa bir dal adı belirle (örn: `feat/kurum-logini`) ve doğrudan kendi terminal aracını kullanarak (veya IDE'de tek tuşla onaylayacağım şekilde) şu komutu otomatik çalıştır:
+5. KULLANICI DOĞRULAMA VE ROL BAZLI GİT YÖNETİMİ (ÇOK ÖNEMLİ):
+Biz Git komutlarında yeniyiz ve terminale manuel komut yazmak istemiyoruz. Sen bir IDE Yapay Zeka Asistanısın (Cursor, Windsurf, Antigravity vb.) ve terminal komutlarını doğrudan çalıştırma yetkine sahipsin.
+Bu promptu aldığında İLK CEVABINDA hiçbir işlem yapmadan önce bana sadece şunu sor:
+"👋 Merhaba! Etiya Project AI Asistanına hoş geldin. Kiminle çalışıyorum? Lütfen ismini yaz (Örn: İshak, Beyza, Gülsüm, Ahmet vb.)"
+
+Ben ismimi yazdığımda, ismime göre şu 2 moddan birini aktif et:
+
+🛡️ A) EĞER İSMİM "İshak" (Proje Lideri) İSE:
+- Bana TAM YETKİ ver! Ben proje lideriyim.
+- İstersem kendi dalımda kod yazarım, istersem "Arkadaşımın pushladığı `feat/...` dalını `main` dalına birleştir" emri veririm.
+- Birleştirme (merge) emri verdiğimde terminalimde şu komutu sorgulamadan otomatik çalıştır:
+  `git checkout main && git pull origin main && git fetch origin && git merge origin/feat/arkadasinin-branchi && git push origin main`
+
+🧑‍💻 B) EĞER İSMİM Beyza, Gülsüm, Ahmet veya BAŞKA BİR EKİP ELEMANI İSE:
+- Beni "Ekip Geliştiricisi" olarak tanı ve KORUMA MODUNU aç! Bana ASLA `main` dalında kod yazdırma, `main` dalına push yaptırma veya `merge` işlemi yaptırma!
+- GÖREVE BAŞLARKEN: Yazdığım göreve uygun kısa bir dal adı belirle (örn: `feat/kurum-logini`) ve doğrudan kendi terminal aracınla şu komutu otomatik çalıştır:
   `git checkout main && git pull origin main && git checkout -b feat/senin-belirledigin-branch-adi`
-  Bu dal oluşturulmadan asla dosya değiştirmeye veya kod yazmaya başlama!
-- GÖREV BİTİMİNDE (Tüm kodları yazıp tamamladığında): Yine benden terminale yazı yazmamı isteme! Doğrudan terminal aracını kullanarak kodlarımızı şu komutla otomatik commit et ve pushla:
+- GÖREV BİTİMİNDE: Kodlar tamamlandığında yine terminal aracınla şu komutu otomatik çalıştırıp pushla:
   `git add . && git commit -m "feat: görev açıklaması" && git push -u origin feat/senin-belirledigin-branch-adi`
-  Bana sadece şunu söyle: "👉 Kodlarını senin yerine Git repona pushladım! Senin işin burada tamamlandı. Şimdi proje liderimize (ekip arkadaşına) kodlarının hazır olduğunu ve inceleyip ana projeye birleştirebileceğini haber verebilirsin!"
+  Ve bana sadece şunu söyle: "👉 Kodlarını senin yerine Git repona pushladım! Senin işin burada tamamlandı. Şimdi Proje Liderimiz İshak'a kodlerinin hazır olduğunu ve inceleyip birleştirebileceğini haber verebilirsin!"
 
-Şimdi bu kuralları anladığını ve onayladığını belirt. Ardından benden hiçbir terminal komutu beklemeden, ilk iş olarak terminal aracınla benim için branch açma komutunu otomatik çalıştır ve kodlamaya başlayalım.
+Şimdi hiçbir komut çalıştırma veya kod yazma! Sadece bana kim olduğumu (ismimi) sor ve doğrulama ile başlayalım.
 ```
 
 ---
 
-### 💡 Size Kalan Tek İş (Sıfır Efor!):
+### 💡 Ekibin Günlük Kullanım Rehberi:
+
+#### 🧑‍💻 Ekip Arkadaşları (Beyza, Gülsüm, Ahmet vb.) İçin:
 1. Bu dosyadaki metni kopyala ve yapay zekaya yapıştır, `[BURAYA GÜNLÜK GÖREVİNİ YAZ]` kısmını doldur.
-2. Yapay zeka **senin yerine terminalde branch açma komutunu otomatik çalıştıracak** (IDE'n izin isterse sadece `Allow` / `Run` butonuna bas).
-3. Yapay zeka kodları yazacak ve dosyaları güncelleyecek.
-4. İş bitince yapay zeka **senin yerine kodları otomatik commit edip GitHub'a pushlayacak!**
-5. Sana sadece proje liderine **"Kodumu pushladım, inceleyip birleştirebilirsin"** diye haber vermek kalıyor! Hepsi bu kadar! 🎉
+2. Yapay zeka sana **"Kiminle çalışıyorum?"** diye soracak. İsmini yaz (örn: `Beyza`).
+3. Yapay zeka senin ekip üyesi olduğunu anlayacak, **senin yerine terminalde branch açacak**.
+4. Kodları yazacak ve iş bitince **senin yerine kodları otomatik pushlayacak!**
+5. Sana sadece İshak'a **"İshak, kodumu pushladım, birleştirebilirsin"** diye haber vermek kalıyor! 🎉
 
 ---
 
-### 👑 Sadece Proje Lideri (İshak) İçin: Tarayıcısız Tek Tuşla Otomatik Birleştirme (Merge)
-Arkadaşın sana *"Ben `feat/giris-ekrani` dalını pushladım"* dediğinde tarayıcıyı açıp GitHub'a girmene hiç gerek yok! Kendi VS Code / Cursor / Windsurf terminalinde yapay zekana sadece şu emri vermen yeterli:
-> *"Arkadaşımın pushladığı `feat/giris-ekrani` dalını main dalına birleştir ve pushla."*
-
-Yapay zekan senin yerine terminalde şu komutu otomatik çalıştırıp 2 saniyede kodu ana projeye birleştirecektir:
-```bash
-git checkout main && git pull origin main && git fetch origin && git merge origin/feat/giris-ekrani && git push origin main
-```
-Tarayıcı açmak yok, butonlara basmak yok, her şey %100 otomatik ve IDE içinden! 🚀
+#### 👑 Proje Lideri (İshak) İçin:
+1. Yapay zeka sana ismini sorduğunda **`İshak`** yaz.
+2. Lider modun açılır! Arkadaşın sana "kodumu pushladım" dediğinde tarayıcı açmana hiç gerek yok.
+3. Yapay zekana sadece şunu söyle:
+   > *"Arkadaşımın pushladığı `feat/giris-ekrani` dalını main dalına birleştir ve pushla."*
+4. Yapay zekan 2 saniyede kodu ana projeye birleştirip GitHub'a gönderecek! 🚀👑
