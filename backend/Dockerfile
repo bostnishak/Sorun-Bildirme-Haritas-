@@ -6,13 +6,14 @@ WORKDIR /app
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
 
-COPY package*.json ./
-COPY prisma ./prisma/
+COPY backend/package*.json ./
+COPY backend/prisma ./prisma/
 
 RUN npm install --legacy-peer-deps
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY backend/tsconfig.json ./
+COPY backend/src ./src
+COPY shared/ ../shared/
 
 RUN npm run db:generate
 RUN npm run build
@@ -30,7 +31,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
+
 EXPOSE 3001
 
 # Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy && dumb-init node dist/index.js"]
+CMD ["sh", "-c", "npx prisma@5 migrate deploy && dumb-init node dist/index.js"]
