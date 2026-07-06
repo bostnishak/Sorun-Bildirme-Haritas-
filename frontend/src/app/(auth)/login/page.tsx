@@ -136,7 +136,12 @@ export default function LoginPage() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.fieldLabel} htmlFor="login-password">Şifre</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className={styles.fieldLabel} htmlFor="login-password">Şifre</label>
+              <Link href="/forgot-password" style={{ fontSize: '12px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600 }}>
+                Şifremi Unuttum?
+              </Link>
+            </div>
             <div className={styles.inputWrap}>
               <svg className={styles.inputIcon} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>

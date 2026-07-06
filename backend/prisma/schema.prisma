@@ -54,10 +54,17 @@ model User {
   isVerified   Boolean  @default(false) @map("is_verified")
 
   // NVİ doğrulanmış veriler — sadece doğrulama sonrası dolu
-  tcKimlikHash String?  @map("tc_kimlik_hash") @db.VarChar(64) // SHA-256, plaintext saklanmaz
-  firstName    String?  @map("first_name") @db.VarChar(100)
-  lastName     String?  @map("last_name") @db.VarChar(100)
-  birthYear    Int?     @map("birth_year")
+  tcKimlikHash    String?  @unique @map("tc_kimlik_hash") @db.VarChar(64) // SHA-256, plaintext saklanmaz
+  phone           String?  @unique @map("phone") @db.VarChar(20)
+  firstName       String?  @map("first_name") @db.VarChar(100)
+  lastName        String?  @map("last_name") @db.VarChar(100)
+  birthYear       Int?     @map("birth_year")
+
+  // Doğrulama Kodları
+  emailVerifyCode     String?   @map("email_verify_code") @db.VarChar(10)
+  smsVerifyCode       String?   @map("sms_verify_code") @db.VarChar(10)
+  resetPasswordToken  String?   @unique @map("reset_password_token") @db.VarChar(128)
+  resetPasswordExpires DateTime? @map("reset_password_expires")
 
   // Kurum bilgisi (sadece INSTITUTION_OFFICER için dolu)
   institutionId String?      @map("institution_id") @db.Uuid
@@ -90,6 +97,27 @@ model RefreshToken {
   @@index([token])
   @@map("refresh_tokens")
 }
+
+model PendingRegistration {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email           String   @unique @db.VarChar(255)
+  passwordHash    String   @map("password_hash") @db.VarChar(255)
+  tcKimlikHash    String   @map("tc_kimlik_hash") @db.VarChar(64)
+  phone           String?  @map("phone") @db.VarChar(20)
+  firstName       String   @map("first_name") @db.VarChar(100)
+  lastName        String   @map("last_name") @db.VarChar(100)
+  birthYear       Int      @map("birth_year")
+  emailVerifyCode String   @map("email_verify_code") @db.VarChar(10)
+  smsVerifyCode   String   @map("sms_verify_code") @db.VarChar(10)
+  expiresAt       DateTime @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([tcKimlikHash])
+  @@index([phone])
+  @@map("pending_registrations")
+}
+
 
 model Institution {
   id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
