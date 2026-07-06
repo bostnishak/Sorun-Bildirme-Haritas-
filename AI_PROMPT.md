@@ -52,3 +52,15 @@ Biz Git komutlarında yeniyiz ve terminale manuel komut yazıp yapıştırmakla 
 3. Yapay zeka kodları yazacak ve dosyaları güncelleyecek.
 4. İş bitince yapay zeka **senin yerine kodları otomatik commit edip GitHub'a pushlayacak!**
 5. Sana sadece proje liderine **"Kodumu pushladım, inceleyip birleştirebilirsin"** diye haber vermek kalıyor! Hepsi bu kadar! 🎉
+
+---
+
+### 👑 Sadece Proje Lideri (İshak) İçin: Tarayıcısız Tek Tuşla Otomatik Birleştirme (Merge)
+Arkadaşın sana *"Ben `feat/giris-ekrani` dalını pushladım"* dediğinde tarayıcıyı açıp GitHub'a girmene hiç gerek yok! Kendi VS Code / Cursor / Windsurf terminalinde yapay zekana sadece şu emri vermen yeterli:
+> *"Arkadaşımın pushladığı `feat/giris-ekrani` dalını main dalına birleştir ve pushla."*
+
+Yapay zekan senin yerine terminalde şu komutu otomatik çalıştırıp 2 saniyede kodu ana projeye birleştirecektir:
+```bash
+git checkout main && git pull origin main && git fetch origin && git merge origin/feat/giris-ekrani && git push origin main
+```
+Tarayıcı açmak yok, butonlara basmak yok, her şey %100 otomatik ve IDE içinden! 🚀
