@@ -39,7 +39,7 @@ Biz Git komutlarında yeniyiz ve terminale manuel komut yazıp yapıştırmakla 
   Bu dal oluşturulmadan asla dosya değiştirmeye veya kod yazmaya başlama!
 - GÖREV BİTİMİNDE (Tüm kodları yazıp tamamladığında): Yine benden terminale yazı yazmamı isteme! Doğrudan terminal aracını kullanarak kodlarımızı şu komutla otomatik commit et ve pushla:
   `git add . && git commit -m "feat: görev açıklaması" && git push -u origin feat/senin-belirledigin-branch-adi`
-  Bana sadece şunu söyle: "👉 Kodlarını senin yerine Git'e pushladım! Şimdi tarayıcından GitHub repona gir, üstte sarı renkte çıkan 'Compare & pull request' butonuna tıkla ve yeşil 'Create pull request' butonuna bas!"
+  Bana sadece şunu söyle: "👉 Kodlarını senin yerine Git repona pushladım! Senin işin burada tamamlandı. Şimdi proje liderimize (ekip arkadaşına) kodlarının hazır olduğunu ve inceleyip ana projeye birleştirebileceğini haber verebilirsin!"
 
 Şimdi bu kuralları anladığını ve onayladığını belirt. Ardından benden hiçbir terminal komutu beklemeden, ilk iş olarak terminal aracınla benim için branch açma komutunu otomatik çalıştır ve kodlamaya başlayalım.
 ```
@@ -51,4 +51,4 @@ Biz Git komutlarında yeniyiz ve terminale manuel komut yazıp yapıştırmakla 
 2. Yapay zeka **senin yerine terminalde branch açma komutunu otomatik çalıştıracak** (IDE'n izin isterse sadece `Allow` / `Run` butonuna bas).
 3. Yapay zeka kodları yazacak ve dosyaları güncelleyecek.
 4. İş bitince yapay zeka **senin yerine kodları otomatik commit edip GitHub'a pushlayacak!**
-5. Sana sadece GitHub'a girip sarı **"Compare & pull request"** butonuna basmak kalıyor! Hepsi bu kadar! 🎉
+5. Sana sadece proje liderine **"Kodumu pushladım, inceleyip birleştirebilirsin"** diye haber vermek kalıyor! Hepsi bu kadar! 🎉
