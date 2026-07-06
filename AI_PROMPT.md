@@ -32,22 +32,23 @@ Projemiz gizli (private) depoda olduğu için `.env` dosyalarımızı Git üzeri
 4. TEMİZ KOD VE GEREKSİZ SİLME YASAĞI:
 Düzenlediğin dosyalardaki mevcut çalışan mantığı, bana ait olmayan fonksiyonları veya yorum satırlarını durduk yere silme veya refactor etme. Sadece benden istenen özelliği ekle veya ilgili hatayı çöz.
 
-5. OTOMATİK GİT KOMUTLARI REHBERLİĞİ (GÖREV BAŞLANGICI VE BİTİŞİ):
-Biz Git komutlarında (branch açma, pull, push, pull request vb.) yeni olduğumuz için, bize her adımda terminale yapıştıracağımız hazır Git komutlarını sen vereceksin!
-- İLK CEVABINDA: Bana kod vermeden önce, yazdığım göreve uygun kısa bir dal (branch) adı belirle (örn: `feat/harita-filtreleme`) ve terminalime yapıştırmam için şu komut blokunu ver:
+5. OTOMATİK TERMİNAL GİT YÖNETİMİ (GÖREV BAŞLANGICI VE BİTİŞİ):
+Biz Git komutlarında yeniyiz ve terminale manuel komut yazıp yapıştırmakla uğraşmak istemiyoruz! Sen bir IDE Yapay Zeka Asistanısın (Cursor, Windsurf, Antigravity, Copilot vb.) ve terminal komutlarını doğrudan çalıştırma / önerme yetkine (terminal execution / run_command aracı) sahipsin.
+- GÖREVE BAŞLARKEN (İLK İŞ OLARAK): Benden terminale komut kopyalayıp yapıştırmamı ASLA İSTEME! Yazdığım göreve uygun kısa bir dal adı belirle (örn: `feat/kurum-logini`) ve doğrudan kendi terminal aracını kullanarak (veya IDE'de tek tuşla onaylayacağım şekilde) şu komutu otomatik çalıştır:
   `git checkout main && git pull origin main && git checkout -b feat/senin-belirledigin-branch-adi`
-- GÖREV BİTİMİNDE (Tüm kodları yazıp tamamladıktan sonra): Bana terminale yapıştırıp kodumu GitHub'a göndermem için şu hazır komut blokunu ver:
+  Bu dal oluşturulmadan asla dosya değiştirmeye veya kod yazmaya başlama!
+- GÖREV BİTİMİNDE (Tüm kodları yazıp tamamladığında): Yine benden terminale yazı yazmamı isteme! Doğrudan terminal aracını kullanarak kodlarımızı şu komutla otomatik commit et ve pushla:
   `git add . && git commit -m "feat: görev açıklaması" && git push -u origin feat/senin-belirledigin-branch-adi`
-  Ve hemen altında 1 cümleyle şunu hatırlat: "👉 Şimdi tarayıcından GitHub repona gir, üstte sarı renkte çıkan 'Compare & pull request' butonuna tıkla ve yeşil 'Create pull request' butonuna basarak kodunu ana projeye eklenmek üzere hazırla!"
+  Bana sadece şunu söyle: "👉 Kodlarını senin yerine Git'e pushladım! Şimdi tarayıcından GitHub repona gir, üstte sarı renkte çıkan 'Compare & pull request' butonuna tıkla ve yeşil 'Create pull request' butonuna bas!"
 
-Şimdi bu kuralları anladığını ve onayladığını belirt. Ardından ilk iş olarak yukarıda belirttiğim görevim için bana terminalde çalıştıracağım ilk Git komutumu ver ve kodlamaya başlayalım.
+Şimdi bu kuralları anladığını ve onayladığını belirt. Ardından benden hiçbir terminal komutu beklemeden, ilk iş olarak terminal aracınla benim için branch açma komutunu otomatik çalıştır ve kodlamaya başlayalım.
 ```
 
 ---
 
-### 💡 Size Kalan Tek İş (Çok Basit!):
+### 💡 Size Kalan Tek İş (Sıfır Efor!):
 1. Bu dosyadaki metni kopyala ve yapay zekaya yapıştır, `[BURAYA GÜNLÜK GÖREVİNİ YAZ]` kısmını doldur.
-2. Yapay zeka sana **"Önce terminale şunu yapıştırıp branch aç"** diye bir komut verecek, onu terminale yapıştır.
-3. Yapay zekanın verdiği kodları projenize ekleyin.
-4. İş bitince yapay zeka sana **"Şimdi kodu göndermek için şunu yapıştır"** diye komut verecek, onu yapıştır.
-5. GitHub'a girip sarı **"Compare & pull request"** butonuna bas! Hepsi bu kadar! 🎉
+2. Yapay zeka **senin yerine terminalde branch açma komutunu otomatik çalıştıracak** (IDE'n izin isterse sadece `Allow` / `Run` butonuna bas).
+3. Yapay zeka kodları yazacak ve dosyaları güncelleyecek.
+4. İş bitince yapay zeka **senin yerine kodları otomatik commit edip GitHub'a pushlayacak!**
+5. Sana sadece GitHub'a girip sarı **"Compare & pull request"** butonuna basmak kalıyor! Hepsi bu kadar! 🎉
