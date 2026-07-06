@@ -22,7 +22,7 @@ import { dailyReportCron } from './schedulers/dailyReport.cron';
 import { ensureBucketExists } from '../services/storage.service';
 
 async function main() {
-  logger.info('🚀 Etiya Project Worker başlatılıyor...');
+  logger.info('🚀 ChaosMind Worker başlatılıyor...');
 
   // MinIO bucket hazırlığı
   await ensureBucketExists();

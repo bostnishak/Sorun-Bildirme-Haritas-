@@ -212,9 +212,3 @@ export async function upvoteIssue(req: Request, res: Response): Promise<void> {
   const upvote = await issuesService.upvote(req.params.id, req.user.sub);
   res.status(200).json({ success: true, message: 'Sorun desteklendi.', data: upvote });
 }
-
-export async function getStats(_req: Request, res: Response): Promise<void> {
-  const { adminService } = await import('../admin/admin.service');
-  const stats = await adminService.getStats('CITIZEN'); // Kurum kısıtlaması yok
-  res.status(200).json(stats); // StatsBar beklentisine uygun olarak data sarmalamadan doğrudan obje dönüyoruz
-}

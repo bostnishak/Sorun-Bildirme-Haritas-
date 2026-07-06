@@ -1,4 +1,4 @@
-# 🗺️ Etiya Project — Türkiye Sorun Bildirim Haritası
+﻿# 🗺️ ChaosMind — Türkiye Sorun Bildirim Haritası
 
 > **Vatandaşların şehir sorunlarını anlık olarak bildirebildiği, yetkili kurumların bu sorunları sistematik şekilde yönettiği ve çözüm sürecinin şeffaf biçimde takip edilebildiği merkezi dijital platform.**
 
@@ -6,7 +6,7 @@
 
 ## 📌 Proje Hakkında
 
-Etiya Project, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur.
+ChaosMind, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur.
 
 ### 🎯 Rol Yapısı
 
@@ -211,7 +211,7 @@ npm run dev        # Next.js — port 3000
 | LLM İçerik Denetimi | GPT-4o-mini ile sahte/uygunsuz içerik filtreleme |
 | EXIF Doğrulama | Konum sapması >= 5 km ise işaretlenir |
 | Görsel Gizlilik | Google Vision ile yüz + plaka bulanıklaştırma |
-| Webhook HMAC | X-Etiya-Signature: sha256=<hmac> |
+| Webhook HMAC | X-ChaosMind-Signature: sha256=<hmac> |
 | HTTPS Only | Nginx TLS 1.2+; HTTP -> HTTPS redirect |
 | PostGIS Yetki | Kurum yetkilisi sadece kendi poligonundaki sorunları görür |
 

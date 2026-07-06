@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import { redis } from '../../config/redis';
 import { blurSensitiveContent } from '../../services/vision.service';
 import { uploadImage, deleteObject, minio } from '../../services/storage.service';
+import { analyzeImageContent } from '../../services/llm.service';
 import { env } from '../../config/env';
 import { prisma } from '../../config/database';
 import { logger } from '../../utils/logger';
@@ -36,6 +37,11 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
     // MinIO'dan geçici görsel indir
     const buffer = await downloadFromMinio(tempImageKey);
 
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) {
+      throw new Error(`Issue not found: ${issueId}`);
+    }
+
     // Google Vision AI ile hassas içerik blur'u
     const blurResult = await blurSensitiveContent(buffer);
 
@@ -45,6 +51,24 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
       platesFound: blurResult.platesFound,
       wasModified: blurResult.wasModified,
     });
+
+    // OpenAI Vision AI ile görsel doğrulama
+    // Gizlilik için blur edilmiş versiyonu gönderiyoruz
+    const aiAnalysis = await analyzeImageContent(
+      blurResult.buffer,
+      job.data.mimeType,
+      issue.title,
+      issue.description,
+      issue.category
+    );
+
+    const newStatus = aiAnalysis.valid ? 'OPEN' : 'REJECTED';
+    
+    if (aiAnalysis.valid) {
+      logger.info(`[ImageWorker] AI görseli ONAYLADI -> OPEN`);
+    } else {
+      logger.warn(`[ImageWorker] AI görseli REDDETTİ -> REJECTED`, { reason: aiAnalysis.reason });
+    }
 
     // İşlenmiş görsel kalıcı konuma yükle
     const { key, url } = await uploadImage(blurResult.buffer, 'image/webp');
@@ -57,10 +81,15 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
         imageUrl: url,
         imageBlurred: blurResult.wasModified,
         imageProcessed: true,
+        status: newStatus,
+        llmGuardPassed: issue.llmGuardPassed && aiAnalysis.valid,
+        llmGuardReason: aiAnalysis.reason,
       },
     });
 
-    // Geçici MinIO dosyasını sil
+    // (Eğer WebSocket Socket.IO entegrasyonu varsa, burada bildirim emit edilebilir)
+    // const io = getSocket(); io.emit('issue-updated', updatedIssue);
+
     await deleteObject(tempImageKey);
     logger.debug(`[ImageWorker] Geçici dosya silindi: ${tempImageKey}`);
 

@@ -44,19 +44,19 @@ interface FormData {
   city: string;
   district: string;
   address: string;
-  street: string;
-  buildingNo: string;
 }
 
 export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const { isAuthenticated } = useAppStore();
   const [formData, setFormData] = useState<FormData>({
-    title: '', description: '', category: '', city: 'Ankara', district: 'Çankaya', address: '', street: '', buildingNo: ''
+    title: '', description: '', category: '', city: 'Ankara', district: 'Çankaya', address: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [locationLoading, setLocationLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const districts = formData.city ? (TR_CITIES_DISTRICTS[formData.city] || []) : [];
 
@@ -73,6 +73,18 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setErrors(prev => ({ ...prev, image: '' }));
+      
+      // Attempt to get location automatically if not yet set
+      if (!coords) getLocation();
+    }
+  };
+
   const getLocation = async () => {
     if (!navigator.geolocation) {
       toast.error('Tarayıcınız konum özelliğini desteklemiyor.');
@@ -80,40 +92,10 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     }
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setCoords({ lat, lng });
-        
-        try {
-          // OpenStreetMap Nominatim ile koordinattan adres çözme (Reverse Geocoding)
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=tr`);
-          const data = await res.json();
-          if (data && data.address) {
-            const addr = data.address;
-            const city = addr.province || addr.state || addr.city || '';
-            const district = addr.town || addr.district || addr.county || '';
-            const street = addr.road || addr.pedestrian || '';
-            const buildingNo = addr.house_number || '';
-            const neighborhood = addr.neighbourhood || addr.suburb || data.display_name;
-            
-            setFormData(prev => ({
-              ...prev,
-              city: city || prev.city,
-              district: district || prev.district,
-              address: neighborhood || prev.address,
-              street: street || prev.street,
-              buildingNo: buildingNo || prev.buildingNo
-            }));
-            toast.success('Konumunuz ve detaylı adresiniz başarıyla alındı ✓');
-          } else {
-            toast.success('Konum alındı ancak adres tam çözülemedi.');
-          }
-        } catch (e) {
-          toast.success('Konum alındı ✓ (Adres servisine ulaşılamadı)');
-        }
-        
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocationLoading(false);
+        toast.success('Konumunuz alındı ✓');
       },
       () => {
         setLocationLoading(false);
@@ -132,7 +114,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+    const newErrors: Partial<FormData & { image?: string }> = {};
     const title = formData.title.trim();
     const desc = formData.description.trim();
 
@@ -155,6 +137,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     if (!formData.category) newErrors.category = 'Sorun türü seçiniz.';
     if (!formData.city) newErrors.city = 'Şehir seçiniz.';
     if (!formData.district) newErrors.district = 'İlçe seçiniz.';
+    if (!imageFile) newErrors.image = 'Anlık doğrulama için fotoğraf yüklemek zorunludur.';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -191,25 +174,19 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       }
       data.append('city', formData.city);
       data.append('district', formData.district);
-      
-      let fullAddress = formData.address;
-      if (formData.street) fullAddress += `, ${formData.street}`;
-      if (formData.buildingNo) fullAddress += ` No: ${formData.buildingNo}`;
-      
-      if (fullAddress) data.append('address', sanitizeInput(fullAddress));
+      if (formData.address) data.append('address', sanitizeInput(formData.address));
+      if (imageFile) data.append('image', imageFile);
 
       await api.post('/issues', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       localStorage.setItem('last_issue_submit_time', String(Date.now()));
-      toast.success('Sorun bildirimi başarıyla alındı! 🎉', { id: toastId });
+      toast.success('Sorun bildirimi Yapay Zeka incelemesine alındı! 🎉', { id: toastId });
       onClose();
-    } catch {
-      // Demo mode — show success anyway
-      localStorage.setItem('last_issue_submit_time', String(Date.now()));
-      toast.success('Demo: Sorun bildirimi güvenli olarak kaydedildi! 🎉', { id: toastId });
-      onClose();
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Bildirim gönderilirken bir hata oluştu.';
+      toast.error(errorMsg, { id: toastId, duration: 5000 });
     } finally {
       setIsSubmitting(false);
     }
@@ -260,9 +237,9 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
           <div className={styles.field}>
             <label htmlFor="issue-category">Sorun Türü</label>
             <div className={styles.categorySelectWrap}>
-              {SelectedCatIcon && (
-                <span className={styles.categoryDot} style={{ color: selectedColor || '#64748b' }}>
-                  <SelectedCatIcon size={16} />
+              {selectedCategory && (
+                <span className={styles.categoryDot} style={{ color: selectedCategory.color }}>
+                  {selectedCategory.label.split(' ')[0]}
                 </span>
               )}
               <select
@@ -301,15 +278,39 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             {errors.description && <p className={styles.error}>{errors.description}</p>}
           </div>
 
+          {/* Image Upload */}
+          <div className={styles.field}>
+            <label>Fotoğraf (Zorunlu)</label>
+            <div className={`${styles.imageUploadBox} ${errors.image ? 'input-error' : ''}`}>
+              {imagePreview ? (
+                <div className={styles.imagePreviewWrap}>
+                  <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
+                  <button type="button" className={styles.removeImageBtn} onClick={() => { setImageFile(null); setImagePreview(null); }}>
+                    <IconX size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className={styles.uploadLabel}>
+                  <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className={styles.fileInput} />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <span>Anlık fotoğraf çekin veya seçin</span>
+                </label>
+              )}
+            </div>
+            {errors.image && <p className={styles.error}>{errors.image}</p>}
+          </div>
+
           {/* Address with GPS */}
           <div className={styles.field}>
-            <label htmlFor="issue-address">Mahalle / Detaylı Adres</label>
+            <label htmlFor="issue-address">Adres</label>
             <div className={styles.addressRow}>
               <input
                 id="issue-address"
                 name="address"
                 className="input"
-                placeholder="Yavuz Selim Mahallesi vb."
+                placeholder="Atatürk Cd. No:45, 06570 Çankaya/Ankara"
                 value={formData.address}
                 onChange={handleChange}
               />
@@ -334,32 +335,9 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Street & Building No */}
-          <div className={styles.locationRow}>
-            <div className={styles.field} style={{ flex: 2 }}>
-              <label htmlFor="issue-street">Sokak / Cadde</label>
-              <input
-                id="issue-street"
-                name="street"
-                className="input"
-                placeholder="Atatürk Cd."
-                value={formData.street}
-                onChange={handleChange}
-              />
-            </div>
-            <div className={styles.field} style={{ flex: 1 }}>
-              <label htmlFor="issue-buildingNo">Kapı No</label>
-              <input
-                id="issue-buildingNo"
-                name="buildingNo"
-                className="input"
-                placeholder="45"
-                value={formData.buildingNo}
-                onChange={handleChange}
-              />
-            </div>
+            {!coords && <p className={styles.hint} style={{ marginTop: '4px', fontSize: '11px', color: '#fbbf24' }}>
+              Yapay Zeka onayı için GPS konumunuzu almanız önerilir.
+            </p>}
           </div>
 
           {/* City + District */}
@@ -396,6 +374,11 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Hint */}
+          <p className={styles.hint}>
+            Yeni bir sorun ekliyorsanız <strong>Kaydet</strong>'e, düzenleme yapıyorsanız <strong>Güncelle</strong>'ye tıklayın.
+          </p>
+
           {/* Submit */}
           <div className={styles.actions}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>
@@ -406,9 +389,15 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               id="btn-submit-issue"
               className="btn btn-primary"
               disabled={isSubmitting}
-              style={{ padding: '0.6rem 2rem' }}
             >
-              {isSubmitting ? '⏳ Gönderiliyor...' : 'Sorunu Bildir'}
+              {isSubmitting ? '⏳ Kaydediliyor...' : 'Kaydet'}
+            </button>
+            <button
+              type="button"
+              className={styles.updateBtn}
+              disabled={isSubmitting}
+            >
+              Güncelle
             </button>
           </div>
         </form>

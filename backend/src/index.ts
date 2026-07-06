@@ -143,21 +143,18 @@ import { createServer } from 'http';
 import { initSocket } from './config/socket';
 
 async function bootstrap() {
-  console.log('bootstrap started');
   // MinIO bucket
   try {
-    console.log('calling ensureBucketExists');
     await ensureBucketExists();
-    console.log('ensureBucketExists finished');
   } catch (err) {
-    console.log('ensureBucketExists failed', err);
+    logger.warn('⚠️ MinIO bucket oluşturulamadı, MinIO servisi ayakta olmayabilir.', err);
   }
 
   const httpServer = createServer(app);
   initSocket(httpServer);
 
   const server = httpServer.listen(env.PORT, () => {
-    logger.info(`🚀 Etiya Project API başlatıldı: http://localhost:${env.PORT}`);
+    logger.info(`🚀 ChaosMind API başlatıldı: http://localhost:${env.PORT}`);
     logger.info(`📍 Ortam: ${env.NODE_ENV}`);
     logger.info('🔌 Socket.io aktif.');
   });

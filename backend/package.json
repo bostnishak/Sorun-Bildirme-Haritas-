@@ -1,7 +1,7 @@
 {
-  "name": "etiya-project-backend",
+  "name": "chaosmap-backend",
   "version": "1.0.0",
-  "description": "Etiya Project - Türkiye Sorun Bildirim Haritası Backend API",
+  "description": "ChaosMind - Türkiye Sorun Bildirim Haritası Backend API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

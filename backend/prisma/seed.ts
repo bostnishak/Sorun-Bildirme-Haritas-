@@ -1,4 +1,4 @@
-import { PrismaClient, Category, IssueStatus, Priority } from '@prisma/client';
+import { PrismaClient, IssueCategory, IssueStatus, Priority } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -23,12 +23,14 @@ async function main() {
   const hashedPassword = await bcrypt.hash('123456', 10);
   const user = await prisma.user.create({
     data: {
-      tcKimlikHash: '11111111111',
+      tcKimlik: '11111111111',
       firstName: 'Ahmet',
       lastName: 'Yılmaz',
       email: 'ahmet@example.com',
       passwordHash: hashedPassword,
+      phone: '5551112233',
       role: 'CITIZEN',
+      isVerified: true,
     },
   });
 
@@ -39,20 +41,20 @@ async function main() {
     {
       title: 'Tarihi Yarımada Kaldırım Taşı Kırık',
       description: 'Eminönü Mısır Çarşısı girişinde yaya trafiğini engelleyen kırık kaldırım taşları var. Yağmurlu günlerde su sıçratıyor.',
-      category: Category.TRANSPORTATION,
+      category: IssueCategory.TRANSPORTATION,
       status: IssueStatus.OPEN,
       priority: Priority.MEDIUM,
       city: 'İstanbul',
       district: 'Fatih',
       address: 'Rüstem Paşa, Erzak Ambarı Sok. No:1, 34116 Fatih/İstanbul',
-      lat: 41.0165,
-      lng: 28.9705,
+      lat: 41.0200,
+      lng: 28.9496,
       reportedById: user.id,
     },
     {
       title: 'Kadıköy Meydanı Çöp Birikintisi',
       description: 'Boğa Heykeli etrafındaki çöp kutuları tamamen dolmuş ve çöpler yollara taşmış durumda. Kötü bir koku yayılıyor.',
-      category: Category.ENVIRONMENT,
+      category: IssueCategory.ENVIRONMENT,
       status: IssueStatus.IN_REVIEW,
       priority: Priority.HIGH,
       city: 'İstanbul',
@@ -65,7 +67,7 @@ async function main() {
     {
       title: 'Beşiktaş Sahili Aydınlatma Direği Arızalı',
       description: 'Dolmabahçe Sarayı önündeki sahil yolunda art arda 3 adet aydınlatma direği yanmıyor. Gece yürüyüşleri için tehlikeli karanlık oluşuyor.',
-      category: Category.LIGHTING,
+      category: IssueCategory.LIGHTING,
       status: IssueStatus.OPEN,
       priority: Priority.HIGH,
       city: 'İstanbul',
@@ -80,9 +82,9 @@ async function main() {
     {
       title: 'Dikmen Vadisi Şebeke Suyu Patlağı',
       description: 'Vadi girişinde şebeke borusu patlamış, su boşa akıyor. Yaklaşık 2 saattir devam ediyor, yolda göllenme oldu.',
-      category: Category.WATER_SANITATION,
+      category: IssueCategory.WATER_SANITATION,
       status: IssueStatus.OPEN,
-      priority: Priority.CRITICAL,
+      priority: Priority.URGENT,
       city: 'Ankara',
       district: 'Çankaya',
       address: 'Dikmen Vadisi, Çankaya/Ankara',
@@ -93,7 +95,7 @@ async function main() {
     {
       title: 'Kızılay Meydanı Asfalt Çökmesi',
       description: 'Güvenpark otobüs durakları önünde asfaltta derin bir çukur oluşmuş, araçların altı vuruyor.',
-      category: Category.TRANSPORTATION,
+      category: IssueCategory.TRANSPORTATION,
       status: IssueStatus.RESOLVED,
       priority: Priority.HIGH,
       city: 'Ankara',
@@ -108,7 +110,7 @@ async function main() {
     {
       title: 'Karşıyaka Sahil Ağaç Budama Talebi',
       description: 'Sahildeki palmiye ağaçlarının kuru yaprakları fırtınada yaya yoluna düşüyor, tehlike arz ediyor.',
-      category: Category.PARKS,
+      category: IssueCategory.PARK_GARDEN,
       status: IssueStatus.OPEN,
       priority: Priority.LOW,
       city: 'İzmir',
@@ -121,9 +123,9 @@ async function main() {
     {
       title: 'Alsancak Sevgi Yolu Elektrik Panosu Kapağı Açık',
       description: 'Yol üzerindeki ana elektrik panosunun kapağı kırılmış ve kablolar dışarıda duruyor. Çocuklar için büyük risk.',
-      category: Category.INFRASTRUCTURE,
+      category: IssueCategory.INFRASTRUCTURE,
       status: IssueStatus.IN_REVIEW,
-      priority: Priority.CRITICAL,
+      priority: Priority.URGENT,
       city: 'İzmir',
       district: 'Konak',
       address: 'Kültür, Sevgi Yolu, 35220 Konak/İzmir',
@@ -136,9 +138,9 @@ async function main() {
     {
       title: 'Konyaaltı Plaj Yolu Kanalizasyon Taşması',
       description: 'Yağmur sonrası logar kapağı taşmış durumda, etrafa lağım suları ve kötü koku yayılıyor.',
-      category: Category.WATER_SANITATION,
+      category: IssueCategory.WATER_SANITATION,
       status: IssueStatus.OPEN,
-      priority: Priority.CRITICAL,
+      priority: Priority.URGENT,
       city: 'Antalya',
       district: 'Konyaaltı',
       address: 'Kuşkavağı, Akdeniz Blv, Konyaaltı/Antalya',
@@ -149,7 +151,7 @@ async function main() {
     {
       title: 'Lara Düden Şelalesi Yürüyüş Yolu Korkuluk Hasarı',
       description: 'Seyir terasındaki ahşap korkuluklardan birkaçı kırılmış, uçurum kenarında güvenlik zafiyeti yaratıyor.',
-      category: Category.SECURITY,
+      category: IssueCategory.SECURITY,
       status: IssueStatus.OPEN,
       priority: Priority.HIGH,
       city: 'Antalya',
@@ -164,7 +166,7 @@ async function main() {
     {
       title: 'Ulu Cami Çevresi Dilenci Sorunu',
       description: 'Cami çıkışında organize dilencilik yapan gruplar turistleri rahatsız ediyor.',
-      category: Category.SECURITY,
+      category: IssueCategory.SECURITY,
       status: IssueStatus.OPEN,
       priority: Priority.MEDIUM,
       city: 'Bursa',
@@ -177,7 +179,7 @@ async function main() {
     {
       title: 'Teleferik İstasyonu Çöp Konteyneri Yetersizliği',
       description: 'Hafta sonu yoğunluğunda mevcut çöp kutuları yetmiyor, çöpler doğaya yayılıyor.',
-      category: Category.ENVIRONMENT,
+      category: IssueCategory.ENVIRONMENT,
       status: IssueStatus.IN_REVIEW,
       priority: Priority.MEDIUM,
       city: 'Bursa',
@@ -192,7 +194,7 @@ async function main() {
     {
       title: 'Seyhan Baraj Gölü Kenarında Kaçak Moloz Dökümü',
       description: 'Gece saatlerinde kamyonlar göl kenarındaki boş araziye inşaat molozu döküyor. Çevre kirliliğine neden oluyor.',
-      category: Category.ENVIRONMENT,
+      category: IssueCategory.ENVIRONMENT,
       status: IssueStatus.OPEN,
       priority: Priority.HIGH,
       city: 'Adana',
@@ -205,9 +207,9 @@ async function main() {
     {
       title: 'Optimum AVM Önü Trafik Lambası Arızası',
       description: 'D-400 karayolu üzerindeki yaya geçidi lambaları yanmıyor, araçlar çok hızlı geçiyor ve yayalar karşıya geçemiyor.',
-      category: Category.TRANSPORTATION,
+      category: IssueCategory.TRANSPORTATION,
       status: IssueStatus.IN_REVIEW,
-      priority: Priority.CRITICAL,
+      priority: Priority.URGENT,
       city: 'Adana',
       district: 'Yüreğir',
       address: 'Sinanpaşa, D-400 Karayolu, Yüreğir/Adana',
@@ -220,7 +222,7 @@ async function main() {
     {
       title: 'Surlar Çevresinde Aşırı Otlanma',
       description: 'Tarihi surların dibinde yabani otlar çok uzamış durumda, hem görüntü kirliliği yaratıyor hem de yangın riski taşıyor.',
-      category: Category.PARKS,
+      category: IssueCategory.PARK_GARDEN,
       status: IssueStatus.OPEN,
       priority: Priority.MEDIUM,
       city: 'Diyarbakır',
@@ -233,28 +235,9 @@ async function main() {
   ];
 
   for (const issue of issues) {
-    await prisma.$executeRaw`
-      INSERT INTO issues (
-        title, description, category, priority, status, 
-        latitude, longitude, city, district, address, 
-        location, reported_by_id, ip_address, updated_at
-      ) VALUES (
-        ${issue.title}, 
-        ${issue.description}, 
-        ${issue.category}::"Category", 
-        ${issue.priority}::"Priority", 
-        ${issue.status}::"IssueStatus", 
-        ${issue.lat}, 
-        ${issue.lng}, 
-        ${issue.city}, 
-        ${issue.district}, 
-        ${issue.address}, 
-        ST_SetSRID(ST_MakePoint(${issue.lng}, ${issue.lat}), 4326), 
-        ${issue.reportedById}::uuid, 
-        '127.0.0.1',
-        NOW()
-      )
-    `;
+    await prisma.issue.create({
+      data: issue,
+    });
   }
 
   console.log(`${issues.length} adet gerçekçi sorun başarıyla eklendi!`);

@@ -16,8 +16,6 @@ services:
     image: postgis/postgis:16-3.4
     container_name: chaosmap-db
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: chaosmap
       POSTGRES_USER: ${DB_USER}
@@ -27,7 +25,7 @@ services:
     networks:
       - chaosmap-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d chaosmap"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d chaosmap" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,21 +37,19 @@ services:
     container_name: chaosmap-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
       - chaosmap-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
 
   # ─── OBJECT STORAGE ──────────────────────────────────────────────────────────
   minio:
-    image: minio/minio:latest  # Sabit versiyon — latest kullanılmıyor
+    image: minio/minio:latest # Sabit versiyon — latest kullanılmıyor
     container_name: chaosmap-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -63,12 +59,12 @@ services:
     volumes:
       - minio-data:/data
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # MinIO Console
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console
     networks:
       - chaosmap-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -77,8 +73,8 @@ services:
   # ─── BACKEND API ───────────────────────────────────────────────────────────
   backend:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       target: production
     container_name: chaosmap-api
     restart: unless-stopped
@@ -120,8 +116,8 @@ services:
   # ─── BACKGROUND WORKER ─────────────────────────────────────────────────────
   worker:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile.worker
+      context: ./backend
+      dockerfile: Dockerfile.worker
       target: production
     container_name: chaosmap-worker
     restart: unless-stopped
@@ -155,8 +151,8 @@ services:
   # ─── FRONTEND ──────────────────────────────────────────────────────────────
   frontend:
     build:
-      context: .
-      dockerfile: ./frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
       target: production
     container_name: chaosmap-web
     restart: unless-stopped

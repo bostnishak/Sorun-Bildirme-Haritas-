@@ -12,7 +12,7 @@ export const notificationWorker = new Worker(
 
     try {
       const info = await transporter.sendMail({
-        from: `"Etiya Project Bildirim" <${env.SMTP_USER}>`,
+        from: `"ChaosMind Bildirim" <${env.SMTP_USER}>`,
         to: email,
         subject,
         text,

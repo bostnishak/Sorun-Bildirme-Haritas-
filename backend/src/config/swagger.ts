@@ -1,10 +1,7 @@
-import { OpenApiGeneratorV3, OpenAPIRegistry, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
 import { env } from './env';
-import { z } from 'zod';
-
-extendZodWithOpenApi(z);
 
 export const registry = new OpenAPIRegistry();
 
@@ -26,7 +23,7 @@ export function generateOpenApiDocument() {
     openapi: '3.0.0',
     info: {
       version: '1.0.0',
-      title: 'Etiya Project API',
+      title: 'ChaosMind API',
       description: 'Türkiye Sorun Bildirim Haritası REST API Dokümantasyonu',
     },
     servers: [{ url: `/api/v1` }],
@@ -38,7 +35,7 @@ export function setupSwagger(app: Express) {
   const document = generateOpenApiDocument();
 
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(document, {
-    customSiteTitle: 'Etiya Project API Docs',
+    customSiteTitle: 'ChaosMind API Docs',
     swaggerOptions: {
       persistAuthorization: true,
     },

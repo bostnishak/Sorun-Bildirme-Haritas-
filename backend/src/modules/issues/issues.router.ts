@@ -12,9 +12,6 @@ router.get('/map-cluster', issuesController.getClusteredIssues);
 // GET /api/v1/issues — Public (tablo görünümü)
 router.get('/', issuesController.listIssues);
 
-// GET /api/v1/issues/stats — Public (sistem geneli istatistikler)
-router.get('/stats', issuesController.getStats);
-
 // GET /api/v1/issues/:id — Public (sorun detayı)
 router.get('/:id', issuesController.getIssue);
 

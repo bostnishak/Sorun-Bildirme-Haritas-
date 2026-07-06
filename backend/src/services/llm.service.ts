@@ -83,3 +83,59 @@ export async function guardContent(
     return { valid: true, reason: 'LLM servis hatası — atlandı' };
   }
 }
+
+const VISION_SYSTEM_PROMPT = `Sen Türkiye'deki bir belediye sorun bildirimi platformunun görsel denetçisisin.
+Görevin: Kullanıcının yüklediği fotoğrafın, bildirdiği sorun (başlık, açıklama ve kategori) ile eşleşip eşleşmediğini ve gerçekten bir belediye/altyapı/çevre sorunu içerip içermediğini kontrol etmek.
+Eğer fotoğraf tamamen alakasızsa (örneğin selfie, ev içi fotoğrafı, ekran görüntüsü, rastgele manzara) veya belirtilen sorunla hiçbir ilgisi yoksa reddet.
+Yanıtını SADECE JSON formatında ver: {"valid": true/false, "reason": "kısa açıklama (max 100 karakter)"}`;
+
+/**
+ * OpenAI Vision ile fotoğraf analizi yapar
+ */
+export async function analyzeImageContent(
+  imageBuffer: Buffer,
+  mimeType: string,
+  title: string,
+  description: string,
+  category: string
+): Promise<LLMGuardResult> {
+  const base64Image = imageBuffer.toString('base64');
+  const userMessage = `Bildirilen Kategori: ${category}\nBaşlık: "${title}"\nAçıklama: "${description}"\nLütfen bu bilgilerin ekteki görselle uyuşup uyuşmadığını kontrol et.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: VISION_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userMessage },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'low' } }
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+      max_tokens: 150,
+    }, { timeout: 15000 });
+
+    const rawContent = response.choices[0]?.message?.content;
+    if (!rawContent) {
+      throw new Error('Boş Vision LLM yanıtı');
+    }
+
+    const result: LLMGuardResult = JSON.parse(rawContent);
+    
+    if (!result.valid) {
+      logger.info('Vision AI: görsel reddedildi', { reason: result.reason, title });
+    } else {
+      logger.info('Vision AI: görsel onaylandı', { title });
+    }
+
+    return result;
+  } catch (err) {
+    logger.error('Vision AI hatası — atlandı', { error: String(err) });
+    return { valid: true, reason: 'Görsel analiz servis hatası — atlandı' };
+  }
+}

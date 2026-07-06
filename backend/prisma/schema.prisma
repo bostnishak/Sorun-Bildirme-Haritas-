@@ -21,13 +21,13 @@ enum Role {
 }
 
 enum Category {
-  WATER_SANITATION   // Su ve Kanalizasyon
-  TRANSPORTATION     // Yol / Ulaşım
-  ENVIRONMENT        // Çevre ve Temizlik
-  INFRASTRUCTURE     // Altyapı
-  SECURITY           // Güvenlik
-  LIGHTING           // Aydınlatma
-  PARKS              // Park ve Yeşil Alan
+  WATER_SANITATION // Su ve Kanalizasyon
+  TRANSPORTATION // Yol / Ulaşım
+  ENVIRONMENT // Çevre ve Temizlik
+  INFRASTRUCTURE // Altyapı
+  SECURITY // Güvenlik
+  LIGHTING // Aydınlatma
+  PARKS // Park ve Yeşil Alan
 }
 
 enum Priority {
@@ -47,24 +47,17 @@ enum IssueStatus {
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  role         Role     @default(CITIZEN)
-  isVerified   Boolean  @default(false) @map("is_verified")
+  id           String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String  @unique @db.VarChar(255)
+  passwordHash String  @map("password_hash") @db.VarChar(255)
+  role         Role    @default(CITIZEN)
+  isVerified   Boolean @default(false) @map("is_verified")
 
   // NVİ doğrulanmış veriler — sadece doğrulama sonrası dolu
-  tcKimlikHash    String?  @unique @map("tc_kimlik_hash") @db.VarChar(64) // SHA-256, plaintext saklanmaz
-  phone           String?  @unique @map("phone") @db.VarChar(20)
-  firstName       String?  @map("first_name") @db.VarChar(100)
-  lastName        String?  @map("last_name") @db.VarChar(100)
-  birthYear       Int?     @map("birth_year")
-
-  // Doğrulama Kodları
-  emailVerifyCode     String?   @map("email_verify_code") @db.VarChar(10)
-  smsVerifyCode       String?   @map("sms_verify_code") @db.VarChar(10)
-  resetPasswordToken  String?   @unique @map("reset_password_token") @db.VarChar(128)
-  resetPasswordExpires DateTime? @map("reset_password_expires")
+  tcKimlikHash String? @map("tc_kimlik_hash") @db.VarChar(64) // SHA-256, plaintext saklanmaz
+  firstName    String? @map("first_name") @db.VarChar(100)
+  lastName     String? @map("last_name") @db.VarChar(100)
+  birthYear    Int?    @map("birth_year")
 
   // Kurum bilgisi (sadece INSTITUTION_OFFICER için dolu)
   institutionId String?      @map("institution_id") @db.Uuid
@@ -74,11 +67,11 @@ model User {
   refreshTokens RefreshToken[]
 
   // İlişkiler
-  issues        Issue[]
-  upvotes       IssueUpvote[]
+  issues  Issue[]
+  upvotes IssueUpvote[]
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([email])
   @@index([institutionId])
@@ -98,44 +91,23 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-model PendingRegistration {
-  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email           String   @unique @db.VarChar(255)
-  passwordHash    String   @map("password_hash") @db.VarChar(255)
-  tcKimlikHash    String   @map("tc_kimlik_hash") @db.VarChar(64)
-  phone           String?  @map("phone") @db.VarChar(20)
-  firstName       String   @map("first_name") @db.VarChar(100)
-  lastName        String   @map("last_name") @db.VarChar(100)
-  birthYear       Int      @map("birth_year")
-  emailVerifyCode String   @map("email_verify_code") @db.VarChar(10)
-  smsVerifyCode   String   @map("sms_verify_code") @db.VarChar(10)
-  expiresAt       DateTime @map("expires_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  @@index([email])
-  @@index([tcKimlikHash])
-  @@index([phone])
-  @@map("pending_registrations")
-}
-
-
 model Institution {
-  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name         String   @db.VarChar(255)
-  city         String   @db.VarChar(100)
-  district     String   @db.VarChar(100)
-  webhookUrl   String?  @map("webhook_url") @db.VarChar(500)
-  emailAddress String   @map("email_address") @db.VarChar(255)
-  isActive     Boolean  @default(true) @map("is_active")
+  id           String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String  @db.VarChar(255)
+  city         String  @db.VarChar(100)
+  district     String  @db.VarChar(100)
+  webhookUrl   String? @map("webhook_url") @db.VarChar(500)
+  emailAddress String  @map("email_address") @db.VarChar(255)
+  isActive     Boolean @default(true) @map("is_active")
 
   // PostGIS MULTIPOLYGON — kurumun sorumlu bölge sınırı
   // Prisma PostGIS Unsupported tipi için raw SQL ile yönetilir
-  boundary     Unsupported("geometry(MULTIPOLYGON, 4326)")?
+  boundary Unsupported("geometry(MULTIPOLYGON, 4326)")?
 
-  users        User[]
+  users User[]
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([city, district])
   @@map("institutions")
@@ -147,47 +119,47 @@ model Issue {
   description String      @db.Text
   category    Category
   priority    Priority    @default(MEDIUM)
-  status      IssueStatus @default(OPEN)
+  status      IssueStatus @default(IN_REVIEW)
 
   // ─── Konum ───────────────────────────────────────────────────────────────
   // PostGIS Point — geometrik indexleme için
-  location     Unsupported("geometry(POINT, 4326)")
-  latitude     Float
-  longitude    Float
-  city         String      @db.VarChar(100)
-  district     String      @db.VarChar(100)
-  address      String?     @db.VarChar(500)
+  location  Unsupported("geometry(POINT, 4326)")
+  latitude  Float
+  longitude Float
+  city      String                               @db.VarChar(100)
+  district  String                               @db.VarChar(100)
+  address   String?                              @db.VarChar(500)
 
   // ─── Medya ───────────────────────────────────────────────────────────────
-  imageUrl     String?     @map("image_url") @db.VarChar(500)
-  imageKey     String?     @map("image_key") @db.VarChar(500)  // MinIO object key
-  imageBlurred Boolean     @default(false) @map("image_blurred")
-  imageProcessed Boolean   @default(false) @map("image_processed")
+  imageUrl       String? @map("image_url") @db.VarChar(500)
+  imageKey       String? @map("image_key") @db.VarChar(500) // MinIO object key
+  imageBlurred   Boolean @default(false) @map("image_blurred")
+  imageProcessed Boolean @default(false) @map("image_processed")
 
   // ─── Güvenlik & Doğrulama ────────────────────────────────────────────────
-  exifLatitude   Float?    @map("exif_latitude")
-  exifLongitude  Float?    @map("exif_longitude")
-  exifVerified   Boolean   @default(false) @map("exif_verified")
-  exifDistance   Float?    @map("exif_distance")   // metre cinsinden sapma
+  exifLatitude  Float?  @map("exif_latitude")
+  exifLongitude Float?  @map("exif_longitude")
+  exifVerified  Boolean @default(false) @map("exif_verified")
+  exifDistance  Float?  @map("exif_distance") // metre cinsinden sapma
 
   // LLM Guard sonucu
-  llmGuardPassed Boolean   @default(false) @map("llm_guard_passed")
-  llmGuardReason String?   @map("llm_guard_reason") @db.VarChar(500)
+  llmGuardPassed Boolean @default(false) @map("llm_guard_passed")
+  llmGuardReason String? @map("llm_guard_reason") @db.VarChar(500)
 
   // Güvenlik
-  ipAddress      String    @map("ip_address") @db.VarChar(45)  // IPv6 için 45
-  userAgent      String?   @map("user_agent") @db.VarChar(500)
+  ipAddress String  @map("ip_address") @db.VarChar(45) // IPv6 için 45
+  userAgent String? @map("user_agent") @db.VarChar(500)
 
   // ─── İlişkiler ───────────────────────────────────────────────────────────
-  reportedById   String    @map("reported_by_id") @db.Uuid
-  reportedBy     User      @relation(fields: [reportedById], references: [id])
+  reportedById String @map("reported_by_id") @db.Uuid
+  reportedBy   User   @relation(fields: [reportedById], references: [id])
 
-  statusHistory  IssueStatusHistory[]
-  upvotes        IssueUpvote[]
+  statusHistory IssueStatusHistory[]
+  upvotes       IssueUpvote[]
 
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  resolvedAt     DateTime? @map("resolved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  resolvedAt DateTime? @map("resolved_at")
 
   @@index([status])
   @@index([category])

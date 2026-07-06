@@ -5,15 +5,14 @@ WORKDIR /app
 
 RUN apk add --no-cache openssl
 
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma/
+COPY package*.json ./
+COPY prisma ./prisma/
 
 # Tüm bağımlılıkları yükle — build için devDependencies gerekli
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
-COPY backend/tsconfig.json ./
-COPY backend/src ./src
-COPY shared/ ../shared/
+COPY tsconfig.json ./
+COPY src ./src
 
 RUN npm run db:generate
 RUN npm run build
@@ -45,6 +44,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 # Sadece production bağımlılıklarını yükle
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm install --omit=dev --legacy-peer-deps
 
 CMD ["dumb-init", "node", "dist/jobs/worker.js"]

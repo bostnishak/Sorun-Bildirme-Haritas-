@@ -9,7 +9,8 @@ import { IssuePopup } from './IssuePopup';
 import { initSocket } from '@/lib/socket';
 import styles from './MapView.module.css';
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoiYWhtZXQ0NyIsImEiOiJjbXI1MHBwb3YwMDZ5MzBzOXQ2Y243aDdkIn0.nqkDYKAKEcgrqzzjyT86kA';
+// Mapbox token'a artık gerek yok
+// const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: '#ef4444',      // Kırmızı (Acil / Açık)
@@ -18,7 +19,8 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: '#6b7280',  // Gri
 };
 
-const TURKEY_CENTER = { latitude: 39.0, longitude: 35.5, zoom: 5 };
+const TURKEY_CENTER = { latitude: 39.0, longitude: 35.2, zoom: 5.5 };
+const TURKEY_BOUNDS: [number, number, number, number] = [25.8, 35.9, 44.2, 42.1];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number }> = {
   İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10 },
@@ -162,9 +164,12 @@ export function MapView() {
         initialViewState={viewState}
         onMove={e => setViewState(e.viewState)}
         onMoveEnd={handleMoveEnd}
-        mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
+        maxBounds={TURKEY_BOUNDS}
+        minZoom={5.5}
+        dragPan={viewState.zoom > 5.5}
       >
         <NavigationControl position="bottom-right" />
 
@@ -224,19 +229,14 @@ export function MapView() {
               anchor="bottom"
             >
               <div
-                className="individual-marker"
+                className="individual-marker-container"
                 style={{
+                  position: 'relative',
                   width: '36px',
-                  height: '36px',
-                  background: statusColor,
-                  border: '2.5px solid white',
-                  borderRadius: '50% 50% 50% 0',
-                  transform: 'rotate(-45deg)',
-                  boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
+                  height: '44px',
+                  cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
+                  justifyContent: 'center'
                 }}
                 onClick={async () => {
                   try {
@@ -248,7 +248,31 @@ export function MapView() {
                   }
                 }}
               >
-                <span style={{ transform: 'rotate(45deg)', display: 'flex' }}>
+                {/* Teardrop Pin */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    width: '36px',
+                    height: '36px',
+                    background: statusColor,
+                    border: '2.5px solid white',
+                    borderRadius: '50% 50% 50% 0',
+                    transform: 'rotate(-45deg)',
+                    boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
+                  }}
+                />
+                {/* Icon */}
+                <span style={{ 
+                  position: 'absolute', 
+                  top: 0,
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  zIndex: 2
+                }}>
                   {getCategorySvg(category)}
                 </span>
               </div>

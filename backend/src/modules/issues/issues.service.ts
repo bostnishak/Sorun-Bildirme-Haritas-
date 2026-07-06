@@ -45,7 +45,7 @@ export const issuesService = {
       ) VALUES (
         uuid_generate_v4(),
         ${dto.title}, ${dto.description}, ${dto.category}::"Category",
-        'MEDIUM'::"Priority", 'OPEN'::"IssueStatus",
+        'MEDIUM'::"Priority", 'IN_REVIEW'::"IssueStatus",
         ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326),
         ${dto.latitude}, ${dto.longitude}, ${dto.city}, ${dto.district},
         ${dto.address ?? null},
@@ -245,7 +245,7 @@ export const issuesService = {
       await notificationQueue.add('send-email', {
         email: issue.reportedBy.email,
         subject: `Bildirdiğiniz Sorunun Durumu Güncellendi: ${issue.title}`,
-        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${newStatus}" olarak güncellenmiştir.\n\nNot: ${note || '-'}\n\nEtiya Project Ekibi`,
+        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${newStatus}" olarak güncellenmiştir.\n\nNot: ${note || '-'}\n\nChaosMind Ekibi`,
       });
     }
 

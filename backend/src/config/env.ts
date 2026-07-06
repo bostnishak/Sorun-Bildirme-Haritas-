@@ -27,7 +27,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES: z.string().default('7d'),
 
   // AI
-  OPENAI_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().optional(),
   GOOGLE_VISION_CREDENTIALS_JSON: z.string().optional(),
 
   // NVİ
@@ -36,17 +36,17 @@ const envSchema = z.object({
   // Email
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.string().default('587').transform(Number),
-  SMTP_USER: z.string().email(),
-  SMTP_PASS: z.string().min(1),
-  EMAIL_FROM: z.string().default('Etiya Project <noreply@chaosmap.tr>'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default('ChaosMind <noreply@chaosmap.tr>'),
 
   // Webhooks
-  WEBHOOK_HMAC_SECRET: z.string().min(16),
+  WEBHOOK_HMAC_SECRET: z.string().default('dev_secret_key_1234'),
 
   // CORS — virgülle ayrılmış birden fazla origin desteklenir
   CORS_ORIGIN: z.string().default('http://localhost:3000').transform((val) => val.split(',').map((s) => s.trim())),
   // TC Kimlik Hash Salt (JWT_SECRET'tan bağımsız — asla değiştirme!)
-  TC_KIMLIK_PEPPER: z.string().min(16, 'TC_KIMLIK_PEPPER must be at least 16 characters'),
+  TC_KIMLIK_PEPPER: z.string().default('dev_pepper_key_12345'),
 
   // Uygulama URL'si — webhook ve e-posta bağlantıları için
   APP_URL: z.string().url().default('http://localhost:3000'),

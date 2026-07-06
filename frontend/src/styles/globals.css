@@ -338,3 +338,11 @@ label {
 }
 
 .mapboxgl-popup-tip, .maplibregl-popup-tip { display: none !important; }
+
+/* Hide Mapbox logo and attribution */
+.mapboxgl-ctrl-logo, 
+.mapboxgl-ctrl-attrib,
+.maplibregl-ctrl-logo,
+.maplibregl-ctrl-attrib {
+  display: none !important;
+}

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 
 extendZodWithOpenApi(z);
-
 // ─── Ortak Tipler ───────────────────────────────────────────────────────────
 
 const ErrorSchema = registry.register('ErrorResponse', z.object({

@@ -6,14 +6,13 @@ WORKDIR /app
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
 
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma/
+COPY package*.json ./
+COPY prisma ./prisma/
 
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
-COPY backend/tsconfig.json ./
-COPY backend/src ./src
-COPY shared/ ../shared/
+COPY tsconfig.json ./
+COPY src ./src
 
 RUN npm run db:generate
 RUN npm run build
@@ -27,11 +26,8 @@ RUN apk add --no-cache openssl dumb-init
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-
-RUN npm ci --only=production --legacy-peer-deps
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3001
