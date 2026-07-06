@@ -32,17 +32,22 @@ Projemiz gizli (private) depoda olduğu için `.env` dosyalarımızı Git üzeri
 4. TEMİZ KOD VE GEREKSİZ SİLME YASAĞI:
 Düzenlediğin dosyalardaki mevcut çalışan mantığı, bana ait olmayan fonksiyonları veya yorum satırlarını durduk yere silme veya refactor etme. Sadece benden istenen özelliği ekle veya ilgili hatayı çöz.
 
-5. GİT UYUMU:
-Bana kod verirken veya dosya güncellerken, yaptığımız değişikliğin küçük, derli toplu ve kolayca Pull Request (PR) açılabilir bir yapıda olmasına özen göster.
+5. OTOMATİK GİT KOMUTLARI REHBERLİĞİ (GÖREV BAŞLANGICI VE BİTİŞİ):
+Biz Git komutlarında (branch açma, pull, push, pull request vb.) yeni olduğumuz için, bize her adımda terminale yapıştıracağımız hazır Git komutlarını sen vereceksin!
+- İLK CEVABINDA: Bana kod vermeden önce, yazdığım göreve uygun kısa bir dal (branch) adı belirle (örn: `feat/harita-filtreleme`) ve terminalime yapıştırmam için şu komut blokunu ver:
+  `git checkout main && git pull origin main && git checkout -b feat/senin-belirledigin-branch-adi`
+- GÖREV BİTİMİNDE (Tüm kodları yazıp tamamladıktan sonra): Bana terminale yapıştırıp kodumu GitHub'a göndermem için şu hazır komut blokunu ver:
+  `git add . && git commit -m "feat: görev açıklaması" && git push -u origin feat/senin-belirledigin-branch-adi`
+  Ve hemen altında 1 cümleyle şunu hatırlat: "👉 Şimdi tarayıcından GitHub repona gir, üstte sarı renkte çıkan 'Compare & pull request' butonuna tıkla ve yeşil 'Create pull request' butonuna basarak kodunu ana projeye eklenmek üzere hazırla!"
 
-Şimdi bu kuralları anladığını ve onayladığını belirt, ardından yukarıda belirttiğim görevim için kodları yazmaya veya beni yönlendirmeye başla.
+Şimdi bu kuralları anladığını ve onayladığını belirt. Ardından ilk iş olarak yukarıda belirttiğim görevim için bana terminalde çalıştıracağım ilk Git komutumu ver ve kodlamaya başlayalım.
 ```
 
 ---
 
-### 💡 Günlük İş Akışı Hatırlatması:
-1. Sabah terminali aç: `git checkout main` -> `git pull origin main`
-2. Kendi dalını aç veya dalına geç: `git checkout -b feat/gorev-adi`
-3. Yukarıdaki promptu kopyala, AI'a yapıştır ve köşeli parantezli yeri doldur.
-4. Akşam kodu gönder: `git add .` -> `git commit -m "feat: ..."` -> `git push origin feat/gorev-adi`
-5. GitHub'dan Pull Request (PR) aç ve birleştir (Merge)!
+### 💡 Size Kalan Tek İş (Çok Basit!):
+1. Bu dosyadaki metni kopyala ve yapay zekaya yapıştır, `[BURAYA GÜNLÜK GÖREVİNİ YAZ]` kısmını doldur.
+2. Yapay zeka sana **"Önce terminale şunu yapıştırıp branch aç"** diye bir komut verecek, onu terminale yapıştır.
+3. Yapay zekanın verdiği kodları projenize ekleyin.
+4. İş bitince yapay zeka sana **"Şimdi kodu göndermek için şunu yapıştır"** diye komut verecek, onu yapıştır.
+5. GitHub'a girip sarı **"Compare & pull request"** butonuna bas! Hepsi bu kadar! 🎉
