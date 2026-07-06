@@ -77,8 +77,8 @@ services:
   # ─── BACKEND API ───────────────────────────────────────────────────────────
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
       target: production
     container_name: chaosmap-api
     restart: unless-stopped
@@ -120,8 +120,8 @@ services:
   # ─── BACKGROUND WORKER ─────────────────────────────────────────────────────
   worker:
     build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
+      context: .
+      dockerfile: ./backend/Dockerfile.worker
       target: production
     container_name: chaosmap-worker
     restart: unless-stopped
@@ -155,8 +155,8 @@ services:
   # ─── FRONTEND ──────────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
       target: production
     container_name: chaosmap-web
     restart: unless-stopped
