@@ -245,7 +245,7 @@ export const issuesService = {
       await notificationQueue.add('send-email', {
         email: issue.reportedBy.email,
         subject: `Bildirdiğiniz Sorunun Durumu Güncellendi: ${issue.title}`,
-        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${newStatus}" olarak güncellenmiştir.\n\nNot: ${note || '-'}\n\nChaosMind Ekibi`,
+        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${newStatus}" olarak güncellenmiştir.\n\nNot: ${note || '-'}\n\nEtiya Project Ekibi`,
       });
     }
 

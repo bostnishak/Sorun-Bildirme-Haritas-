@@ -77,7 +77,7 @@ export const reportGeneratorWorker = new Worker<ReportJobData>(
     await transporter.sendMail({
       from: env.EMAIL_FROM,
       to: institution.emailAddress,
-      subject: `ChaosMind - ${dateStr} Günlük Sorun Raporu | ${institution.name}`,
+      subject: `Etiya Project - ${dateStr} Günlük Sorun Raporu | ${institution.name}`,
       html: generateEmailHTML(issues.length, institution.name, dateStr),
       attachments: [{
         filename: `chaosmap-rapor-${format(yesterday, 'yyyy-MM-dd')}.pdf`,
@@ -156,7 +156,7 @@ async function generatePDFReport(
 </head>
 <body>
   <div class="header">
-    <h1>🗺️ ChaosMind — Günlük Sorun Raporu</h1>
+    <h1>🗺️ Etiya Project — Günlük Sorun Raporu</h1>
     <p>${institution.name} | ${dateStr}</p>
     <div class="meta">
       <div class="meta-item">📍 ${institution.city} / ${institution.district}</div>
@@ -209,7 +209,7 @@ async function generatePDFReport(
     </table>
   </div>
   <div class="footer">
-    Bu rapor ChaosMind platformu tarafından otomatik olarak oluşturulmuştur. |
+    Bu rapor Etiya Project platformu tarafından otomatik olarak oluşturulmuştur. |
     chaosmap.tr | © ${new Date().getFullYear()}
   </div>
 </body>
@@ -235,7 +235,7 @@ function generateEmailHTML(issueCount: number, institutionName: string, dateStr:
 <body style="font-family: Arial, sans-serif; background:#f1f5f9; padding:20px;">
   <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
     <div style="background:linear-gradient(135deg,#1e3a5f,#0f62fe); padding:30px; color:white;">
-      <h1 style="margin:0; font-size:22px;">🗺️ ChaosMind</h1>
+      <h1 style="margin:0; font-size:22px;">🗺️ Etiya Project</h1>
       <p style="margin:8px 0 0; opacity:0.8;">Günlük Sorun Raporu</p>
     </div>
     <div style="padding:30px;">
@@ -248,7 +248,7 @@ function generateEmailHTML(issueCount: number, institutionName: string, dateStr:
       <p>Detaylar için ekteki PDF'i inceleyebilir ya da <a href="https://chaosmap.tr/portal" style="color:#0f62fe;">platform portalına</a> giriş yapabilirsiniz.</p>
     </div>
     <div style="background:#f1f5f9; padding:16px; text-align:center; font-size:12px; color:#94a3b8;">
-      ChaosMind — Türkiye Sorun Bildirim Platformu | chaosmap.tr
+      Etiya Project — Türkiye Sorun Bildirim Platformu | chaosmap.tr
     </div>
   </div>
 </body>

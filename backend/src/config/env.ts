@@ -38,7 +38,7 @@ const envSchema = z.object({
   SMTP_PORT: z.string().default('587').transform(Number),
   SMTP_USER: z.string().email(),
   SMTP_PASS: z.string().min(1),
-  EMAIL_FROM: z.string().default('ChaosMind <noreply@chaosmap.tr>'),
+  EMAIL_FROM: z.string().default('Etiya Project <noreply@chaosmap.tr>'),
 
   // Webhooks
   WEBHOOK_HMAC_SECRET: z.string().min(16),

@@ -157,7 +157,7 @@ async function bootstrap() {
   initSocket(httpServer);
 
   const server = httpServer.listen(env.PORT, () => {
-    logger.info(`🚀 ChaosMind API başlatıldı: http://localhost:${env.PORT}`);
+    logger.info(`🚀 Etiya Project API başlatıldı: http://localhost:${env.PORT}`);
     logger.info(`📍 Ortam: ${env.NODE_ENV}`);
     logger.info('🔌 Socket.io aktif.');
   });

@@ -26,7 +26,7 @@ export function generateOpenApiDocument() {
     openapi: '3.0.0',
     info: {
       version: '1.0.0',
-      title: 'ChaosMind API',
+      title: 'Etiya Project API',
       description: 'Türkiye Sorun Bildirim Haritası REST API Dokümantasyonu',
     },
     servers: [{ url: `/api/v1` }],
@@ -38,7 +38,7 @@ export function setupSwagger(app: Express) {
   const document = generateOpenApiDocument();
 
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(document, {
-    customSiteTitle: 'ChaosMind API Docs',
+    customSiteTitle: 'Etiya Project API Docs',
     swaggerOptions: {
       persistAuthorization: true,
     },
