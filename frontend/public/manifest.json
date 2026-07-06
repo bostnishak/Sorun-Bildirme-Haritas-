@@ -1,0 +1,16 @@
+{
+  "name": "Türkiye Sorun Bildirim Haritası",
+  "short_name": "Sorun Haritası",
+  "description": "Kentsel sorun bildirim ve takip platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

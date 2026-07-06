@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis(version: "3.4"), uuidOssp(map: "uuid-ossp"), pgTrgm(map: "pg_trgm")]
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  CITIZEN
+  INSTITUTION_OFFICER
+  SUPER_ADMIN
+}
+
+enum Category {
+  WATER_SANITATION   // Su ve Kanalizasyon
+  TRANSPORTATION     // Yol / Ulaşım
+  ENVIRONMENT        // Çevre ve Temizlik
+  INFRASTRUCTURE     // Altyapı
+  SECURITY           // Güvenlik
+  LIGHTING           // Aydınlatma
+  PARKS              // Park ve Yeşil Alan
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         Role     @default(CITIZEN)
+  isVerified   Boolean  @default(false) @map("is_verified")
+
+  // NVİ doğrulanmış veriler — sadece doğrulama sonrası dolu
+  tcKimlikHash String?  @map("tc_kimlik_hash") @db.VarChar(64) // SHA-256, plaintext saklanmaz
+  firstName    String?  @map("first_name") @db.VarChar(100)
+  lastName     String?  @map("last_name") @db.VarChar(100)
+  birthYear    Int?     @map("birth_year")
+
+  // Kurum bilgisi (sadece INSTITUTION_OFFICER için dolu)
+  institutionId String?      @map("institution_id") @db.Uuid
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+
+  // Refresh tokens
+  refreshTokens RefreshToken[]
+
+  // İlişkiler
+  issues        Issue[]
+  upvotes       IssueUpvote[]
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([institutionId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token     String   @unique @db.VarChar(512)
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Institution {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String   @db.VarChar(255)
+  city         String   @db.VarChar(100)
+  district     String   @db.VarChar(100)
+  webhookUrl   String?  @map("webhook_url") @db.VarChar(500)
+  emailAddress String   @map("email_address") @db.VarChar(255)
+  isActive     Boolean  @default(true) @map("is_active")
+
+  // PostGIS MULTIPOLYGON — kurumun sorumlu bölge sınırı
+  // Prisma PostGIS Unsupported tipi için raw SQL ile yönetilir
+  boundary     Unsupported("geometry(MULTIPOLYGON, 4326)")?
+
+  users        User[]
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([city, district])
+  @@map("institutions")
+}
+
+model Issue {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title       String      @db.VarChar(200)
+  description String      @db.Text
+  category    Category
+  priority    Priority    @default(MEDIUM)
+  status      IssueStatus @default(OPEN)
+
+  // ─── Konum ───────────────────────────────────────────────────────────────
+  // PostGIS Point — geometrik indexleme için
+  location     Unsupported("geometry(POINT, 4326)")
+  latitude     Float
+  longitude    Float
+  city         String      @db.VarChar(100)
+  district     String      @db.VarChar(100)
+  address      String?     @db.VarChar(500)
+
+  // ─── Medya ───────────────────────────────────────────────────────────────
+  imageUrl     String?     @map("image_url") @db.VarChar(500)
+  imageKey     String?     @map("image_key") @db.VarChar(500)  // MinIO object key
+  imageBlurred Boolean     @default(false) @map("image_blurred")
+  imageProcessed Boolean   @default(false) @map("image_processed")
+
+  // ─── Güvenlik & Doğrulama ────────────────────────────────────────────────
+  exifLatitude   Float?    @map("exif_latitude")
+  exifLongitude  Float?    @map("exif_longitude")
+  exifVerified   Boolean   @default(false) @map("exif_verified")
+  exifDistance   Float?    @map("exif_distance")   // metre cinsinden sapma
+
+  // LLM Guard sonucu
+  llmGuardPassed Boolean   @default(false) @map("llm_guard_passed")
+  llmGuardReason String?   @map("llm_guard_reason") @db.VarChar(500)
+
+  // Güvenlik
+  ipAddress      String    @map("ip_address") @db.VarChar(45)  // IPv6 için 45
+  userAgent      String?   @map("user_agent") @db.VarChar(500)
+
+  // ─── İlişkiler ───────────────────────────────────────────────────────────
+  reportedById   String    @map("reported_by_id") @db.Uuid
+  reportedBy     User      @relation(fields: [reportedById], references: [id])
+
+  statusHistory  IssueStatusHistory[]
+  upvotes        IssueUpvote[]
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  resolvedAt     DateTime? @map("resolved_at")
+
+  @@index([status])
+  @@index([category])
+  @@index([city, district])
+  @@index([createdAt(sort: Desc)])
+  @@index([reportedById])
+  // PostGIS GiST index — raw SQL migration ile eklenir
+  @@map("issues")
+}
+
+model IssueStatusHistory {
+  id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  issueId    String      @map("issue_id") @db.Uuid
+  issue      Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  fromStatus IssueStatus @map("from_status")
+  toStatus   IssueStatus @map("to_status")
+  changedBy  String      @map("changed_by") @db.Uuid
+  note       String?     @db.Text
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([issueId])
+  @@map("issue_status_history")
+}
+
+model IssueUpvote {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  issueId   String   @map("issue_id") @db.Uuid
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([issueId, userId]) // Bir kullanıcı bir sorunu sadece bir kez oylayabilir
+  @@map("issue_upvotes")
+}

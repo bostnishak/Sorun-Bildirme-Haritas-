@@ -1,0 +1,226 @@
+import bcrypt from 'bcryptjs';
+import { prisma } from '../../config/database';
+import { verifyWithNVI, hashTCKimlik } from '../../services/nvi.service';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../../middleware/auth.middleware';
+import { env } from '../../config/env';
+import {
+  ConflictError,
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+} from '../../utils/errors';
+import { logger } from '../../utils/logger';
+
+interface RegisterDto {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  tcKimlik: string;
+  birthYear: number;
+}
+
+export const authService = {
+  async register(dto: RegisterDto) {
+    // Email çakışması kontrolü
+    const existing = await prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) {
+      throw new ConflictError('Bu e-posta adresi zaten kullanımda.');
+    }
+
+    // NVİ doğrulama
+    const isVerified = await verifyWithNVI({
+      tcKimlik: dto.tcKimlik,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      birthYear: dto.birthYear,
+    });
+
+    if (!isVerified) {
+      throw new BadRequestError(
+        'Kimlik bilgileri doğrulanamadı. ' +
+        'T.C. Kimlik, Ad, Soyad ve Doğum Yılı bilgilerini kontrol edin.',
+      );
+    }
+
+    // Şifre hash
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    // TC Kimlik hash (KVKK — plaintext saklanmaz)
+    const tcKimlikHash = hashTCKimlik(dto.tcKimlik);
+
+    // Kullanıcı oluştur
+    const user = await prisma.user.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        tcKimlikHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        birthYear: dto.birthYear,
+        isVerified: true,
+        role: 'CITIZEN',
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+      },
+    });
+
+    logger.info('Yeni kullanıcı kaydedildi', { userId: user.id, email: user.email });
+
+    // Token çifti
+    const { accessToken, refreshToken } = await this.createTokenPair(user.id, user.role);
+
+    return { user, accessToken, refreshToken };
+  },
+
+  async login(email: string, password: string) {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      throw new UnauthorizedError('E-posta veya şifre hatalı.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('E-posta veya şifre hatalı.');
+    }
+
+    const { accessToken, refreshToken } = await this.createTokenPair(
+      user.id,
+      user.role,
+      user.institutionId ?? undefined,
+    );
+
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isVerified: user.isVerified,
+    };
+
+    return { user: userResponse, accessToken, refreshToken };
+  },
+
+  async refresh(token: string) {
+    // Token DB'de var mı ve süresi dolmamış mı?
+    const stored = await prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!stored || stored.expiresAt < new Date()) {
+      throw new UnauthorizedError('Geçersiz veya süresi dolmuş refresh token.');
+    }
+
+    // Eski token'ı sil (rotation)
+    await prisma.refreshToken.delete({ where: { token } });
+
+    // Yeni token çifti
+    const { accessToken, refreshToken } = await this.createTokenPair(
+      stored.user.id,
+      stored.user.role,
+      stored.user.institutionId ?? undefined,
+    );
+
+    return { accessToken, refreshToken };
+  },
+
+  async revokeRefreshToken(token: string): Promise<void> {
+    await prisma.refreshToken.deleteMany({ where: { token } });
+  },
+
+  async getUserById(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isVerified: true,
+        institution: {
+          select: { id: true, name: true, city: true, district: true },
+        },
+        createdAt: true,
+      },
+    });
+
+    if (!user) throw new NotFoundError('Kullanıcı');
+    return user;
+  },
+
+  async createTokenPair(userId: string, role: string, institutionId?: string) {
+    const accessToken = generateAccessToken({
+      sub: userId,
+      role: role as any,
+      institutionId,
+    });
+
+    const refreshTokenStr = generateRefreshToken(userId);
+
+    // JWT_REFRESH_EXPIRES'dan geçerlilik süresini hesapla ("7d", "30d", "2h" vb.)
+    const expiresAt = parseExpiresIn(env.JWT_REFRESH_EXPIRES);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshTokenStr,
+        userId,
+        expiresAt,
+      },
+    });
+
+    // Kullanıcının eski expired token'larını temizle
+    await prisma.refreshToken.deleteMany({
+      where: { userId, expiresAt: { lt: new Date() } },
+    });
+
+    // Kullanıcı başına en fazla 5 aktif session — en eskisini sil
+    const activeTokens = await prisma.refreshToken.findMany({
+      where: { userId, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (activeTokens.length > 5) {
+      const toDelete = activeTokens.slice(0, activeTokens.length - 5);
+      await prisma.refreshToken.deleteMany({
+        where: { id: { in: toDelete.map((t) => t.id) } },
+      });
+    }
+
+    return { accessToken, refreshToken: refreshTokenStr };
+  },
+};
+
+/**
+ * "7d", "15m", "2h" gibi JWT sürelerini Date'e çevirir
+ */
+function parseExpiresIn(expiresIn: string): Date {
+  const unit = expiresIn.slice(-1);
+  const value = parseInt(expiresIn.slice(0, -1), 10);
+  const now = new Date();
+
+  switch (unit) {
+    case 's': now.setSeconds(now.getSeconds() + value); break;
+    case 'm': now.setMinutes(now.getMinutes() + value); break;
+    case 'h': now.setHours(now.getHours() + value); break;
+    case 'd': now.setDate(now.getDate() + value); break;
+    default:
+      // Fallback: 7 gün
+      now.setDate(now.getDate() + 7);
+  }
+
+  return now;
+}
