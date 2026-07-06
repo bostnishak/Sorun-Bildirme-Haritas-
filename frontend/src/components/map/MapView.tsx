@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import Map, { Marker, NavigationControl, MapRef } from 'react-map-gl/maplibre';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import Map, { Marker, NavigationControl, MapRef } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import useSupercluster from 'use-supercluster';
 import { useAppStore } from '@/store/useAppStore';
 import { IssuePopup } from './IssuePopup';
 import { initSocket } from '@/lib/socket';
 import styles from './MapView.module.css';
 
-// Mapbox token'a artık gerek yok
-// const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoiYWhtZXQ0NyIsImEiOiJjbXI1MHBwb3YwMDZ5MzBzOXQ2Y243aDdkIn0.nqkDYKAKEcgrqzzjyT86kA';
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: '#ef4444',      // Kırmızı (Acil / Açık)
@@ -163,7 +162,8 @@ export function MapView() {
         initialViewState={viewState}
         onMove={e => setViewState(e.viewState)}
         onMoveEnd={handleMoveEnd}
-        mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        mapboxAccessToken={MAPBOX_TOKEN}
+        mapStyle="mapbox://styles/mapbox/streets-v12"
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="bottom-right" />
