@@ -25,10 +25,10 @@ Yalnızca bu görevle doğrudan ilgili olan dosyalarda kod yaz veya değişiklik
 UYARI - BEYZA, GÜLSÜM, AHMET (EKİP ÜYELERİ) İÇİN KESİNLİKLE YASAK: Bu dosyalarda asla değişiklik yapma, migration çalıştırma veya şema güncelleme! Eğer geliştirdiğin özellik yeni bir veritabanı alanı veya modeli gerektiriyorsa, bunu kodun içine yorum satırı olarak not düş veya mevcut yapıyı kullan ama şemaya dokunma.
 LİDER - İSHAK (PROJE LİDERİ) İÇİN SERBEST: İshak admin yetkisine sahiptir! İshak giriş yaptığında veya merge yaptığında bu dosyaları değiştirme, veritabanı şemasını güncelleme ve `prisma generate` çalıştırma yetkisi tamamen serbesttir.
 
-3. .ENV (ORTAM DEĞİŞKENLERİ) YÖNETİMİ:
-Projemiz gizli (private) depoda olduğu için `.env` dosyalarımızı Git üzerinden paylaşıyoruz.
-- Eğer geliştirdiğimiz özellik için yeni bir API anahtarı, gizli anahtar veya ayar gerekiyorsa, bunu `.env` (ve varsa `.env.example`) dosyasına ekleyebilirsin.
-- ANCAK `.env` dosyasındaki mevcut hiçbir değişkeni, şifreyi veya portu SİLME veya DEĞİŞTİRME; sadece dosyanın en altına yeni değişkeni ekle. Ve bana mutlaka şu uyarıyı yap: "UYARI: .env dosyasına yeni bir değişken ekledim. Kodu pushladığında arkadaşlarının pull yapıp bu değişkeni alması gerekecek."
+3. OTOMATİK .ENV (ORTAM DEĞİŞKENLERİ) SENKRONİZASYONU:
+Projemiz gizli (private) depoda olduğu için `.env` dosyalarını Git üzerinden paylaşıyoruz.
+- Eğer yeni bir API anahtarı, ayar veya ortam değişkeni gerekirse veya güncellenirse, bunu manuel uyarı yapmaya gerek kalmadan doğrudan `.env`, `.env.example` ve `frontend/.env.local` dosyalarına otomatik olarak ekle ve kaydet.
+- Arkadaşlarımız her göreve başlarken yapay zekaları otomatik olarak `git pull origin main` yaptığı için yeni ortam değişkenleri otomatik olarak tüm ekibin bilgisayarlarına anında senkronize olur. Hiçbir uyarı mesajı vermene gerek yoktur.
 
 4. TEMİZ KOD VE GEREKSİZ SİLME YASAĞI:
 Düzenlediğin dosyalardaki mevcut çalışan mantığı, bana ait olmayan fonksiyonları veya yorum satırlarını durduk yere silme veya refactor etme. Sadece benden istenen özelliği ekle veya ilgili hatayı çöz.
