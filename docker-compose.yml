@@ -131,8 +131,12 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_USER}
       MINIO_SECRET_KEY: ${MINIO_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GOOGLE_VISION_CREDENTIALS_JSON: ${GOOGLE_VISION_CREDENTIALS_JSON}
+      NVI_ENDPOINT: ${NVI_ENDPOINT}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
@@ -140,6 +144,7 @@ services:
       WEBHOOK_HMAC_SECRET: ${WEBHOOK_HMAC_SECRET}
       TC_KIMLIK_PEPPER: ${TC_KIMLIK_PEPPER}
       APP_URL: ${APP_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
     depends_on:
       - backend
       - postgres
@@ -151,8 +156,8 @@ services:
   # ─── FRONTEND ──────────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
       target: production
     container_name: chaosmap-web
     restart: unless-stopped
@@ -174,7 +179,6 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - backend
       - frontend

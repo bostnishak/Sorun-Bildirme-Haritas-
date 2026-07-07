@@ -44,6 +44,7 @@ interface FormData {
   city: string;
   district: string;
   address: string;
+  image?: string;
 }
 
 export function ReportIssueForm({ onClose }: { onClose: () => void }) {

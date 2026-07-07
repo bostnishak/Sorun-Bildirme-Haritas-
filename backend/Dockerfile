@@ -33,4 +33,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3001
 
 # Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy && dumb-init node dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && dumb-init node dist/index.js"]

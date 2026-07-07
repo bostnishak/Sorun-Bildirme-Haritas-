@@ -7,8 +7,8 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env.example') }); // Fallback
 
-// Docker kullanmadan (lokalden) çalıştırıyorsak 'postgres' ismini 'localhost' yap
-if (process.env.DATABASE_URL) {
+// Docker kullanmadan (lokalden) çalıştırılıyorsa RUN_LOCAL=1 verilebilir
+if (process.env.RUN_LOCAL === 'true' && process.env.DATABASE_URL) {
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace('@postgres:', '@localhost:');
 }
 
@@ -19,8 +19,8 @@ async function main() {
   await prisma.issue.deleteMany();
   await prisma.user.deleteMany();
 
-  console.log('Test kullanıcısı oluşturuluyor...');
-  const hashedPassword = await bcrypt.hash('123456', 10);
+  console.log('Test kullanıcıları oluşturuluyor...');
+  const hashedPassword = await bcrypt.hash('Etiya2026!', 10);
   const user = await prisma.user.create({
     data: {
       tcKimlik: '11111111111',
@@ -31,6 +31,28 @@ async function main() {
       phone: '5551112233',
       role: 'CITIZEN',
       isVerified: true,
+    },
+  });
+
+  const officer = await prisma.user.create({
+    data: {
+      tcKimlikHash: '22222222222',
+      firstName: 'Zeynep',
+      lastName: 'Kaya',
+      email: 'yetkili@istanbul.bel.tr',
+      passwordHash: hashedPassword,
+      role: 'INSTITUTION_OFFICER',
+    },
+  });
+
+  const admin = await prisma.user.create({
+    data: {
+      tcKimlikHash: '33333333333',
+      firstName: 'Sistem',
+      lastName: 'Yöneticisi',
+      email: 'admin@chaosmap.com',
+      passwordHash: hashedPassword,
+      role: 'SUPER_ADMIN',
     },
   });
 

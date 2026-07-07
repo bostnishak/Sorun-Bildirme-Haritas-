@@ -14,23 +14,15 @@ const TR_CITIES = [
   'Mersin', 'Rize', 'Sakarya', 'Samsun', 'Trabzon', 'Van',
 ];
 
-// Öne Çıkan Acil / Popüler Sorun Türleri (6 adet) - Boşluğu dengelemek ve hızlı seçim için
-const QUICK_CATEGORIES = [
-  'TRAFFIC_ACCIDENT',
-  'PUBLIC_TRANSIT',
-  'STRAY_ANIMALS',
-  'URBAN_HAZARD',
-  'WATER_SANITATION',
-  'TRANSPORTATION',
-];
-
-// Diğer Sorun Türleri (5 adet) - Alt kısımda orantılı görünüm için
-const OTHER_CATEGORIES = [
-  'ENVIRONMENT',
-  'INFRASTRUCTURE',
-  'SECURITY',
-  'LIGHTING',
-  'PARKS',
+// Temel ve Genel Sorun Türleri (7 ana kategori - spesifik alt detaylar yerine genel filtreleme)
+const MAIN_CATEGORIES = [
+  'TRANSPORTATION',    // Yol / Ulaşım
+  'WATER_SANITATION',  // Su ve Kanalizasyon
+  'ENVIRONMENT',       // Çevre ve Temizlik
+  'INFRASTRUCTURE',    // Altyapı
+  'SECURITY',          // Güvenlik
+  'LIGHTING',          // Aydınlatma
+  'PARKS',             // Park ve Yeşil Alan
 ];
 
 export function FilterSidebar() {
@@ -61,8 +53,8 @@ export function FilterSidebar() {
             onChange={e => setFilter('category', e.target.value || undefined)}
           >
             <option value="">Tümü</option>
-            {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
+            {MAIN_CATEGORIES.map(val => (
+              <option key={val} value={val}>{CATEGORY_LABELS[val]}</option>
             ))}
           </select>
         </div>
@@ -104,37 +96,9 @@ export function FilterSidebar() {
         </button>
       </div>
 
-      {/* Hızlı Kategori Seçimi (Öne Çıkan Sorunlar - Orta Boşluğu Dengeleme) */}
-      <div className={styles.quickSection}>
-        <p className={styles.quickTitle}>Öne Çıkan İhbar Türleri</p>
-        <div className={styles.quickGrid}>
-          {QUICK_CATEGORIES.map(key => {
-            const CatIcon = CATEGORY_ICON_MAP[key];
-            const color = CATEGORY_COLORS[key];
-            const label = CATEGORY_LABELS[key];
-            const isActive = filters.category === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                className={`${styles.categoryCard} ${isActive ? styles.categoryCardActive : ''}`}
-                style={{ '--cat-color': color, '--cat-bg': `${color}14` } as any}
-                onClick={() => handleCategoryClick(key)}
-              >
-                <div className={styles.legendIconWrap} style={{ color: isActive ? '#fff' : color, background: isActive ? color : `${color}18` }}>
-                  {CatIcon && <CatIcon size={13} />}
-                </div>
-                <span>{label}</span>
-                {isActive && <span className={styles.activeIndicator} style={{ background: color }} />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Harita Göstergesi ve Diğer Kategoriler */}
+      {/* Renk Göstergesi */}
       <div className={styles.legend}>
-        <p className={styles.legendTitle}>Renk Göstergesi</p>
+        <p className={styles.legendTitle}>Durum Göstergesi</p>
         <div className={styles.legendItems}>
           {[
             { color: 'var(--color-open)',      Icon: IconAlertCircle, label: 'Açık' },
@@ -149,10 +113,13 @@ export function FilterSidebar() {
             </div>
           ))}
         </div>
+      </div>
 
-        <p className={styles.legendTitle} style={{ marginTop: 14 }}>Diğer Sorun Türleri</p>
+      {/* Birleştirilmiş Temel Sorun Türleri Listesi */}
+      <div className={styles.quickSection}>
+        <p className={styles.quickTitle}>Sorun Türleri</p>
         <div className={styles.quickGrid}>
-          {OTHER_CATEGORIES.map(key => {
+          {MAIN_CATEGORIES.map(key => {
             const CatIcon = CATEGORY_ICON_MAP[key];
             const color = CATEGORY_COLORS[key];
             const label = CATEGORY_LABELS[key];

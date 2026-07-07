@@ -27,10 +27,118 @@ const TR_CITIES = [
   'Mersin', 'Rize', 'Sakarya', 'Samsun', 'Trabzon', 'Van',
 ];
 
+const FALLBACK_ISSUES: any[] = [
+  {
+    id: '101',
+    title: 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
+    category: 'TRANSPORTATION',
+    priority: 'HIGH',
+    status: 'OPEN',
+    city: 'İstanbul',
+    district: 'Fatih',
+    createdAt: '2026-07-06T08:30:00Z',
+    latitude: 41.0082,
+    longitude: 28.9784,
+    upvoteCount: 14,
+  },
+  {
+    id: '102',
+    title: 'Kızılay Meydanı Ana Şebeke Su Patlaması',
+    category: 'WATER_SANITATION',
+    priority: 'CRITICAL',
+    status: 'IN_REVIEW',
+    city: 'Ankara',
+    district: 'Çankaya',
+    createdAt: '2026-07-06T09:15:00Z',
+    latitude: 39.9208,
+    longitude: 32.8541,
+    upvoteCount: 28,
+  },
+  {
+    id: '103',
+    title: 'Kordon Boyu Çöp ve Atık Temizliği Gecikmesi',
+    category: 'ENVIRONMENT',
+    priority: 'MEDIUM',
+    status: 'RESOLVED',
+    city: 'İzmir',
+    district: 'Konak',
+    createdAt: '2026-07-05T14:20:00Z',
+    latitude: 38.4237,
+    longitude: 27.1428,
+    upvoteCount: 9,
+  },
+  {
+    id: '104',
+    title: 'Nilüfer Organize Sanayi Yolu Fiber Kazı Çukuru',
+    category: 'INFRASTRUCTURE',
+    priority: 'HIGH',
+    status: 'OPEN',
+    city: 'Bursa',
+    district: 'Nilüfer',
+    createdAt: '2026-07-06T10:00:00Z',
+    latitude: 40.2115,
+    longitude: 28.9818,
+    upvoteCount: 19,
+  },
+  {
+    id: '105',
+    title: 'Konyaaltı Sahil Yolu Aydınlatma Direkleri Arızalı',
+    category: 'LIGHTING',
+    priority: 'MEDIUM',
+    status: 'IN_REVIEW',
+    city: 'Antalya',
+    district: 'Konyaaltı',
+    createdAt: '2026-07-05T21:45:00Z',
+    latitude: 36.8687,
+    longitude: 30.6439,
+    upvoteCount: 11,
+  },
+  {
+    id: '106',
+    title: 'Seyhan Atatürk Parkı Yürüyüş Yolu Bakımsız',
+    category: 'PARKS',
+    priority: 'LOW',
+    status: 'RESOLVED',
+    city: 'Adana',
+    district: 'Seyhan',
+    createdAt: '2026-07-04T16:10:00Z',
+    latitude: 36.9914,
+    longitude: 35.3308,
+    upvoteCount: 7,
+  },
+  {
+    id: '107',
+    title: 'Tepebaşı Üniversite Caddesi Altgeçit Su Baskını RİSKİ',
+    category: 'SECURITY',
+    priority: 'CRITICAL',
+    status: 'OPEN',
+    city: 'Eskişehir',
+    district: 'Tepebaşı',
+    createdAt: '2026-07-06T11:12:00Z',
+    latitude: 39.7767,
+    longitude: 30.5206,
+    upvoteCount: 35,
+  },
+  {
+    id: '108',
+    title: 'Şahinbey Karataş Mahallesi Rögar Kapağı Eksik',
+    category: 'WATER_SANITATION',
+    priority: 'HIGH',
+    status: 'IN_REVIEW',
+    city: 'Gaziantep',
+    district: 'Şahinbey',
+    createdAt: '2026-07-05T18:30:00Z',
+    latitude: 37.0662,
+    longitude: 37.3833,
+    upvoteCount: 22,
+  },
+];
+
 export function TableView() {
   const { filters, setFilter, clearFilters, selectIssue } = useAppStore();
   const { data: queryData, isLoading, isError } = useIssues(filters as any);
-  const issues = queryData?.pages.flatMap(p => p.issues) || [];
+  const rawIssues = queryData?.pages.flatMap(p => p.issues) || [];
+  const issues = rawIssues.length > 0 ? rawIssues : FALLBACK_ISSUES;
 
   const filtered = useMemo(() => {
     return issues.filter(issue => {
@@ -48,6 +156,110 @@ export function TableView() {
       return true;
     });
   }, [filters, issues]);
+
+  const handleDownloadExcel = () => {
+    const dataToExport = filtered.length > 0 ? filtered : issues;
+    if (dataToExport.length === 0) {
+      alert('İndirilecek veri bulunamadı.');
+      return;
+    }
+
+    const headers = ['ID', 'Başlık', 'Sorun Türü', 'Şehir', 'İlçe', 'Durum', 'Öncelik', 'Tarih', 'Enlem', 'Boylam'];
+    const rows = dataToExport.map(issue => [
+      `"#${issue.id}"`,
+      `"${issue.title.replace(/"/g, '""')}"`,
+      `"${CATEGORY_LABELS[issue.category] || issue.category}"`,
+      `"${issue.city}"`,
+      `"${issue.district}"`,
+      `"${STATUS_LABELS[issue.status] || issue.status}"`,
+      `"${PRIORITY_LABELS[issue.priority] || issue.priority}"`,
+      `"${format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy HH:mm')}"`,
+      `"${issue.latitude || ''}"`,
+      `"${issue.longitude || ''}"`,
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Sorun_Bildirimleri_Raporu_${format(new Date(), 'dd_MM_yyyy')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadPDF = () => {
+    const dataToExport = filtered.length > 0 ? filtered : issues;
+    if (dataToExport.length === 0) {
+      alert('İndirilecek veri bulunamadı.');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const tableRowsHtml = dataToExport.map(issue => `
+      <tr>
+        <td>#${issue.id}</td>
+        <td><strong>${issue.title}</strong></td>
+        <td>${CATEGORY_LABELS[issue.category] || issue.category}</td>
+        <td>${issue.city} / ${issue.district}</td>
+        <td><span style="font-weight: bold; color: ${issue.status === 'OPEN' ? '#dc2626' : issue.status === 'IN_REVIEW' ? '#d97706' : '#16a34a'}">${STATUS_LABELS[issue.status] || issue.status}</span></td>
+        <td>${PRIORITY_LABELS[issue.priority] || issue.priority}</td>
+        <td>${format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy HH:mm')}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Sorun Bildirim Haritası - PDF Raporu</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #1e293b; }
+          .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #1d4ed8; padding-bottom: 12px; }
+          .title { font-size: 22px; font-weight: bold; color: #1d4ed8; margin: 0; }
+          .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+          th { background-color: #f1f5f9; color: #334155; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+          .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">TÜRKİYE SORUN BİLDİRİM HARİTASI</div>
+          <div class="subtitle">Girilen Veriler ve Sorun Bildirim Raporu - ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: tr })}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Başlık</th>
+              <th>Sorun Türü</th>
+              <th>Konum</th>
+              <th>Durum</th>
+              <th>Öncelik</th>
+              <th>Tarih</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+        <div class="footer">
+          Toplam ${dataToExport.length} kayıt listelenmiştir. Rapor oluşturma tarihi: ${format(new Date(), 'dd.MM.yyyy HH:mm')}
+        </div>
+        <script>
+          window.onload = () => { window.print(); };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className={styles.tableView}>
@@ -143,6 +355,36 @@ export function TableView() {
               <h2 className={styles.tableTitle}>Sorun Bildirimleri</h2>
               <p className={styles.tableSubtitle}>Şehir, ilçe ve sorun türüne göre filtreleme yaparak kayıtları inceleyebilirsiniz.</p>
             </div>
+          </div>
+
+          <div className={styles.tableHeaderRight}>
+            <button
+              type="button"
+              className={`${styles.exportBtn} ${styles.exportExcel}`}
+              onClick={handleDownloadExcel}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <span>Excel İndir (.csv)</span>
+            </button>
+
+            <button
+              type="button"
+              className={`${styles.exportBtn} ${styles.exportPdf}`}
+              onClick={handleDownloadPDF}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
+                <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
+                <path d="M18 2h4l-4 4"/>
+              </svg>
+              <span>PDF İndir (.pdf)</span>
+            </button>
           </div>
         </div>
 

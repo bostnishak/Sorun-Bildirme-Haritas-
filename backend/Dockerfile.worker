@@ -41,9 +41,6 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-
-# Sadece production bağımlılıklarını yükle
-RUN npm install --omit=dev --legacy-peer-deps
+COPY --from=builder /app/node_modules ./node_modules
 
 CMD ["dumb-init", "node", "dist/jobs/worker.js"]

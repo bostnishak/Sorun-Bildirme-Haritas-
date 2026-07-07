@@ -204,42 +204,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SORUN KATEGORİLERİ ─────────────────────────────────────────────── */}
-      <section className={`${styles.section} ${styles.sectionAlt}`}>
-        <div className={styles.container}>
-          <div className={styles.sectionBadge}>
-            <IconAlertCircle size={14} />
-            Kategoriler
-          </div>
-          <h2 className={styles.sectionTitle}>Sorun Türleri</h2>
-          <p className={styles.sectionDesc}>
-            Platformumuzda 7 ana kategori altında sorun bildirimi yapabilirsiniz.
-          </p>
-
-          <div className={styles.catGrid}>
-            {[
-              { Icon: IconRoad,         color: '#ea580c', label: 'Yol / Ulaşım',          desc: 'Bozuk yol, kaldırım, trafik sorunu' },
-              { Icon: IconWater,        color: '#2563eb', label: 'Su ve Kanalizasyon',     desc: 'Su kaçağı, kanalizasyon sorunu' },
-              { Icon: IconLeaf,         color: '#16a34a', label: 'Çevre ve Temizlik',      desc: 'Çöp, atık, hava kirliliği' },
-              { Icon: IconConstruction, color: '#7c3aed', label: 'Altyapı',                desc: 'Elektrik, doğalgaz, iletişim altyapısı' },
-              { Icon: IconShield,       color: '#dc2626', label: 'Güvenlik',               desc: 'Aydınlatma, kamera, güvenlik sorunu' },
-              { Icon: IconLight,        color: '#ca8a04', label: 'Aydınlatma',             desc: 'Sokak lambası, park aydınlatması' },
-              { Icon: IconTree,         color: '#15803d', label: 'Park ve Yeşil Alan',     desc: 'Park, bahçe, ağaç bakım sorunu' },
-            ].map((c, i) => (
-              <div key={i} className={styles.catCard}>
-                <div className={styles.catIconWrap} style={{ color: c.color, background: `${c.color}10` }}>
-                  <c.Icon size={24} />
-                </div>
-                <div>
-                  <p className={styles.catLabel}>{c.label}</p>
-                  <p className={styles.catDesc}>{c.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── BASIN / İLETİŞİM ─────────────────────────────────────────────── */}
       <section id="iletisim" className={styles.section}>
         <div className={styles.container}>
