@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: '#6b7280',  // Gri
 };
 
-const TURKEY_CENTER = { latitude: 39.0, longitude: 35.2, zoom: 5.5 };
+const TURKEY_CENTER = { latitude: 39.0, longitude: 35.2, zoom: 5.8 };
 const TURKEY_BOUNDS: [number, number, number, number] = [25.8, 35.9, 44.2, 42.1];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number }> = {
@@ -48,8 +48,117 @@ const getCategorySvg = (category: string) => {
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
+  const [mapStyle, setMapStyle] = useState<any>('mapbox://styles/mapbox/outdoors-v12');
   
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+      fetch(`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`)
+        .then(r => r.json())
+        .then(style => {
+          if (style && style.layers) {
+            
+            // Mapbox veritabanında eksik olan Türkçe karşılıkları zorla eşleştiriyoruz
+            const getTrNameExpr = [
+              "match",
+              ["get", "name_en"],
+              "Mosul", "Musul",
+              "Aleppo", "Halep",
+              "Damascus", "Şam",
+              "Baghdad", "Bağdat",
+              "Tehran", "Tahran",
+              "Kirkuk", "Kerkük",
+              "Basra", "Basra",
+              "Tabriz", "Tebriz",
+              "Baku", "Bakü",
+              "Nicosia", "Lefkoşa",
+              "Athens", "Atina",
+              "Sofia", "Sofya",
+              "Bucharest", "Bükreş",
+              "Beirut", "Beyrut",
+              "Amman", "Amman",
+              "Tbilisi", "Tiflis",
+              "Yerevan", "Erivan",
+              "Thessaloniki", "Selanik",
+              "Batumi", "Batum",
+              "Syria", "Suriye",
+              "Iraq", "Irak",
+              "Iran", "İran",
+              "Lebanon", "Lübnan",
+              "Greece", "Yunanistan",
+              "Bulgaria", "Bulgaristan",
+              "Georgia", "Gürcistan",
+              "Armenia", "Ermenistan",
+              "Cyprus", "Kıbrıs",
+              "North Macedonia", "Kuzey Makedonya",
+              "Albania", "Arnavutluk",
+              "Montenegro", "Karadağ",
+              "Kosovo", "Kosova",
+              "Serbia", "Sırbistan",
+              "Azerbaijan", "Azerbaycan",
+              "Russia", "Rusya",
+              "Ukraine", "Ukrayna",
+              "Urmia", "Urmiye",
+              "Sulaymaniyah", "Süleymaniye",
+              "Halabja", "Halepçe",
+              "Ar-Raqqa", "Rakka",
+              "Ramadi", "Ramadi",
+              "Kermanshah", "Kirmanşah",
+              "Qom", "Kum",
+              "Zanjan", "Zencan",
+              "Hamadan", "Hemedan",
+              "Qazvin", "Kazvin",
+              "Shekh Mama", "Şeyh Mama",
+              "Corfu", "Korfu",
+              "Tirana", "Tiran",
+              "Skopje", "Üsküp",
+              "Plovdiv", "Filibe",
+              "Alexandroupoli", "Dedeağaç",
+              "Komotini", "Gümülcine",
+              "Xanthi", "İskeçe",
+              "Ioannina", "Yanya",
+              "Corinth", "Korint",
+              "Sochi", "Soçi",
+              "Grozny", "Grozni",
+              "Makhachkala", "Mahaçkale",
+              "Ganja", "Gence",
+              "Gyumri", "Gümrü",
+              "Garabogaz", "Karaboğaz",
+              "Aegean Sea", "Ege Denizi",
+              "Ionian Sea", "İyon Denizi",
+              "Black Sea", "Karadeniz",
+              "Mediterranean Sea", "Akdeniz",
+              "Caspian Sea", "Hazar Denizi",
+              "Sea of Azov", "Azak Denizi",
+              ["coalesce", ["get", "name_tr"], ["get", "name_en"], ["get", "name"]]
+            ];
+
+            const localizeTextField = (field: any): any => {
+              if (typeof field === 'string') {
+                return field.replace(/\{name(_[a-z]+)?\}/g, '{name_tr}').replace(/\{name\}/g, '{name_tr}');
+              }
+              if (Array.isArray(field)) {
+                if (field[0] === 'get' && typeof field[1] === 'string' && (field[1] === 'name' || field[1] === 'name_en')) {
+                  return getTrNameExpr;
+                }
+                return field.map(localizeTextField);
+              }
+              return field;
+            };
+
+            style.layers.forEach((layer: any) => {
+              if (layer.layout && layer.layout['text-field']) {
+                layer.layout['text-field'] = localizeTextField(layer.layout['text-field']);
+              }
+            });
+
+            setMapStyle(style);
+          }
+        })
+        .catch(err => console.error("Style fetch error:", err));
+    }
+  }, []);
 
   useEffect(() => {
     const socket = initSocket();
@@ -164,12 +273,15 @@ export function MapView() {
         initialViewState={viewState}
         onMove={e => setViewState(e.viewState)}
         onMoveEnd={handleMoveEnd}
-        mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+        mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={TURKEY_BOUNDS}
-        minZoom={5.5}
-        dragPan={viewState.zoom > 5.5}
+        minZoom={5.8}
+        dragPan={true}
+        dragRotate={false}
+        pitchWithRotate={false}
+        touchPitch={false}
       >
         <NavigationControl position="bottom-right" />
 
