@@ -34,7 +34,7 @@ jobs:
       # ── Backend CI ──────────────────────────────────────────────────────────
       - name: Install Backend Dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Generate Prisma Client
         working-directory: ./backend
@@ -47,7 +47,7 @@ jobs:
       # ── Frontend CI ─────────────────────────────────────────────────────────
       - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Build Next.js Production Bundle
         working-directory: ./frontend
