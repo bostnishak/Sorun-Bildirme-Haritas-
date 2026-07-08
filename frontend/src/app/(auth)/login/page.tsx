@@ -23,12 +23,17 @@ export default function LoginPage() {
 
     try {
       const response: any = await api.post('/auth/login', form);
-      const { user, accessToken, refreshToken } = response;
+      const authPayload = response?.data || response;
+      const { user, accessToken, refreshToken } = authPayload || {};
+
+      if (!user || !accessToken) {
+        throw new Error('Kullanıcı bilgisi alınamadı.');
+      }
 
       setTokens(accessToken, refreshToken);
       setUser(user);
 
-      toast.success(`Hoş geldiniz, ${user.firstName}! 👋`);
+      toast.success(`Hoş geldiniz, ${user.firstName || user.email || 'Kullanıcı'}! 👋`);
       router.push('/');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Giriş başarısız. E-posta veya şifre hatalı.');
