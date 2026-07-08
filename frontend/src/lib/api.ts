@@ -5,8 +5,8 @@ import type {
   MapCluster,
   BoundingBoxQuery,
   IssueStatus,
-} from '../../../shared/types/issue.types';
-import type { User, LoginDto, RegisterDto, AuthResponse } from '../../../shared/types/auth.types';
+} from '../types/issue.types';
+import type { User, LoginDto, RegisterDto, AuthResponse } from '../types/auth.types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
