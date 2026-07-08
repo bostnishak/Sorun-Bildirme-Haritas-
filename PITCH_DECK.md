@@ -67,10 +67,11 @@ cd Etiya_Project
 cp .env.example .env
 
 # 3. Docker Compose ile tüm platformu başlatın
-docker compose -f docker-compose.yml up -d --build
+docker compose up -d --build
 ```
 
-### Sunucu Üzerinde Doğrulama
-- **Vatandaş Portalı & Harita:** `http://localhost:3000`
-- **Backend API Sağlık Kontrolü:** `http://localhost:5001/health`
-- **Yönetim Paneli / Portal:** `http://localhost:3000/portal`
+### Sunucu Üzerinde Doğrulama (Docker Nginx Reverse Proxy)
+- **Vatandaş Portalı & Harita:** `http://localhost` (Port 80)
+- **Kurumsal Paketler & B2G Yatırımcı Panosu:** `http://localhost/pricing`
+- **Kurum Yönetim Paneli / Portal:** `http://localhost/portal`
+- **Backend API Sağlık Kontrolü:** `http://localhost/health`
