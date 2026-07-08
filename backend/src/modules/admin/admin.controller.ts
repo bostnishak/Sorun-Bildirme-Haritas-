@@ -71,3 +71,25 @@ export async function createInstitution(req: Request, res: Response): Promise<vo
   const institution = await adminService.createInstitution(parsed.data);
   res.status(201).json({ success: true, data: institution });
 }
+
+/**
+ * PATCH /api/v1/admin/institutions/:id/webhook
+ */
+export async function updateInstitutionWebhook(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    webhookUrl: z.string().url('Geçerli bir URL olmalı').nullable(),
+    emailAddress: z.string().email().optional(),
+  });
+  const { webhookUrl, emailAddress } = schema.parse(req.body);
+
+  const updated = await adminService.updateInstitutionWebhook(req.params.id, webhookUrl, emailAddress);
+  res.status(200).json({ success: true, message: 'Kurum entegrasyon ayarları güncellendi.', data: updated });
+}
+
+/**
+ * POST /api/v1/admin/institutions/:id/webhook/test
+ */
+export async function testInstitutionWebhook(req: Request, res: Response): Promise<void> {
+  const result = await adminService.testInstitutionWebhook(req.params.id);
+  res.status(200).json({ success: true, message: 'Test webhook bildirimi başarıyla iletildi.', data: result });
+}

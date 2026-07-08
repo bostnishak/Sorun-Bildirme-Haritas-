@@ -12,6 +12,12 @@ router.get('/map-cluster', issuesController.getClusteredIssues);
 // GET /api/v1/issues — Public (tablo görünümü)
 router.get('/', issuesController.listIssues);
 
+// GET /api/v1/issues/summary-stats — Public (özet istatistikler)
+router.get('/summary-stats', issuesController.getSummaryStats);
+
+// GET /api/v1/issues/my/list — Oturum açmış kullanıcının bildirimleri
+router.get('/my/list', isAuthenticated, issuesController.getMyIssues);
+
 // GET /api/v1/issues/:id — Public (sorun detayı)
 router.get('/:id', issuesController.getIssue);
 
@@ -28,6 +34,13 @@ router.post(
   '/:id/upvote',
   isAuthenticated,
   issuesController.upvoteIssue,
+);
+
+// POST /api/v1/issues/:id/comments — Yorum veya resmi açıklama ekle
+router.post(
+  '/:id/comments',
+  isAuthenticated,
+  issuesController.addComment,
 );
 
 // PATCH /api/v1/issues/:id/status — Sadece kurum yetkilisi ve admin

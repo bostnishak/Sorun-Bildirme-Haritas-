@@ -8,34 +8,11 @@ import {
   CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_ICON_MAP,
   IconLocationDot, IconX,
 } from '@/components/ui/Icon';
+import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
   value, label, color: CATEGORY_COLORS[value],
 }));
-
-const TR_CITIES_DISTRICTS: Record<string, string[]> = {
-  'Ankara': ['Çankaya', 'Keçiören', 'Mamak', 'Yenimahalle', 'Altındağ', 'Etimesgut', 'Sincan', 'Gölbaşı', 'Pursaklar'],
-  'İstanbul': ['Beşiktaş', 'Şişli', 'Beyoğlu', 'Kadıköy', 'Üsküdar', 'Ataşehir', 'Maltepe', 'Fatih', 'Bakırköy', 'Zeytinburnu', 'Eyüpsultan', 'Sarıyer', 'Beykoz', 'Pendik', 'Tuzla', 'Avcılar', 'Küçükçekmece', 'Beylikdüzü', 'Büyükçekmece', 'Başakşehir', 'Sancaktepe', 'Ümraniye', 'Esenler'],
-  'İzmir': ['Konak', 'Karşıyaka', 'Bornova', 'Buca', 'Karabağlar', 'Balçova', 'Narlıdere', 'Urla', 'Çeşme', 'Bayraklı', 'Çiğli'],
-  'Bursa': ['Osmangazi', 'Nilüfer', 'Yıldırım', 'Mudanya', 'İnegöl', 'Gemlik'],
-  'Antalya': ['Konyaaltı', 'Muratpaşa', 'Kepez', 'Alanya', 'Manavgat', 'Kemer'],
-  'Adana': ['Seyhan', 'Çukurova', 'Yüreğir', 'Sarıçam', 'Ceyhan'],
-  'Mersin': ['Yenişehir', 'Mezitli', 'Tarsus', 'Toroslar', 'Akdeniz'],
-  'Gaziantep': ['Şahinbey', 'Şehitkamil', 'Nizip'],
-  'Samsun': ['Atakum', 'İlkadım', 'Canik', 'Bafra'],
-  'Diyarbakır': ['Kayapınar', 'Bağlar', 'Yenişehir', 'Sur'],
-  'Trabzon': ['Ortahisar', 'Akçaabat', 'Yomra'],
-  'Erzurum': ['Yakutiye', 'Palandöken', 'Aziziye'],
-  'Konya': ['Selçuklu', 'Meram', 'Karatay'],
-  'Kayseri': ['Melikgazi', 'Kocasinan', 'Talas'],
-  'Eskişehir': ['Odunpazarı', 'Tepebaşı'],
-  'Kocaeli': ['İzmit', 'Gebze', 'Gölcük', 'Darıca', 'Kartepe'],
-  'Sakarya': ['Adapazarı', 'Serdivan', 'Erenler', 'Sapanca'],
-  'Kahramanmaraş': ['Dulkadiroğlu', 'Onikişubat', 'Elbistan'],
-  'Malatya': ['Battalgazi', 'Yeşilyurt'],
-  'Van': ['İpekyolu', 'Tuşba', 'Edremit'],
-  'Rize': ['Merkez', 'Çayeli', 'Ardeşen'],
-};
 
 interface FormData {
   title: string;

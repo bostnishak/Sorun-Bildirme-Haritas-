@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -135,6 +136,7 @@ const FALLBACK_ISSUES: any[] = [
 ];
 
 export function TableView() {
+  const router = useRouter();
   const { filters, setFilter, clearFilters, selectIssue } = useAppStore();
   const { data: queryData, isLoading, isError } = useIssues(filters as any);
   const rawIssues = queryData?.pages.flatMap(p => p.issues) || [];
@@ -449,7 +451,16 @@ export function TableView() {
                     {format(new Date(issue.createdAt || '2026-07-02T10:00:00Z'), 'dd MMM yyyy, HH:mm', { locale: tr })}
                   </td>
                   <td>
-                    <button className={styles.moreBtn} onClick={e => { e.stopPropagation(); }}><IconMoreHorizontal size={14} /></button>
+                    <button
+                      className={styles.moreBtn}
+                      title="Detay Sayfasına Git"
+                      onClick={e => {
+                        e.stopPropagation();
+                        router.push(`/issues/${issue.id}`);
+                      }}
+                    >
+                      <IconMoreHorizontal size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}

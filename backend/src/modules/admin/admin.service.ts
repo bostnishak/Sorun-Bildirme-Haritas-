@@ -112,4 +112,40 @@ export const adminService = {
       },
     });
   },
+
+  async updateInstitutionWebhook(id: string, webhookUrl: string | null, emailAddress?: string) {
+    return prisma.institution.update({
+      where: { id },
+      data: {
+        webhookUrl,
+        ...(emailAddress ? { emailAddress } : {}),
+      },
+      select: {
+        id: true, name: true, city: true, district: true,
+        emailAddress: true, webhookUrl: true, isActive: true,
+      },
+    });
+  },
+
+  async testInstitutionWebhook(id: string) {
+    const institution = await prisma.institution.findUnique({ where: { id } });
+    if (!institution || !institution.webhookUrl) {
+      throw new Error('Kurum için tanımlı bir webhook URL bulunamadı.');
+    }
+
+    const testPayload = {
+      event: 'chaosmind.webhook.test',
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      data: {
+        institutionId: institution.id,
+        institutionName: institution.name,
+        message: 'Bu bir ChaosMind 153 Beyaz Masa Entegrasyon test bildirimidir.',
+      },
+    };
+
+    const { dispatchWebhook } = await import('../../services/webhook.service');
+    await dispatchWebhook(institution.webhookUrl, testPayload);
+    return { success: true, testedUrl: institution.webhookUrl };
+  },
 };

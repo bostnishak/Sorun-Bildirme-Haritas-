@@ -3,13 +3,19 @@ import { QueryProvider } from './providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Türkiye Sorun Bildirim Haritası',
-  description: 'şehrinizde sorunları harita üzerinde bildirin ve takip edin.',
-  keywords: ['sorun bildirim', 'belediye', 'harita', 'şikayet', 'türkiye'],
-  authors: [{ name: 'TSBH Team' }],
+  title: 'ChaosMind — Türkiye Sorun Bildirim Haritası',
+  description: 'Şehrinizdeki sorunları harita üzerinde anlık bildirin ve belediye/kurum çözüm sürecini şeffafça takip edin.',
+  keywords: ['sorun bildirim', 'belediye', 'harita', 'kentsel sorun', 'türkiye', 'chaosmind'],
+  authors: [{ name: 'ChaosMind Team' }],
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ChaosMind',
+  },
   openGraph: {
-    title: 'Türkiye Sorun Bildirim Haritası',
-    description: 'şehir sorunlarını anlık olarak bildirin ve takip edin.',
+    title: 'ChaosMind — Türkiye Sorun Bildirim Haritası',
+    description: 'Şehir sorunlarını anlık bildirin ve takip edin.',
     type: 'website',
     locale: 'tr_TR',
   },
@@ -18,7 +24,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f62fe',
+  maximumScale: 5,
+  themeColor: '#2563eb',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -32,13 +39,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-        {/* Favicon */}
+        {/* Favicon & Manifest */}
         <link rel="icon" href="/favicon.ico" />
-        {/* Unregister old service workers */}
+        <link rel="manifest" href="/manifest.json" />
+        {/* Register PWA Service Worker */}
         <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              for (let registration of registrations) { registration.unregister(); }
+          if ('serviceWorker' in navigator && typeof window !== 'undefined') {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                console.warn('SW register error:', err);
+              });
             });
           }
         `}} />

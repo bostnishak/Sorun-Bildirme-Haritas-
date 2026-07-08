@@ -48,6 +48,9 @@ const envSchema = z.object({
   // TC Kimlik Hash Salt (JWT_SECRET'tan bağımsız — asla değiştirme!)
   TC_KIMLIK_PEPPER: z.string().default('dev_pepper_key_12345'),
 
+  // Prometheus / Observability
+  METRICS_TOKEN: z.string().optional(),
+
   // Uygulama URL'si — webhook ve e-posta bağlantıları için
   APP_URL: z.string().url().default('http://localhost:3000'),
 });
@@ -58,6 +61,17 @@ if (!parsed.success) {
   console.error('❌ Invalid environment variables:');
   console.error(parsed.error.flatten().fieldErrors);
   process.exit(1);
+}
+
+// Production Güvenlik Kontrolü: Default secret'ların production'da kullanılmasını engelle
+if (parsed.data.NODE_ENV === 'production') {
+  if (
+    parsed.data.WEBHOOK_HMAC_SECRET === 'dev_secret_key_1234' ||
+    parsed.data.TC_KIMLIK_PEPPER === 'dev_pepper_key_12345'
+  ) {
+    console.error('❌ CRITICAL SECURITY ERROR: Production ortamında varsayılan WEBHOOK_HMAC_SECRET veya TC_KIMLIK_PEPPER kullanılamaz.');
+    process.exit(1);
+  }
 }
 
 export const env = parsed.data;

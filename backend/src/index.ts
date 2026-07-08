@@ -52,7 +52,25 @@ app.use(morgan('combined', {
 // ─── Prometheus Metrikleri ────────────────────────────────────────────────
 app.use(metricsMiddleware);
 
-app.get('/metrics', async (_req: Request, res: Response) => {
+app.get('/metrics', async (req: Request, res: Response) => {
+  const clientIp = req.ip || req.socket.remoteAddress || '';
+  const isInternalOrLoopback =
+    clientIp === '127.0.0.1' ||
+    clientIp === '::1' ||
+    clientIp === '::ffff:127.0.0.1' ||
+    clientIp.startsWith('172.') ||
+    clientIp.startsWith('10.') ||
+    clientIp.startsWith('192.168.');
+  const tokenHeader = req.headers['x-metrics-token'] || (req.headers['authorization'] as string)?.replace('Bearer ', '');
+
+  if (env.METRICS_TOKEN && tokenHeader !== env.METRICS_TOKEN) {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Yetkisiz erişim.' } });
+    return;
+  } else if (!env.METRICS_TOKEN && env.NODE_ENV === 'production' && !isInternalOrLoopback) {
+    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Metrikler sadece iç ağdan erişilebilir.' } });
+    return;
+  }
+
   res.set('Content-Type', 'text/plain');
   res.send(await getMetrics());
 });

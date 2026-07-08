@@ -67,8 +67,9 @@ model User {
   refreshTokens RefreshToken[]
 
   // İlişkiler
-  issues  Issue[]
-  upvotes IssueUpvote[]
+  issues   Issue[]
+  upvotes  IssueUpvote[]
+  comments IssueComment[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -119,7 +120,7 @@ model Issue {
   description String      @db.Text
   category    Category
   priority    Priority    @default(MEDIUM)
-  status      IssueStatus @default(IN_REVIEW)
+  status      IssueStatus @default(OPEN)
 
   // ─── Konum ───────────────────────────────────────────────────────────────
   // PostGIS Point — geometrik indexleme için
@@ -156,6 +157,7 @@ model Issue {
 
   statusHistory IssueStatusHistory[]
   upvotes       IssueUpvote[]
+  comments      IssueComment[]
 
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
@@ -194,4 +196,19 @@ model IssueUpvote {
 
   @@unique([issueId, userId]) // Bir kullanıcı bir sorunu sadece bir kez oylayabilir
   @@map("issue_upvotes")
+}
+
+model IssueComment {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  issueId    String   @map("issue_id") @db.Uuid
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId   String   @map("author_id") @db.Uuid
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  isOfficial Boolean  @default(false) @map("is_official")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([issueId])
+  @@index([authorId])
+  @@map("issue_comments")
 }

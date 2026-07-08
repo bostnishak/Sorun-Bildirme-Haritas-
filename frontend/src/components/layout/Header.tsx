@@ -46,6 +46,14 @@ export function Header() {
 
       {/* Actions */}
       <div className={styles.actions}>
+        <Link
+          href="/pricing"
+          className="btn btn-ghost btn-sm"
+          style={{ fontWeight: 600, color: '#2563eb' }}
+        >
+          Kurumsal Paketler
+        </Link>
+
         {isAuthenticated ? (
           <>
             <button
@@ -57,18 +65,28 @@ export function Header() {
               <span>Sorun Bildir</span>
             </button>
 
-            <div className={styles.userMenu}>
-              <div className={styles.avatar}>
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              <Link href="/my-issues" className="btn btn-ghost btn-sm">
+                Bildirimlerim
+              </Link>
+
+              {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
+                <Link href="/portal" className="btn btn-secondary btn-sm">
+                  Yönetim Portalı
+                </Link>
+              )}
+
+              <div className={styles.userMenu}>
+                <div className={styles.avatar}>
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </div>
+                <div className={styles.userInfo}>
+                  <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
+                  <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={logout}>
+                  Çıkış
+                </button>
               </div>
-              <div className={styles.userInfo}>
-                <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
-                <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={logout}>
-                Çıkış
-              </button>
-            </div>
           </>
         ) : (
           <>

@@ -35,4 +35,18 @@ router.post(
   adminController.createInstitution,
 );
 
+// PATCH /api/v1/admin/institutions/:id/webhook — Kurum webhook ayarı
+router.patch(
+  '/institutions/:id/webhook',
+  requireRole('SUPER_ADMIN'),
+  adminController.updateInstitutionWebhook,
+);
+
+// POST /api/v1/admin/institutions/:id/webhook/test — Test webhook bildirimi
+router.post(
+  '/institutions/:id/webhook/test',
+  requireRole('SUPER_ADMIN'),
+  adminController.testInstitutionWebhook,
+);
+
 export { router as adminRouter };

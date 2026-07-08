@@ -1,12 +1,16 @@
-﻿# 🗺️ ChaosMind — Türkiye Sorun Bildirim Haritası
+# 🗺️ ChaosMind — Türkiye Sorun Bildirim Haritası
 
 > **Vatandaşların şehir sorunlarını anlık olarak bildirebildiği, yetkili kurumların bu sorunları sistematik şekilde yönettiği ve çözüm sürecinin şeffaf biçimde takip edilebildiği merkezi dijital platform.**
+
+[![Yatırımcı Sunumu](https://img.shields.io/badge/Yat%C4%B1r%C4%B1mc%C4%B1%20Sunumu-PITCH__DECK.md-2563eb?style=for-the-badge)](./PITCH_DECK.md)
+[![PWA Destekli](https://img.shields.io/badge/PWA-Mobil%20Uyumlu-10b981?style=for-the-badge)](./frontend/public/manifest.json)
+[![CI/CD Pipeline](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-8b5cf6?style=for-the-badge)](./.github/workflows/ci.yml)
 
 ---
 
 ## 📌 Proje Hakkında
 
-ChaosMind, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur.
+ChaosMind, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur. Detaylı yatırımcı ve iş modeli dokümanı için **[PITCH_DECK.md](./PITCH_DECK.md)** dosyasını inceleyebilirsiniz.
 
 ### 🎯 Rol Yapısı
 

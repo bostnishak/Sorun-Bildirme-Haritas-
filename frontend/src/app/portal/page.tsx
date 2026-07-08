@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAppStore } from '@/store/useAppStore';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -131,8 +133,23 @@ export default function PortalPage() {
                     </td>
                     <td>{issue.city} / {issue.district}</td>
                     <td>{format(new Date(issue.created_at || issue.createdAt), 'dd MMM, HH:mm', { locale: tr })}</td>
-                    <td>
+                    <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <StatusUpdateMenu issueId={issue.id} currentStatus={issue.status} />
+                      <Link
+                        href={`/issues/${issue.id}`}
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#2563eb',
+                          textDecoration: 'none',
+                          padding: '6px 10px',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '8px',
+                          background: '#eff6ff',
+                        }}
+                      >
+                        Açıklama Ekle
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -146,12 +163,16 @@ export default function PortalPage() {
 }
 
 function StatusUpdateMenu({ issueId, currentStatus }: { issueId: string; currentStatus: string }) {
+  const queryClient = useQueryClient();
+
   const updateStatus = async (newStatus: string) => {
     try {
       await api.patch(`/issues/${issueId}/status`, { status: newStatus });
-      window.location.reload();
+      toast.success('Sorun durumu güncellendi!');
+      queryClient.invalidateQueries({ queryKey: ['portal-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['portal-stats'] });
     } catch {
-      alert('Durum güncellenemedi.');
+      toast.error('Durum güncellenemedi.');
     }
   };
 

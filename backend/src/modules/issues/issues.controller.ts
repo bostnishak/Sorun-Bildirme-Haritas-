@@ -212,3 +212,32 @@ export async function upvoteIssue(req: Request, res: Response): Promise<void> {
   const upvote = await issuesService.upvote(req.params.id, req.user.sub);
   res.status(200).json({ success: true, message: 'Sorun desteklendi.', data: upvote });
 }
+
+/**
+ * GET /api/v1/issues/summary-stats — Genel özet istatistikler (Public)
+ */
+export async function getSummaryStats(_req: Request, res: Response): Promise<void> {
+  const stats = await issuesService.getPublicSummaryStats();
+  res.status(200).json({ success: true, data: stats });
+}
+
+/**
+ * POST /api/v1/issues/:id/comments — Yorum ekle
+ */
+export async function addComment(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    content: z.string().min(2, 'Yorum en az 2 karakter olmalı.').max(1000),
+  });
+  const { content } = schema.parse(req.body);
+
+  const comment = await issuesService.addComment(req.params.id, req.user.sub, content, req.user.role);
+  res.status(201).json({ success: true, message: 'Yorum eklendi.', data: comment });
+}
+
+/**
+ * GET /api/v1/issues/my/list — Vatandaşın kendi bildirimleri
+ */
+export async function getMyIssues(req: Request, res: Response): Promise<void> {
+  const issues = await issuesService.listMyIssues(req.user.sub);
+  res.status(200).json({ success: true, data: issues });
+}

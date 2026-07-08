@@ -1,16 +1,39 @@
 {
-  "name": "Türkiye Sorun Bildirim Haritası",
-  "short_name": "Sorun Haritası",
-  "description": "Kentsel sorun bildirim ve takip platformu",
+  "name": "ChaosMind — Türkiye Sorun Bildirim Haritası",
+  "short_name": "ChaosMind",
+  "description": "Vatandaş odaklı, konum tabanlı kentsel sorun bildirim ve belediye takip platformu",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
+  "theme_color": "#2563eb",
+  "categories": ["utilities", "government", "social"],
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/favicon.ico",
       "sizes": "64x64",
       "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Yeni Sorun Bildir",
+      "short_name": "Sorun Bildir",
+      "description": "Anlık konumunuzla hemen sorun bildirin",
+      "url": "/?action=report"
+    },
+    {
+      "name": "Bildirimlerim",
+      "short_name": "Takip Et",
+      "description": "Bildirdiğiniz sorunların durumunu inceleyin",
+      "url": "/my-issues"
     }
   ]
 }
