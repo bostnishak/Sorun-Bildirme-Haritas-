@@ -9,7 +9,6 @@ import {
   IconLocationDot, IconX,
 } from '@/components/ui/Icon';
 import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
-import { MapPickerModal } from './MapPickerModal';
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
   value, label, color: CATEGORY_COLORS[value],
@@ -33,8 +32,6 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData & { image: string }>>({});
   const [locationLoading, setLocationLoading] = useState(false);
-  const [forwardLoading, setForwardLoading] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -112,69 +109,8 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
         setLocationLoading(false);
         toast.error('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.', { id: 'geo-toast' });
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  };
-
-  const handleForwardGeocode = async () => {
-    if (!formData.address.trim()) {
-      toast.error('Lütfen aramak istediğiniz adresi (Örn: Gündoğumu Sokak No: 8/1 Beykoz) yazın.');
-      return;
-    }
-    setForwardLoading(true);
-    toast.loading('Adresinizin hassas koordinatları aranıyor...', { id: 'geo-toast' });
-    try {
-      const { api } = await import('@/lib/api');
-      const fullQuery = `${formData.address} ${formData.district || ''} ${formData.city || ''}`.trim();
-      const res: any = await api.get('/issues/geocode/forward', { params: { q: fullQuery } });
-      const data = res?.data || res;
-      if (data && data.lat && data.lng) {
-        setCoords({ lat: data.lat, lng: data.lng });
-        if (data.city) setFormData(p => ({ ...p, city: data.city }));
-        if (data.district) setFormData(p => ({ ...p, district: data.district }));
-        if (data.fullAddress) setFormData(p => ({ ...p, address: data.fullAddress }));
-        toast.success(`🎯 Hassas Konum Sabitlendi: ${data.fullAddress}`, { id: 'geo-toast' });
-      } else {
-        toast.error('Bu adres için tam koordinat bulunamadı. Lütfen "📍 Haritadan Seç" ile noktanızı işaretleyin.', { id: 'geo-toast' });
-      }
-    } catch (err) {
-      toast.error('Adres aranırken bir sorun oluştu.', { id: 'geo-toast' });
-    } finally {
-      setForwardLoading(false);
-    }
-  };
-
-  const handleMapSelect = async (lat: number, lng: number) => {
-    setCoords({ lat, lng });
-    setShowMapPicker(false);
-    toast.loading('Seçtiğiniz noktanın bina/sokak adresi çözümleniyor...', { id: 'geo-toast' });
-    try {
-      const { api } = await import('@/lib/api');
-      const geoRes: any = await api.get('/issues/geocode', { params: { lat, lng } });
-      const geoData = geoRes?.data || geoRes;
-      if (geoData) {
-        const newCity = geoData.city || formData.city || 'İstanbul';
-        const newDistrict = geoData.district || formData.district || 'Beykoz';
-        const detailedAddr = geoData.fullAddress || [
-          geoData.street,
-          geoData.doorNumber ? `No: ${geoData.doorNumber}` : '',
-          geoData.neighborhood,
-          `${newDistrict}/${newCity}`
-        ].filter(Boolean).join(', ');
-
-        setFormData(prev => ({
-          ...prev,
-          city: newCity,
-          district: newDistrict,
-          address: detailedAddr,
-        }));
-        toast.success(`Hassas Bina Konumu Seçildi: ${detailedAddr}`, { id: 'geo-toast' });
-      } else {
-        toast.success('Hassas Koordinat Seçildi ✓', { id: 'geo-toast' });
-      }
-    } catch (err) {
-      toast.success('Hassas Koordinat Seçildi ✓', { id: 'geo-toast' });
-    }
   };
 
   // XSS ve Zararlı Script Koruması (Sanitization Helper)
@@ -374,46 +310,18 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             {errors.image && <p className={styles.error}>{errors.image}</p>}
           </div>
 
-          {/* Address with GPS, Forward Geocode, and Map Pin Picker */}
+          {/* Address with GPS */}
           <div className={styles.field}>
-            <label htmlFor="issue-address" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Adres (Cadde, Sokak, Kapı No)</span>
-              <button
-                type="button"
-                onClick={() => setShowMapPicker(true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#38bdf8',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  textDecoration: 'underline',
-                }}
-              >
-                📍 Haritadan İğnele / Binamı Seç
-              </button>
-            </label>
-            <div className={styles.addressRow} style={{ display: 'flex', gap: '8px' }}>
+            <label htmlFor="issue-address">Adres</label>
+            <div className={styles.addressRow}>
               <input
                 id="issue-address"
                 name="address"
                 className="input"
-                style={{ flex: 1 }}
-                placeholder="Örn: Gündoğumu Sokak No: 8/1, Beykoz/İstanbul"
+                placeholder="Atatürk Cd. No:45, 06570 Çankaya/Ankara"
                 value={formData.address}
                 onChange={handleChange}
               />
-              <button
-                type="button"
-                className={styles.locationBtn}
-                onClick={handleForwardGeocode}
-                disabled={forwardLoading}
-                title="Yazdığınız adresi haritada hassas koordinate sabitle"
-                style={{ padding: '0 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-              >
-                {forwardLoading ? '⏳' : '🔍 Konumu Çözümle'}
-              </button>
               <button
                 type="button"
                 id="btn-get-location"
@@ -435,15 +343,9 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
                 )}
               </button>
             </div>
-            {coords ? (
-              <p className={styles.hint} style={{ marginTop: '4px', fontSize: '11px', color: '#10b981' }}>
-                ✓ Sabitlenen Hassas Koordinat: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
-              </p>
-            ) : (
-              <p className={styles.hint} style={{ marginTop: '4px', fontSize: '11px', color: '#fbbf24' }}>
-                Yapay Zeka onayı ve tam nokta tespiti için &quot;📍 Haritadan İğnele&quot; veya &quot;🔍 Konumu Çözümle&quot; butonunu kullanabilirsiniz.
-              </p>
-            )}
+            {!coords && <p className={styles.hint} style={{ marginTop: '4px', fontSize: '11px', color: '#fbbf24' }}>
+              Yapay Zeka onayı için GPS konumunuzu almanız önerilir.
+            </p>}
           </div>
 
           {/* City + District */}
@@ -507,15 +409,6 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         </form>
-
-        {showMapPicker && (
-          <MapPickerModal
-            initialLat={coords?.lat || 41.0082}
-            initialLng={coords?.lng || 28.9784}
-            onClose={() => setShowMapPicker(false)}
-            onSelect={handleMapSelect}
-          />
-        )}
       </div>
     </div>
   );
