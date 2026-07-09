@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { Client as MinioClient } from 'minio';
 import { prisma } from '../../config/database';
 import { verifyWithNVI, hashTCKimlik } from '../../services/nvi.service';
 import {
@@ -14,6 +15,16 @@ import {
   NotFoundError,
 } from '../../utils/errors';
 import { logger } from '../../utils/logger';
+import { randomUUID } from 'crypto';
+
+const minio = new MinioClient({
+  endPoint: env.MINIO_ENDPOINT,
+  port: env.MINIO_PORT,
+  useSSL: env.MINIO_USE_SSL,
+  accessKey: env.MINIO_ACCESS_KEY,
+  secretKey: env.MINIO_SECRET_KEY,
+});
+
 
 interface RegisterDto {
   email: string;
@@ -150,6 +161,8 @@ export const authService = {
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
+        avatarUrl: true,
         role: true,
         isVerified: true,
         institution: {
@@ -161,6 +174,76 @@ export const authService = {
 
     if (!user) throw new NotFoundError('Kullanıcı');
     return user;
+  },
+
+  async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string }) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName && { firstName: dto.firstName }),
+        ...(dto.lastName && { lastName: dto.lastName }),
+        phone: dto.phone ?? null,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        role: true,
+        isVerified: true,
+      },
+    });
+    logger.info('Kullanıcı profili güncellendi', { userId });
+    return user;
+  },
+
+  async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundError('Kullanıcı');
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isValid) throw new UnauthorizedError('Mevcut şifre hatalı.');
+
+    const newHash = await bcrypt.hash(dto.newPassword, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
+
+    // Tüm refresh token'ları iptal et (güvenlik)
+    await prisma.refreshToken.deleteMany({ where: { userId } });
+
+    logger.info('Kullanıcı şifresi değiştirildi', { userId });
+  },
+
+  async uploadAvatar(userId: string, buffer: Buffer, mimeType: string) {
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const key = `avatars/${userId}/${randomUUID()}.${ext}`;
+    const bucket = env.MINIO_BUCKET;
+
+    await minio.putObject(bucket, key, buffer, buffer.length, { 'Content-Type': mimeType });
+
+    // Eski avatarı sil
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (existing?.avatarKey) {
+      try { await minio.removeObject(bucket, existing.avatarKey); } catch { /* yoksay */ }
+    }
+
+    // MinIO public URL (minio:9000 internal → localhost:9000 external)
+    const avatarUrl = `http://localhost:9000/${bucket}/${key}`;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl, avatarKey: key },
+    });
+
+    logger.info('Avatar yüklendi', { userId, key });
+    return { avatarUrl };
   },
 
   async createTokenPair(userId: string, role: string, institutionId?: string) {

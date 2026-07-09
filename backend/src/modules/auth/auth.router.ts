@@ -20,4 +20,18 @@ router.post('/logout', isAuthenticated, authController.logout);
 // GET /api/v1/auth/me — Mevcut kullanıcı bilgisi
 router.get('/me', isAuthenticated, authController.getMe);
 
+// PATCH /api/v1/auth/me — Profil bilgilerini güncelle
+router.patch('/me', isAuthenticated, authController.updateProfile);
+
+// PATCH /api/v1/auth/me/password — Şifre değiştir
+router.patch('/me/password', isAuthenticated, authController.changePassword);
+
+// POST /api/v1/auth/me/avatar — Profil fotoğrafı yükle
+router.post(
+  '/me/avatar',
+  isAuthenticated,
+  authController.avatarUpload.single('avatar'),
+  authController.uploadAvatar,
+);
+
 export { router as authRouter };

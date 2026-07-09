@@ -63,6 +63,11 @@ model User {
   institutionId String?      @map("institution_id") @db.Uuid
   institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
 
+  // Profil
+  phone     String? @map("phone") @db.VarChar(20)
+  avatarUrl String? @map("avatar_url") @db.VarChar(500)
+  avatarKey String? @map("avatar_key") @db.VarChar(500) // MinIO object key
+
   // Refresh tokens
   refreshTokens RefreshToken[]
 

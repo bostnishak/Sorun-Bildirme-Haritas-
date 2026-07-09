@@ -10,6 +10,8 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+  avatarUrl?: string;
   role: 'CITIZEN' | 'INSTITUTION_OFFICER' | 'SUPER_ADMIN';
   isVerified: boolean;
   institution?: {
@@ -103,6 +105,7 @@ interface AppStore {
 
   // Actions
   setUser: (user: User | null) => void;
+  updateUser: (partial: Partial<User>) => void;
   setTokens: (access: string, refresh: string) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (dto: {
@@ -145,6 +148,11 @@ export const useAppStore = create<AppStore>()(
 
       // Auth actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+      updateUser: (partial) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : null,
+        })),
 
       setTokens: (access, refresh) => {
         if (typeof window !== 'undefined') {

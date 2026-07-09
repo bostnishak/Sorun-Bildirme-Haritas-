@@ -140,3 +140,22 @@ export const adminApi = {
     webhookUrl?: string;
   }) => api.post<any, any>('/admin/institutions', data),
 };
+
+// ─── Profile Endpoints ───────────────────────────────────────────────────────
+
+export const profileApi = {
+  updateProfile: (dto: { firstName?: string; lastName?: string; phone?: string | null }) =>
+    api.patch<any, any>('/auth/me', dto),
+
+  changePassword: (dto: { currentPassword: string; newPassword: string }) =>
+    api.patch<any, any>('/auth/me/password', dto),
+
+  uploadAvatar: (formData: FormData) =>
+    api.post<any, any>('/auth/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getMyIssues: () =>
+    api.get<any, any>('/issues/my/list'),
+};
+

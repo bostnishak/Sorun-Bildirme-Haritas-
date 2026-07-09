@@ -82,9 +82,6 @@ export function Header() {
               <span>Sorun Bildir</span>
             </button>
 
-              <Link href="/my-issues" className="btn btn-ghost btn-sm">
-                Bildirimlerim
-              </Link>
 
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
                 <Link href="/portal" className="btn btn-secondary btn-sm">
@@ -92,18 +89,27 @@ export function Header() {
                 </Link>
               )}
 
-              <div className={styles.userMenu}>
-                <div className={styles.avatar}>
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+              <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }}>
+                <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
+                  {user?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatarUrl}
+                      alt="Profil fotoğrafı"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  ) : (
+                    <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                  )}
                 </div>
                 <div className={styles.userInfo}>
                   <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
                   <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
                 </div>
+              </Link>
                 <button className="btn btn-ghost btn-sm" onClick={logout}>
                   Çıkış
                 </button>
-              </div>
           </>
         ) : (
           <>

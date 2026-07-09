@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { authService } from './auth.service';
 import { z } from 'zod';
 import { BadRequestError } from '../../utils/errors';
+import multer from 'multer';
 
 // ─── Validation Schemas ────────────────────────────────────────────────────
 
@@ -92,4 +93,61 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     success: true,
     data: user,
   });
+}
+
+export async function updateProfile(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    firstName: z.string().min(2).max(100).optional(),
+    lastName: z.string().min(2).max(100).optional(),
+    phone: z.string().max(20).optional().nullable(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError(parsed.error.errors.map((e) => e.message).join(', '));
+  }
+
+  const user = await authService.updateProfile(req.user.sub, parsed.data as any);
+  res.status(200).json({ success: true, message: 'Profil güncellendi.', data: user });
+}
+
+export async function changePassword(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: z
+      .string()
+      .min(8, 'Şifre en az 8 karakter olmalı.')
+      .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
+      .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError(parsed.error.errors.map((e) => e.message).join(', '));
+  }
+
+  await authService.changePassword(req.user.sub, parsed.data);
+  res.status(200).json({ success: true, message: 'Şifre başarıyla değiştirildi. Lütfen tekrar giriş yapın.' });
+}
+
+export const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Sadece görsel dosyalar kabul edilir.'));
+    }
+  },
+});
+
+export async function uploadAvatar(req: Request, res: Response): Promise<void> {
+  if (!req.file) {
+    throw new BadRequestError('Lütfen bir görsel dosyası yükleyin.');
+  }
+  const result = await authService.uploadAvatar(
+    req.user.sub,
+    req.file.buffer,
+    req.file.mimetype,
+  );
+  res.status(200).json({ success: true, message: 'Profil fotoğrafı güncellendi.', data: result });
 }

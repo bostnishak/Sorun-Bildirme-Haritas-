@@ -31,7 +31,10 @@ export async function ensureBucketExists(): Promise<void> {
           Effect: 'Allow',
           Principal: { AWS: ['*'] },
           Action: ['s3:GetObject'],
-          Resource: [`arn:aws:s3:::${BUCKET}/issues/*`],
+          Resource: [
+            `arn:aws:s3:::${BUCKET}/issues/*`,
+            `arn:aws:s3:::${BUCKET}/avatars/*`,
+          ],
         }],
       });
       await minio.setBucketPolicy(BUCKET, policy);
