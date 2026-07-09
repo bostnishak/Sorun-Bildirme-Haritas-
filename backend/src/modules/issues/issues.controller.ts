@@ -6,7 +6,7 @@ import { handleUpload } from '../../middleware/upload.middleware';
 import { validateExifLocation } from '../../services/exif.service';
 import { guardContent } from '../../services/llm.service';
 import { enforceDynamicModeration } from '../../services/aiModeration.service';
-import { reverseGeocodeHighPrecision } from '../../services/geocoding.service';
+import { reverseGeocodeHighPrecision, searchAddressForward } from '../../services/geocoding.service';
 import { verifyIssuePhotoProof } from '../../services/aiVisionProof.service';
 import { parseSinglePromptIssue } from '../../services/aiChatbotAssistant.service';
 import { imageProcessingQueue } from '../../jobs/queue';
@@ -274,6 +274,19 @@ export async function reverseGeocodeAddress(req: Request, res: Response): Promis
 
   const address = await reverseGeocodeHighPrecision(lat, lng);
   res.status(200).json({ success: true, data: address });
+}
+
+/**
+ * GET /api/v1/issues/geocode/forward?q=Gündoğumu Sokak No: 8/1 — İleri Yönde Adresten Koordinat Bulma
+ */
+export async function forwardGeocodeAddress(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    q: z.string().min(2, 'Adres sorgusu en az 2 karakter olmalı.'),
+  });
+  const { q } = schema.parse(req.query);
+
+  const result = await searchAddressForward(q);
+  res.status(200).json({ success: true, data: result });
 }
 
 /**

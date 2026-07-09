@@ -154,11 +154,50 @@ async function geocodeWithGoogle(lat: number, lng: number): Promise<StructuredAd
 }
 
 /**
- * 3. OPENSTREETMAP NOMINATIM API (Ücretsiz Yüksek Doğruluklu Fallback)
+ * 3. KOMOOT PHOTON API (Yüksek Hassasiyetli OSM Bina/Sokak İnterpolasyonu)
+ */
+async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAddress | null> {
+  try {
+    const url = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=tr`;
+    const response = await axios.get(url, { timeout: 4000 });
+    const feat = response.data?.features?.[0]?.properties;
+    if (!feat) return null;
+
+    const doorNumber = feat.housenumber || '';
+    const street = feat.street || feat.name || '';
+    const neighborhood = feat.district || feat.locality || '';
+    const district = feat.county || feat.city || '';
+    const city = feat.state || feat.city || 'İstanbul';
+
+    const fullAddress = [
+      street,
+      doorNumber ? `No:${doorNumber}` : '',
+      neighborhood,
+      district && city ? `${district}/${city}` : city,
+    ].filter(Boolean).join(', ');
+
+    return {
+      city,
+      district,
+      neighborhood,
+      street,
+      doorNumber,
+      fullAddress,
+      latitude: lat,
+      longitude: lng,
+      provider: 'NOMINATIM',
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * 4. OPENSTREETMAP NOMINATIM API (Yüksek Doğruluklu Zoom=18 Bina Seviyesi)
  */
 async function geocodeWithNominatim(lat: number, lng: number): Promise<StructuredAddress | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=tr&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=tr&addressdetails=1&zoom=18`;
     const response = await axios.get(url, {
       timeout: 4500,
       headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
@@ -167,13 +206,18 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
     const addr = response.data?.address;
     if (!addr) return null;
 
-    const doorNumber = addr.house_number || addr.building || '1';
-    const street = addr.road || addr.pedestrian || addr.street || 'Merkez Sokak';
-    const neighborhood = addr.neighbourhood || addr.suburb || addr.quarter || 'Merkez Mahallesi';
-    const district = addr.town || addr.district || addr.county || 'Merkez İlçe';
+    const doorNumber = addr.house_number || addr.building || '';
+    const street = addr.road || addr.pedestrian || addr.street || '';
+    const neighborhood = addr.neighbourhood || addr.suburb || addr.quarter || '';
+    const district = addr.town || addr.district || addr.county || '';
     const city = addr.city || addr.province || addr.state || 'İstanbul';
 
-    const fullAddress = `${street} No:${doorNumber}, ${neighborhood}, ${district}/${city}`;
+    const fullAddress = [
+      street,
+      doorNumber ? `No:${doorNumber}` : '',
+      neighborhood,
+      district && city ? `${district}/${city}` : city,
+    ].filter(Boolean).join(', ');
 
     return {
       city,
@@ -204,20 +248,55 @@ export async function reverseGeocodeHighPrecision(lat: number, lng: number): Pro
   const googleRes = await geocodeWithGoogle(lat, lng);
   if (googleRes) return googleRes;
 
-  // 3. Nominatim'i dene
+  // 3. Photon (Komoot / OSM Yüksek Bina Çözünürlüğü) dene
+  const photonRes = await geocodeWithPhoton(lat, lng);
+  if (photonRes) return photonRes;
+
+  // 4. Nominatim (Zoom 18) dene
   const nominatimRes = await geocodeWithNominatim(lat, lng);
   if (nominatimRes) return nominatimRes;
 
-  // 4. Son çare varsayılan yapılandırılmış adres
+  // 5. Son çare koordinat tabanlı adres
   return {
     city: 'İstanbul',
     district: 'Merkez',
-    neighborhood: 'Merkez Mahallesi',
-    street: 'Atatürk Caddesi',
-    doorNumber: '1',
-    fullAddress: `Atatürk Caddesi No:1, Merkez Mahallesi, Merkez/İstanbul (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+    neighborhood: '',
+    street: '',
+    doorNumber: '',
+    fullAddress: `Koordinat Konumu (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
     latitude: lat,
     longitude: lng,
     provider: 'FALLBACK',
   };
+}
+
+/**
+ * İleri Yönde Hassas Adres Arama (Adresten Enlem/Boylam Çözümleme)
+ */
+export async function searchAddressForward(query: string): Promise<{ lat: number; lng: number; fullAddress: string; city: string; district: string } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&countrycodes=tr&limit=1&addressdetails=1`;
+    const response = await axios.get(url, {
+      timeout: 4500,
+      headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
+    });
+
+    if (response.data && response.data.length > 0) {
+      const first = response.data[0];
+      const addr = first.address || {};
+      const city = addr.city || addr.province || addr.state || 'İstanbul';
+      const district = addr.town || addr.district || addr.county || 'Merkez';
+      return {
+        lat: parseFloat(first.lat),
+        lng: parseFloat(first.lon),
+        fullAddress: first.display_name,
+        city,
+        district,
+      };
+    }
+    return null;
+  } catch (err) {
+    logger.warn('Forward Geocoding hatası:', { error: String(err) });
+    return null;
+  }
 }

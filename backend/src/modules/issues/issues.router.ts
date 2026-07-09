@@ -18,6 +18,9 @@ router.get('/summary-stats', issuesController.getSummaryStats);
 // GET /api/v1/issues/my/list — Oturum açmış kullanıcının bildirimleri
 router.get('/my/list', isAuthenticated, issuesController.getMyIssues);
 
+// GET /api/v1/issues/geocode/forward — İleri Yönde Adresten Koordinat Çözümleme
+router.get('/geocode/forward', issuesController.forwardGeocodeAddress);
+
 // GET /api/v1/issues/geocode — Yüksek hassasiyetli adres ayrıştırma
 router.get('/geocode', issuesController.reverseGeocodeAddress);
 
