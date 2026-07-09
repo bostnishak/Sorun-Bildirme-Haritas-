@@ -44,29 +44,29 @@ KATEGORİ EŞLEŞTİRME:
 - TRANSPORTATION -> Bozuk yol, çukur, kaldırım, trafik işareti, trafik lambası, asfalt
 - ENVIRONMENT -> Çöp, moloz, duman, kirlilik, çevre sorunu, yangın
 - INFRASTRUCTURE -> Rögar kapağı, kazı, elektrik panosu, doğalgaz, kablo
-- SECURITY -> Devrilme riski olan duvar/direk, tehlikeli çukur, kaza riski
+- SECURITY -> Trafik kazası, kaza, yaralanma, devrilme riski olan duvar/direk, tehlikeli çukur, acil durum
 - LIGHTING -> Sokak lambası arızası, aydınlatma
 - PARKS -> Park, ağaç, yeşil alan
 
-ADRES VE EKSİK BİLGİ KURALI:
-- Kullanıcı bir sorundan bahsediyor ama adres bilgisini (il, ilçe, mahalle veya sokak) ya da sorunun net detayını belirtmiyorsa (Örn: "altyapı sorunu", "yolda çukur var"):
-  - "kategori": null döndür (böylece eksik bilgiyle form çıkarılmaz).
-  - "eksikBilgiSoru" alanında neyin eksik olduğunu netçe belirt: "Altyapı sorunu bildiriminiz için teşekkürler. İhbar kaydınızı doğru bir şekilde oluşturabilmemiz için sorunun tam olarak hangi il, ilçe ve mahalle/sokakta olduğunu ve detayını belirtebilir misiniz?"
-- YALNIZCA kullanıcı hem sorunu/kategoriyi hem de açık adresini belirttiyse (veya geçerli bir fotoğraf/konum ilettiyse) "kategori"yi doldur, "eksikBilgiSoru": null yap ve "asistanMesaji" alanında "Anlıyorum, verdiğiniz bilgiler doğrultusunda ihbar kaydınızı hazırladım. Aşağıdaki formdan kontrol edip gönderebilirsiniz." şeklinde bilgi ver.
+ADRES VE İHBAR KARTINI OLUŞTURMA KURALI (ÇOK ÖNEMLİ):
+- Kullanıcının son mesajında VEYA sohbet geçmişinde hem bir sorun (örn. trafik kazası, çukur, su kaçağı vb.) HEM DE bir adres/konum (örn. il, ilçe, mahalle, sokak: "istanbul beykozda çubuklu mahallesinde gürz sokakta...") geçiyorsa KESİNLİKLE "kategori"yi doldur ve "eksikBilgiSoru": null yap!
+- Konum veya adres bilgisi yeterliyse ihbar kaydını HEMEN OLUŞTUR ("kategori" asla null olmasın!).
+- "asistanMesaji" alanında ihbar kaydını hazırladığını belirt ve kullanıcı henüz fotoğraf eklemediyse istersen fotoğraf da ekleyebileceğini söyle: "Verdiğiniz bilgiler doğrultusunda ihbar kaydınızı oluşturdum. Aşağıdaki çıkarılan ihbar kartını inceleyebilir ve isterseniz sorunu kanıtlamak için fotoğraf da ekleyerek gönderebilirsiniz."
+- Sadece kullanıcının mesajı ve geçmişi hiçbir adres veya konum ipucu içermiyorsa "eksikBilgiSoru" doldur.
 
 ÇIKTI FORMATI (SADECE JSON DÖNDÜR):
 {
-  "kategori": "INFRASTRUCTURE" | "TRANSPORTATION" | ... | null,
-  "kategoriTurkce": "Altyapı" | "Ulaşım" | ... | null,
+  "kategori": "SECURITY" | "INFRASTRUCTURE" | "TRANSPORTATION" | ... | null,
+  "kategoriTurkce": "Güvenlik & Acil" | "Altyapı" | "Ulaşım" | ... | null,
   "baslik": "Kısa ve net başlık (max 60 karakter)" | null,
   "aciklama": "Kurum yetkilisinin anlayacağı net açıklama" | null,
   "adres": {
-    "tamAdres": "Moda Caddesi No:15, Kadıköy, İstanbul",
+    "tamAdres": "Gürz Sokak, Çubuklu Mah., Beykoz, İstanbul",
     "il": "İstanbul",
-    "ilce": "Kadıköy",
-    "mahalle": "Caferağa Mah.",
-    "sokak": "Moda Caddesi",
-    "kapiNo": "15"
+    "ilce": "Beykoz",
+    "mahalle": "Çubuklu Mah.",
+    "sokak": "Gürz Sokak",
+    "kapiNo": ""
   } | null,
   "oncelik": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
   "guvenlik_ihlari": false,
@@ -74,7 +74,11 @@ ADRES VE EKSİK BİLGİ KURALI:
   "asistanMesaji": "Kullanıcıya iletilecek doğal ve emojisisiz mesaj"
 }`;
 
-export async function parseSinglePromptIssue(userText: string, imageBase64?: string): Promise<ChatbotExtractionResponse> {
+export async function parseSinglePromptIssue(
+  userText: string,
+  imageBase64?: string,
+  history?: Array<{ role: string; content: string }>
+): Promise<ChatbotExtractionResponse> {
   const cleanLower = (userText || '').trim().toLowerCase();
   const greetings = ['selam', 'merhaba', 'naber', 'günaydın', 'iyi günler', 'iyi akşamlar', 'sa', 'slm', 'hey', 'alo', 'nasılsın'];
   if (!imageBase64 && (greetings.includes(cleanLower) || (cleanLower.length <= 6 && greetings.some(g => cleanLower.startsWith(g))))) {
@@ -121,7 +125,7 @@ export async function parseSinglePromptIssue(userText: string, imageBase64?: str
         baslik: null,
         aciklama: null,
         adres: null,
-        oncelik: 'LOW',
+        oncelik: 'MEDIUM',
         guvenlik_ihlari: false,
         eksikBilgiSoru: null,
         asistanMesaji: visionCheck.userFriendlyMessage || 'Yüklediğiniz fotoğraf bir kentsel veya belediye sorunu (çukur, yangın, çöp yığını, su kaçağı vb.) kanıtı olarak görünmüyor. Lütfen sorunu net gösteren geçerli bir fotoğraf yükleyin.',
@@ -131,12 +135,18 @@ export async function parseSinglePromptIssue(userText: string, imageBase64?: str
 
   // 3. OpenAI NLP & Multimodal Vision Entity Extraction
   try {
+    const historyText = history && history.length > 0
+      ? `SOHBET GEÇMİŞİ:\n` + history.map(h => `${h.role === 'user' ? 'Kullanıcı' : 'Asistan'}: ${h.content}`).join('\n') + `\n\nSON KULLANICI MESAJI:\n`
+      : '';
+
+    const textPayload = `${historyText}${userText || 'Sorun bildirisi'}`;
+
     const userMessageContent: any = imageBase64
       ? [
-          { type: 'text', text: userText ? `Kullanıcı mesajı: "${userText}". Fotoğrafı ve mesajı incele.` : 'Yüklenen bu fotoğrafı analiz et, sorunu ve tahmini durumu çıkar.' },
+          { type: 'text', text: `Bağlam ve Mesaj:\n"${textPayload}". Fotoğrafı ve mesajı incele.` },
           { type: 'image_url', image_url: { url: imageBase64 } },
         ]
-      : (userText || 'Sorun bildirisi');
+      : textPayload;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -145,7 +155,7 @@ export async function parseSinglePromptIssue(userText: string, imageBase64?: str
         { role: 'user', content: userMessageContent },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.2,
+      temperature: 0.15,
       max_tokens: 450,
     });
 
@@ -160,7 +170,7 @@ export async function parseSinglePromptIssue(userText: string, imageBase64?: str
       oncelik: parsed.oncelik || 'MEDIUM',
       guvenlik_ihlari: parsed.guvenlik_ihlari || false,
       eksikBilgiSoru: parsed.eksikBilgiSoru || null,
-      asistanMesaji: parsed.asistanMesaji || 'Bildiriminizi inceliyorum. Lütfen adres ve sorun detayını belirtiniz.',
+      asistanMesaji: parsed.asistanMesaji || 'Verdiğiniz bilgiler doğrultusunda ihbar kaydınızı hazırladım.',
     };
   } catch (error) {
     logger.error('Chatbot NLP ayrıştırma hatası:', { error: String(error) });

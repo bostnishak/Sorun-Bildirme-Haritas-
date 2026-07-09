@@ -86,6 +86,10 @@ export function AiChatbotWidget() {
       const res: any = await api.post('/issues/ai-assistant', {
         message: userText,
         imageBase64: imageToSend || undefined,
+        history: messages.slice(-6).map(m => ({
+          role: m.sender === 'user' ? 'user' : 'assistant',
+          content: m.text
+        })),
       });
       const data: ExtractionData = res.data || res;
 
