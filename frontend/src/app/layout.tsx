@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'tr_TR',
   },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export const viewport: Viewport = {
