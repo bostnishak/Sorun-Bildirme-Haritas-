@@ -4,6 +4,7 @@ import { Role } from '@prisma/client';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { getClusterGridSize } from '../../utils/spatial.utils';
 import { webhookQueue, notificationQueue } from '../../jobs/queue';
+import { auditService } from '../../services/audit.service';
 import { logger } from '../../utils/logger';
 import { getSocket } from '../../config/socket';
 
@@ -248,6 +249,15 @@ export const issuesService = {
       previousStatus,
     });
 
+    // Admin Audit Log
+    if (officerRole === Role.SUPER_ADMIN || officerRole === Role.INSTITUTION_OFFICER) {
+      await auditService.logAction(officerId, 'UPDATE_ISSUE_STATUS', issueId, 'Issue', {
+        previousStatus,
+        newStatus,
+        note,
+      });
+    }
+
     // Notification kuyruğuna ekle (Vatandaş için)
     if (issue.reportedBy?.email) {
       await notificationQueue.add('send-email', {
@@ -294,12 +304,18 @@ export const issuesService = {
       throw new BadRequestError('Bu sorunu zaten desteklediniz.');
     }
 
-    const upvote = await prisma.issueUpvote.create({
-      data: {
-        issueId,
-        userId
-      }
-    });
+    const [upvote] = await prisma.$transaction([
+      prisma.issueUpvote.create({
+        data: {
+          issueId,
+          userId
+        }
+      }),
+      prisma.issue.update({
+        where: { id: issueId },
+        data: { upvoteCount: { increment: 1 } }
+      })
+    ]);
 
     return upvote;
   },

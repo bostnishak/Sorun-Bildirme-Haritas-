@@ -93,3 +93,34 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     data: user,
   });
 }
+
+export async function deleteMyAccount(req: Request, res: Response): Promise<void> {
+  await authService.deleteUserAccount(req.user.sub);
+
+  res.status(200).json({
+    success: true,
+    message: 'Hesabınız ve tüm verileriniz kalıcı olarak silinmiştir.',
+  });
+}
+
+export async function generate2FA(req: Request, res: Response): Promise<void> {
+  const result = await authService.generate2FA(req.user.sub, 'Admin');
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+}
+
+export async function verify2FA(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    token: z.string().length(6, '2FA kodu 6 haneli olmalıdır.'),
+  });
+  const { token } = schema.parse(req.body);
+
+  await authService.verifyAndEnable2FA(req.user.sub, token);
+
+  res.status(200).json({
+    success: true,
+    message: '2FA başarıyla aktifleştirildi.',
+  });
+}

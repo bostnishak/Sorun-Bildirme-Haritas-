@@ -102,7 +102,7 @@ describe('issuesService', () => {
       (mockPrisma.issue.findMany as jest.Mock).mockResolvedValue([mockIssue]);
       (mockPrisma.issue.count as jest.Mock).mockResolvedValue(1);
 
-      const result = await issuesService.list({ page: 1, limit: 10 });
+      const result = await issuesService.list({ limit: 10 });
 
       expect(result.issues).toHaveLength(1);
       expect(result.total).toBe(1);
@@ -112,7 +112,7 @@ describe('issuesService', () => {
       (mockPrisma.issue.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.issue.count as jest.Mock).mockResolvedValue(0);
 
-      await issuesService.list({ page: 1, limit: 500 });
+      await issuesService.list({ limit: 500 });
 
       // findMany'a geçilen take değeri 100'ü aşmamalı
       const call = (mockPrisma.issue.findMany as jest.Mock).mock.calls[0][0];

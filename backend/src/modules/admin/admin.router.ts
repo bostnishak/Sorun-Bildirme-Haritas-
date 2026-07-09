@@ -49,4 +49,11 @@ router.post(
   adminController.testInstitutionWebhook,
 );
 
+// GET /api/v1/admin/ai-logs — AI Moderation logs
+router.get(
+  '/ai-logs',
+  requireRole('SUPER_ADMIN'),
+  adminController.getAiLogs,
+);
+
 export { router as adminRouter };

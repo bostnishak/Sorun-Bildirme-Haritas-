@@ -22,12 +22,14 @@ const envSchema = z.object({
   MINIO_BUCKET: z.string().default('chaosmap-media'),
 
   // JWT
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_EXPIRES: z.string().default('15m'),
   JWT_REFRESH_EXPIRES: z.string().default('7d'),
 
   // AI & Geocoding
-  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().min(40, 'OpenAI API key gereklidir').optional()
+    .refine(key => process.env.NODE_ENV !== 'production' || key, 'Production için OPENAI_API_KEY zorunlu'),
   GOOGLE_VISION_CREDENTIALS_JSON: z.string().optional(),
   MAPBOX_TOKEN: z.string().optional(),
   GOOGLE_MAPS_API_KEY: z.string().optional(),

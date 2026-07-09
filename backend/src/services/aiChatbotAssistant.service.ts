@@ -2,8 +2,13 @@ import OpenAI from 'openai';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { enforceDynamicModeration } from './aiModeration.service';
+import { z } from 'zod';
+import pRetry from 'p-retry';
+import { redis } from '../config/redis';
+import { OpenAIProvider } from './llm/openai.provider';
+import { SystemPromptService } from './systemPrompt.service';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const llmProvider = new OpenAIProvider();
 
 export interface ChatbotExtractionResponse {
   kategori: 'WATER_SANITATION' | 'TRANSPORTATION' | 'ENVIRONMENT' | 'INFRASTRUCTURE' | 'SECURITY' | 'LIGHTING' | 'PARKS' | null;
@@ -77,7 +82,7 @@ ADRES VE İHBAR KARTINI OLUŞTURMA KURALI (ÇOK ÖNEMLİ):
 export async function parseSinglePromptIssue(
   userText: string,
   imageBase64?: string,
-  history?: Array<{ role: string; content: string }>
+  userId?: string
 ): Promise<ChatbotExtractionResponse> {
   const cleanLower = (userText || '').trim().toLowerCase();
   const greetings = ['selam', 'merhaba', 'naber', 'günaydın', 'iyi günler', 'iyi akşamlar', 'sa', 'slm', 'hey', 'alo', 'nasılsın'];
@@ -135,8 +140,19 @@ export async function parseSinglePromptIssue(
 
   // 3. OpenAI NLP & Multimodal Vision Entity Extraction
   try {
-    const historyText = history && history.length > 0
-      ? `SOHBET GEÇMİŞİ:\n` + history.map(h => `${h.role === 'user' ? 'Kullanıcı' : 'Asistan'}: ${h.content}`).join('\n') + `\n\nSON KULLANICI MESAJI:\n`
+    let history: Array<{ role: string; content: string }> = [];
+    const redisKey = userId ? `chatbot_history:${userId}` : null;
+
+    if (redisKey) {
+      const cachedHistory = await redis.get(redisKey);
+      if (cachedHistory) {
+        history = JSON.parse(cachedHistory);
+      }
+    }
+
+    const recentHistory = history.length > 0 ? history.slice(-10) : [];
+    const historyText = recentHistory.length > 0
+      ? `SOHBET GEÇMİŞİ:\n` + recentHistory.map(h => `${h.role === 'user' ? 'Kullanıcı' : 'Asistan'}: ${h.content}`).join('\n') + `\n\nSON KULLANICI MESAJI:\n`
       : '';
 
     const textPayload = `${historyText}${userText || 'Sorun bildirisi'}`;
@@ -148,29 +164,61 @@ export async function parseSinglePromptIssue(
         ]
       : textPayload;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT_CHATBOT },
-        { role: 'user', content: userMessageContent },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.15,
-      max_tokens: 450,
+    const runChatbot = async () => {
+      const activePrompt = await SystemPromptService.getPrompt('LLM_CHATBOT_ASSISTANT', SYSTEM_PROMPT_CHATBOT);
+      return await llmProvider.complete(
+        activePrompt,
+        userMessageContent,
+        {
+          model: 'gpt-4o-mini',
+          responseFormat: 'json_object',
+          temperature: 0.15,
+          maxTokens: 450,
+        }
+      );
+    };
+
+    const response = await pRetry(runChatbot, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+
+    const ChatbotSchema = z.object({
+      kategori: z.enum(['WATER_SANITATION', 'TRANSPORTATION', 'ENVIRONMENT', 'INFRASTRUCTURE', 'SECURITY', 'LIGHTING', 'PARKS']).nullable().default(null),
+      kategoriTurkce: z.string().nullable().default(null),
+      baslik: z.string().nullable().default(null),
+      aciklama: z.string().nullable().default(null),
+      adres: z.object({
+        tamAdres: z.string().default(''),
+        il: z.string().default(''),
+        ilce: z.string().default(''),
+        mahalle: z.string().default(''),
+        sokak: z.string().default(''),
+        kapiNo: z.string().default(''),
+      }).nullable().default(null),
+      oncelik: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+      guvenlik_ihlari: z.boolean().default(false),
+      eksikBilgiSoru: z.string().nullable().default(null),
+      asistanMesaji: z.string().default('Verdiğiniz bilgiler doğrultusunda ihbar kaydınızı hazırladım.')
     });
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || '{}');
+    const parsed = ChatbotSchema.parse(JSON.parse(response.content || '{}'));
+
+    // Redis history update
+    if (redisKey && userText) {
+      history.push({ role: 'user', content: userText });
+      history.push({ role: 'assistant', content: parsed.asistanMesaji });
+      if (history.length > 10) history = history.slice(-10);
+      await redis.setex(redisKey, 3600, JSON.stringify(history)); // 1 hour session
+    }
 
     return {
-      kategori: parsed.kategori || null,
-      kategoriTurkce: parsed.kategoriTurkce || null,
-      baslik: parsed.baslik || null,
+      kategori: parsed.kategori,
+      kategoriTurkce: parsed.kategoriTurkce,
+      baslik: parsed.baslik,
       aciklama: parsed.aciklama || userText || null,
-      adres: parsed.adres || null,
-      oncelik: parsed.oncelik || 'MEDIUM',
-      guvenlik_ihlari: parsed.guvenlik_ihlari || false,
-      eksikBilgiSoru: parsed.eksikBilgiSoru || null,
-      asistanMesaji: parsed.asistanMesaji || 'Verdiğiniz bilgiler doğrultusunda ihbar kaydınızı hazırladım.',
+      adres: parsed.adres,
+      oncelik: parsed.oncelik,
+      guvenlik_ihlari: parsed.guvenlik_ihlari,
+      eksikBilgiSoru: parsed.eksikBilgiSoru,
+      asistanMesaji: parsed.asistanMesaji,
     };
   } catch (error) {
     logger.error('Chatbot NLP ayrıştırma hatası:', { error: String(error) });

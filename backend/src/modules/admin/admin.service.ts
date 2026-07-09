@@ -148,4 +148,34 @@ export const adminService = {
     await dispatchWebhook(institution.webhookUrl, testPayload);
     return { success: true, testedUrl: institution.webhookUrl };
   },
+
+  async getAiLogs(params: { page: number; limit: number; layer?: string; passed?: boolean; issueId?: string }) {
+    const skip = (params.page - 1) * params.limit;
+    const limit = Math.min(params.limit, 100);
+
+    const where: any = {};
+    if (params.layer) where.layer = params.layer;
+    if (params.passed !== undefined) where.passed = params.passed;
+    if (params.issueId) where.issueId = params.issueId;
+
+    const [logs, total] = await Promise.all([
+      prisma.aiModerationLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.aiModerationLog.count({ where }),
+    ]);
+
+    return {
+      data: logs,
+      meta: {
+        total,
+        page: params.page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  },
 };

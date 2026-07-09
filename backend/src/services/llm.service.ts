@@ -1,9 +1,14 @@
-import OpenAI from 'openai';
-import { env } from '../config/env';
-import { BadRequestError, ServiceUnavailableError } from '../utils/errors';
+import { BadRequestError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import pRetry from 'p-retry';
+import { z } from 'zod';
+import crypto from 'crypto';
+import { redis } from '../config/redis';
+import { openAITokensTotal, aiModerationDurationHistogram } from '../utils/metrics';
+import { OpenAIProvider } from './llm/openai.provider';
+import { SystemPromptService } from './systemPrompt.service';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const llmProvider = new OpenAIProvider();
 
 const SYSTEM_PROMPT = `Sen Türkiye'deki bir belediye sorun bildirimi platformunun içerik denetçisisin.
 
@@ -34,6 +39,11 @@ export interface LLMGuardResult {
   reason: string;
 }
 
+export const LLMGuardSchema = z.object({
+  valid: z.boolean(),
+  reason: z.string().max(150).default('Geçersiz içerik'),
+});
+
 /**
  * OpenAI ile içerik denetimi yapar
  * Geçersizse BadRequestError fırlatır
@@ -42,26 +52,41 @@ export async function guardContent(
   title: string,
   description: string,
 ): Promise<LLMGuardResult> {
+  const start = Date.now();
   const userMessage = `Başlık: "${title.substring(0, 200)}"\nAçıklama: "${description.substring(0, 1000)}"`;
+  const cacheKey = `llm_guard:${crypto.createHash('md5').update(userMessage).digest('hex')}`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.1,      // Tutarlı kararlar için düşük temperature
-      max_tokens: 100,
-    }, { timeout: 10000 });
-
-    const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) {
-      throw new Error('Boş LLM yanıtı');
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
     }
 
-    const result: LLMGuardResult = JSON.parse(rawContent);
+    const runLLM = async () => {
+      const activePrompt = await SystemPromptService.getPrompt('LLM_GUARD_CONTENT', SYSTEM_PROMPT);
+      return await llmProvider.complete(
+        activePrompt,
+        userMessage,
+        {
+          model: 'gpt-4o-mini',
+          responseFormat: 'json_object',
+          temperature: 0.1,
+          maxTokens: 100,
+          timeoutMs: 10000,
+        }
+      );
+    };
+
+    const response = await pRetry(runLLM, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+
+    if (response.usage) {
+      openAITokensTotal.labels('gpt-4o-mini', 'guard_content').inc(response.usage.totalTokens);
+    }
+
+    const result = LLMGuardSchema.parse(JSON.parse(response.content));
+    
+    await redis.setex(cacheKey, 86400, JSON.stringify(result)); // 24 hours cache
+    aiModerationDurationHistogram.labels('guard_content', 'gpt-4o-mini').observe(Date.now() - start);
 
     if (!result.valid) {
       logger.info('LLM Guard: içerik reddedildi', {
@@ -99,33 +124,37 @@ export async function analyzeImageContent(
   description: string,
   category: string
 ): Promise<LLMGuardResult> {
+  const start = Date.now();
   const base64Image = imageBuffer.toString('base64');
   const userMessage = `Bildirilen Kategori: ${category}\nBaşlık: "${title}"\nAçıklama: "${description}"\nLütfen bu bilgilerin ekteki görselle uyuşup uyuşmadığını kontrol et.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: VISION_SYSTEM_PROMPT },
+    const runLLM = async () => {
+      const activeVisionPrompt = await SystemPromptService.getPrompt('LLM_VISION_PROOF', VISION_SYSTEM_PROMPT);
+      return await llmProvider.complete(
+        activeVisionPrompt,
+        [
+          { type: 'text', text: userMessage },
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'low' } }
+        ],
         {
-          role: 'user',
-          content: [
-            { type: 'text', text: userMessage },
-            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'low' } }
-          ]
+          model: 'gpt-4o-mini',
+          responseFormat: 'json_object',
+          temperature: 0.1,
+          maxTokens: 150,
+          timeoutMs: 15000,
         }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-      max_tokens: 150,
-    }, { timeout: 15000 });
+      );
+    };
 
-    const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) {
-      throw new Error('Boş Vision LLM yanıtı');
+    const response = await pRetry(runLLM, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+
+    if (response.usage) {
+      openAITokensTotal.labels('gpt-4o-mini-vision', 'analyze_image').inc(response.usage.totalTokens);
     }
 
-    const result: LLMGuardResult = JSON.parse(rawContent);
+    const result = LLMGuardSchema.parse(JSON.parse(response.content));
+    aiModerationDurationHistogram.labels('analyze_image', 'gpt-4o-mini-vision').observe(Date.now() - start);
     
     if (!result.valid) {
       logger.info('Vision AI: görsel reddedildi', { reason: result.reason, title });

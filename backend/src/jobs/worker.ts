@@ -5,7 +5,12 @@
  */
 
 import '../config/env'; // Env validasyonu — hata varsa process exit
+import '../config/tracing'; // MUST BE THE VERY FIRST IMPORT
 import { logger } from '../utils/logger';
+import { initSentry } from '../utils/sentry';
+
+// Init Sentry for worker
+initSentry(); // Sentry'i argumentsiz çağırıyoruz
 
 // Workers — import edildiğinde otomatik başlar
 import { imageProcessorWorker } from './workers/imageProcessor.worker';

@@ -20,4 +20,13 @@ router.post('/logout', isAuthenticated, authController.logout);
 // GET /api/v1/auth/me — Mevcut kullanıcı bilgisi
 router.get('/me', isAuthenticated, authController.getMe);
 
+// DELETE /api/v1/auth/me — Kullanıcı hesabı sil (KVKK)
+router.delete('/me', isAuthenticated, authController.deleteMyAccount);
+
+// POST /api/v1/auth/2fa/generate — 2FA Kurulumu (Admin)
+router.post('/2fa/generate', isAuthenticated, authController.generate2FA);
+
+// POST /api/v1/auth/2fa/verify — 2FA Doğrulama (Admin)
+router.post('/2fa/verify', isAuthenticated, authController.verify2FA);
+
 export { router as authRouter };

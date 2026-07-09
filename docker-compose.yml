@@ -8,6 +8,8 @@ volumes:
   postgres-data:
   redis-data:
   minio-data:
+  prometheus-data:
+  grafana-data:
 
 services:
 
@@ -22,6 +24,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - chaosmap-net
     healthcheck:
@@ -31,12 +35,14 @@ services:
       retries: 5
       start_period: 20s
 
-  # ─── CACHE ─────────────────────────────────────────────────────────────────
+  # ─── CACHE (With Vector Search) ─────────────────────────────────────────────
   redis:
-    image: redis:7.2-alpine
+    image: redis/redis-stack-server:latest
     container_name: chaosmap-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    # redis-stack-server passes requirepass differently, but command works for redis-server
+    # For redis-stack, it's better to use REDIS_ARGS environment variable or pass command
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --loadmodule /opt/redis-stack/lib/redisearch.so --loadmodule /opt/redis-stack/lib/redisjson.so
     volumes:
       - redis-data:/data
     networks:
@@ -91,10 +97,13 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_USER}
       MINIO_SECRET_KEY: ${MINIO_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES}
       JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      LOKI_HOST: http://loki:3100
       GOOGLE_VISION_CREDENTIALS_JSON: ${GOOGLE_VISION_CREDENTIALS_JSON}
       NVI_ENDPOINT: ${NVI_ENDPOINT}
       SMTP_HOST: ${SMTP_HOST}
@@ -133,10 +142,13 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_USER}
       MINIO_SECRET_KEY: ${MINIO_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES}
       JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      LOKI_HOST: http://loki:3100
       GOOGLE_VISION_CREDENTIALS_JSON: ${GOOGLE_VISION_CREDENTIALS_JSON}
       NVI_ENDPOINT: ${NVI_ENDPOINT}
       SMTP_HOST: ${SMTP_HOST}
@@ -186,5 +198,88 @@ services:
     depends_on:
       - backend
       - frontend
+    networks:
+      - chaosmap-net
+
+  # ─── DATABASE BACKUP (DR) ──────────────────────────────────────────────────
+  pg_backup:
+    image: postgres:16-alpine
+    container_name: chaosmap-pg-backup
+    restart: unless-stopped
+    volumes:
+      - ./backend/backups:/backups
+    environment:
+      PGHOST: postgres
+      PGUSER: ${DB_USER}
+      PGPASSWORD: ${DB_PASSWORD}
+      PGDATABASE: chaosmap
+    # Her gece 03:00'te yedek alır
+    command: >
+      sh -c '
+      apk add --no-cache tzdata &&
+      cp /usr/share/zoneinfo/Europe/Istanbul /etc/localtime &&
+      echo "0 3 * * * pg_dump -Fc -f /backups/dump_\$$(date +\%Y\%m\%d_\%H\%M\%S).dump && find /backups -type f -name \"*.dump\" -mtime +7 -delete" > /etc/crontabs/root &&
+      crond -f -d 8'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chaosmap-net
+
+  # ─── OBSERVABILITY (Prometheus & Grafana) ──────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: chaosmap-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - chaosmap-net
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: chaosmap-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3002:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - chaosmap-net
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: chaosmap-tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "4318:4318"  # OTLP HTTP
+    networks:
+      - chaosmap-net
+
+  loki:
+    image: grafana/loki:latest
+    container_name: chaosmap-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - chaosmap-net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: chaosmap-alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
     networks:
       - chaosmap-net

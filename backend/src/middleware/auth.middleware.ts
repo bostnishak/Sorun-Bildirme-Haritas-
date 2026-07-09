@@ -9,6 +9,7 @@ import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 export interface JWTPayload {
   sub: string;          // userId
   role: Role;
+  type: 'access' | 'refresh';
   institutionId?: string;
   iat: number;
   exp: number;
@@ -41,7 +42,10 @@ export async function isAuthenticated(
 
   let payload: JWTPayload;
   try {
-    payload = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+    payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JWTPayload;
+    if (payload.type !== 'access') {
+      throw new UnauthorizedError('Geçersiz token tipi.');
+    }
   } catch (err) {
     if (err instanceof jwt.TokenExpiredError) {
       throw new UnauthorizedError('Token süresi dolmuş. Lütfen tekrar giriş yapın.');
@@ -87,8 +91,10 @@ export async function optionalAuth(
 
   try {
     const token = authHeader.slice(7);
-    const payload = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
-    req.user = payload;
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JWTPayload;
+    if (payload.type === 'access') {
+      req.user = payload;
+    }
   } catch {
     // Token geçersizse sessizce devam et
   }
@@ -99,21 +105,25 @@ export async function optionalAuth(
 /**
  * JWT token oluşturma yardımcı fonksiyonları
  */
-export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, env.JWT_SECRET, {
+export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'type'>): string {
+  return jwt.sign({ ...payload, type: 'access' }, env.JWT_ACCESS_SECRET, {
     expiresIn: env.JWT_ACCESS_EXPIRES as any,
   });
 }
 
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ sub: userId, type: 'refresh' }, env.JWT_SECRET, {
+  return jwt.sign({ sub: userId, type: 'refresh' }, env.JWT_REFRESH_SECRET, {
     expiresIn: env.JWT_REFRESH_EXPIRES as any,
   });
 }
 
 export function verifyRefreshToken(token: string): { sub: string } {
   try {
-    return jwt.verify(token, env.JWT_SECRET) as { sub: string };
+    const payload = jwt.verify(token, env.JWT_REFRESH_SECRET) as { sub: string, type: string };
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedError('Geçersiz token tipi.');
+    }
+    return payload;
   } catch {
     throw new UnauthorizedError('Geçersiz refresh token.');
   }

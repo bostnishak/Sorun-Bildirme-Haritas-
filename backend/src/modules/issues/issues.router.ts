@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as issuesController from './issues.controller';
 import { isAuthenticated } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/auth.middleware';
-import { issueCreateRateLimit } from '../../middleware/rateLimiter.middleware';
+import { issueCreateRateLimit, chatbotRateLimit } from '../../middleware/rateLimiter.middleware';
 
 const router = Router();
 
@@ -28,7 +28,7 @@ router.get('/geocode', issuesController.reverseGeocodeAddress);
 router.post('/verify-vision', isAuthenticated, issuesController.verifyPhotoProof);
 
 // POST /api/v1/issues/ai-assistant — Tek istemli AI ihbar asistanı
-router.post('/ai-assistant', isAuthenticated, issuesController.assistantSinglePrompt);
+router.post('/ai-assistant', isAuthenticated, chatbotRateLimit, issuesController.assistantSinglePrompt);
 
 // GET /api/v1/issues/:id — Public (sorun detayı)
 router.get('/:id', issuesController.getIssue);

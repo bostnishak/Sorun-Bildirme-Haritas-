@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { BadRequestError } from '../../utils/errors';
 import { handleUpload } from '../../middleware/upload.middleware';
 import { validateExifLocation } from '../../services/exif.service';
-import { guardContent } from '../../services/llm.service';
+// Removed guardContent as enforceDynamicModeration replaces it
 import { enforceDynamicModeration } from '../../services/aiModeration.service';
 import { reverseGeocodeHighPrecision, searchAddressForward } from '../../services/geocoding.service';
 import { verifyIssuePhotoProof } from '../../services/aiVisionProof.service';
@@ -68,10 +68,10 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
   }
   const data = parsed.data;
 
-  // 3. Dinamik AI Moderasyon Katmanı + LLM Guard
+  // 3. Dinamik AI Moderasyon Katmanı (Regex + OpenAI API + Zod)
   await enforceDynamicModeration(`${data.title}\n${data.description}`);
-  const llmResult = await guardContent(data.title, data.description);
-  const llmGuardPassed = llmResult.valid;
+  
+  const llmGuardPassed = true; // enforceDynamicModeration throws if it strictly fails, otherwise we accept it.
 
   // 4. EXIF doğrulama (fotoğraf varsa)
   let exifResult = null;
@@ -312,14 +312,13 @@ export async function assistantSinglePrompt(req: Request, res: Response): Promis
   const schema = z.object({
     message: z.string().optional().default(''),
     imageBase64: z.string().optional(),
-    history: z.array(z.object({ role: z.string(), content: z.string() })).optional(),
   });
-  const { message, imageBase64, history } = schema.parse(req.body);
+  const { message, imageBase64 } = schema.parse(req.body);
 
   if (!message && !imageBase64) {
     throw new BadRequestError('Lütfen bir mesaj veya fotoğraf gönderin.');
   }
 
-  const extraction = await parseSinglePromptIssue(message || '', imageBase64, history);
+  const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user.sub);
   res.status(200).json({ success: true, data: extraction });
 }

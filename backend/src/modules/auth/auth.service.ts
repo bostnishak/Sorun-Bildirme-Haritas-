@@ -1,4 +1,6 @@
 import bcrypt from 'bcryptjs';
+import * as speakeasy from 'speakeasy';
+import * as qrcode from 'qrcode';
 import { prisma } from '../../config/database';
 import { verifyWithNVI, hashTCKimlik } from '../../services/nvi.service';
 import {
@@ -84,7 +86,7 @@ export const authService = {
     return { user, accessToken, refreshToken };
   },
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, twoFactorToken?: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -94,6 +96,23 @@ export const authService = {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedError('E-posta veya şifre hatalı.');
+    }
+
+    // 2FA Kontrolü
+    if (user.isTwoFactorEnabled && user.twoFactorSecret) {
+      if (!twoFactorToken) {
+        throw new UnauthorizedError('2FA kodu gereklidir.');
+      }
+
+      const isTokenValid = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token: twoFactorToken,
+      });
+
+      if (!isTokenValid) {
+        throw new UnauthorizedError('Geçersiz 2FA kodu.');
+      }
     }
 
     const { accessToken, refreshToken } = await this.createTokenPair(
@@ -163,6 +182,19 @@ export const authService = {
     return user;
   },
 
+  async deleteUserAccount(userId: string) {
+    // KVKK: Unutulma Hakkı (Right to Erasure)
+    // Prisma şemasında Cascade tanımlandığı için bağlı tüm ilişkiler silinecek
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundError('Kullanıcı bulunamadı.');
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    logger.info('Kullanıcı hesabı ve bağlı tüm veriler kalıcı olarak silindi (KVKK).', { userId });
+  },
+
   async createTokenPair(userId: string, role: string, institutionId?: string) {
     const accessToken = generateAccessToken({
       sub: userId,
@@ -201,6 +233,48 @@ export const authService = {
     }
 
     return { accessToken, refreshToken: refreshTokenStr };
+  },
+
+  async generate2FA(userId: string, email: string) {
+    const secret = speakeasy.generateSecret({
+      name: `ChaosMind (${email})`,
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorSecret: secret.base32 },
+    });
+
+    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url!);
+
+    return {
+      secret: secret.base32,
+      qrCodeUrl,
+    };
+  },
+
+  async verifyAndEnable2FA(userId: string, token: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.twoFactorSecret) {
+      throw new BadRequestError('2FA kurulumu başlatılmamış.');
+    }
+
+    const isTokenValid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+    });
+
+    if (!isTokenValid) {
+      throw new BadRequestError('Geçersiz 2FA kodu.');
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isTwoFactorEnabled: true },
+    });
+
+    logger.info('Kullanıcı 2FA özelliğini aktifleştirdi.', { userId });
   },
 };
 

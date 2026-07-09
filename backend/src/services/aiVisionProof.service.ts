@@ -1,9 +1,19 @@
-import OpenAI from 'openai';
-import { env } from '../config/env';
 import { BadRequestError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { OpenAIProvider } from './llm/openai.provider';
+import { SystemPromptService } from './systemPrompt.service';
+import { z } from 'zod';
+import pRetry from 'p-retry';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const llmProvider = new OpenAIProvider();
+
+const VisionProofSchema = z.object({
+  valid: z.boolean(),
+  confidenceScore: z.number().min(0).max(1),
+  reason: z.string().optional(),
+  detectedLabels: z.array(z.string()).optional(),
+  userFriendlyMessage: z.string().optional()
+});
 
 export interface VisionProofResult {
   valid: boolean;
@@ -11,6 +21,7 @@ export interface VisionProofResult {
   reason: string;
   detectedLabels: string[];
   userFriendlyMessage?: string;
+  latencyMs?: number;
 }
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -55,6 +66,8 @@ export async function verifyIssuePhotoProof(
   const categoryDesc = CATEGORY_DESCRIPTIONS[category] || category;
   const promptContext = `Bildirilen Kategori: ${category} (${categoryDesc})\nBaşlık: "${title}"\nAçıklama: "${description}"\nLütfen ekteki fotoğrafın bu kentsel sorunu kanıtlayacak nitelikte olup olmadığını değerlendir.`;
 
+  const start = Date.now();
+
   // Temel veriyi kontrol et (Çok kısa veya boş base64 verisi)
   if (!base64ImageOrUrl || base64ImageOrUrl.length < 100) {
     return {
@@ -71,24 +84,26 @@ export async function verifyIssuePhotoProof(
       ? base64ImageOrUrl
       : `data:image/jpeg;base64,${base64ImageOrUrl}`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: VISION_SYSTEM_PROMPT },
+    const runVision = async () => {
+      const activePrompt = await SystemPromptService.getPrompt('LLM_VISION_PROOF', VISION_SYSTEM_PROMPT);
+      return await llmProvider.complete(
+        activePrompt,
+        [
+          { type: 'text', text: promptContext },
+          { type: 'image_url', image_url: { url: imageUrlPayload, detail: 'low' } }
+        ],
         {
-          role: 'user',
-          content: [
-            { type: 'text', text: promptContext },
-            { type: 'image_url', image_url: { url: imageUrlPayload, detail: 'auto' } }
-          ]
+          model: 'gpt-4o-mini',
+          responseFormat: 'json_object',
+          temperature: 0.1,
+          maxTokens: 250,
         }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-      max_tokens: 250,
-    });
+      );
+    };
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || '{"valid":false,"confidenceScore":0.3,"detectedLabels":[]}');
+    const response = await pRetry(runVision, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+
+    const parsed = VisionProofSchema.parse(JSON.parse(response.content || '{"valid":false,"confidenceScore":0.3,"detectedLabels":[]}'));
     const score = typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0.3;
     const isValid = parsed.valid === true && score >= 0.65;
 
@@ -96,10 +111,11 @@ export async function verifyIssuePhotoProof(
       valid: isValid,
       confidenceScore: score,
       reason: parsed.reason || (isValid ? 'Görsel bildirilen arıza ile eşleşiyor.' : 'Görsel bildirilen arızayı doğrulamak için yetersiz.'),
-      detectedLabels: Array.isArray(parsed.detectedLabels) ? parsed.detectedLabels : [],
+      detectedLabels: parsed.detectedLabels || [],
       userFriendlyMessage: isValid
         ? undefined
         : parsed.userFriendlyMessage || 'Yüklediğiniz fotoğraf seçilen sorun türünü kanıtlar nitelikte değildir. Lütfen sorunu net gösteren bir fotoğraf yükleyiniz.',
+      latencyMs: Date.now() - (start || Date.now()),
     };
 
     logger.info('Vision AI Kanıt Doğrulama Sonucu:', {
@@ -119,6 +135,7 @@ export async function verifyIssuePhotoProof(
       reason: 'Görsel analiz servisi doğrulayamadı.',
       detectedLabels: [],
       userFriendlyMessage: 'Fotoğrafınız yapay zeka denetiminden geçemedi veya olayla ilgili bir kanıt tespit edilemedi. Lütfen sorunu net gösteren bir fotoğraf yükleyin.',
+      latencyMs: Date.now() - (start || Date.now()),
     };
   }
 }
@@ -133,6 +150,23 @@ export async function enforceVisionProofOrThrow(
   description: string
 ): Promise<VisionProofResult> {
   const result = await verifyIssuePhotoProof(base64ImageOrUrl, category, title, description);
+  
+  try {
+    const { prisma } = await import('../config/database');
+    await prisma.aiModerationLog.create({
+      data: {
+        layer: 'vision',
+        passed: result.valid,
+        code: result.valid ? 'OK' : 'TROLL_OR_IRRELEVANT',
+        reason: result.reason,
+        latencyMs: result.latencyMs || 0,
+        model: 'gpt-4o-mini',
+      }
+    });
+  } catch (err) {
+    logger.error('Failed to save AiModerationLog for vision', { error: String(err) });
+  }
+
   if (!result.valid) {
     throw new BadRequestError(result.userFriendlyMessage || result.reason);
   }

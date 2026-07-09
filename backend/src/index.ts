@@ -1,4 +1,5 @@
 import 'express-async-errors';
+import './config/tracing'; // MUST BE THE VERY FIRST IMPORT
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -85,16 +86,40 @@ app.get('/health', async (_req: Request, res: Response) => {
   try {
     const { prisma } = await import('./config/database');
     const { redis } = await import('./config/redis');
+    const { env } = await import('./config/env');
     
+    // DB & Redis Checks
     await prisma.$queryRaw`SELECT 1`;
     await redis.ping();
+
+    // Minio Check
+    let minioStatus = 'ok';
+    try {
+      const { minio } = await import('./services/storage.service');
+      await minio.listBuckets();
+    } catch {
+      minioStatus = 'failed';
+    }
+
+    // OpenAI Check
+    let openaiStatus = 'ok';
+    try {
+      if (env.OPENAI_API_KEY) {
+        const { OpenAIProvider } = await import('./services/llm/openai.provider');
+        const llm = new OpenAIProvider();
+        // A minimal API ping - listing models is often used for this
+        await llm['openai'].models.list();
+      }
+    } catch {
+      openaiStatus = 'failed';
+    }
     
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       version: '1.0.0',
-      services: { db: 'ok', redis: 'ok' },
+      services: { db: 'ok', redis: 'ok', minio: minioStatus, openai: openaiStatus },
     });
   } catch (error) {
     res.status(503).json({

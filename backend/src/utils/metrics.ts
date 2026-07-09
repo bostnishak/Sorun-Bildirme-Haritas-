@@ -19,6 +19,19 @@ export const activeIssuesGauge = new client.Gauge({
   labelNames: ['status', 'category'],
 });
 
+export const aiModerationDurationHistogram = new client.Histogram({
+  name: 'chaosmap_ai_duration_ms',
+  help: 'AI Moderasyon ve işlem süreleri (ms)',
+  labelNames: ['layer', 'model'],
+  buckets: [50, 100, 300, 500, 1000, 2000, 5000, 10000],
+});
+
+export const openAITokensTotal = new client.Counter({
+  name: 'chaosmap_openai_tokens_total',
+  help: 'OpenAI toplam token tüketimi',
+  labelNames: ['model', 'purpose'],
+});
+
 // ─── Middleware ─────────────────────────────────────────────────────────────
 
 export const metricsMiddleware = (req: Request, res: Response, next: NextFunction) => {

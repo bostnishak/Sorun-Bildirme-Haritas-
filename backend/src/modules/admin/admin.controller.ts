@@ -93,3 +93,24 @@ export async function testInstitutionWebhook(req: Request, res: Response): Promi
   const result = await adminService.testInstitutionWebhook(req.params.id);
   res.status(200).json({ success: true, message: 'Test webhook bildirimi başarıyla iletildi.', data: result });
 }
+
+/**
+ * GET /api/v1/admin/ai-logs
+ */
+export async function getAiLogs(req: Request, res: Response): Promise<void> {
+  const querySchema = z.object({
+    page: z.string().default('1').transform(Number),
+    limit: z.string().default('50').transform(Number),
+    layer: z.string().optional(),
+    passed: z.string().transform(val => val === 'true').optional(),
+    issueId: z.string().uuid().optional(),
+  });
+
+  const parsed = querySchema.safeParse(req.query);
+  if (!parsed.success) {
+    throw new BadRequestError('Geçersiz parametreler.');
+  }
+
+  const result = await adminService.getAiLogs(parsed.data);
+  res.status(200).json({ success: true, ...result });
+}

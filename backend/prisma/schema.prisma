@@ -63,13 +63,18 @@ model User {
   institutionId String?      @map("institution_id") @db.Uuid
   institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
 
+  // 2FA bilgileri
+  twoFactorSecret    String? @map("two_factor_secret") @db.VarChar(100)
+  isTwoFactorEnabled Boolean @default(false) @map("is_two_factor_enabled")
+
   // Refresh tokens
   refreshTokens RefreshToken[]
 
   // İlişkiler
-  issues   Issue[]
-  upvotes  IssueUpvote[]
-  comments IssueComment[]
+  issues    Issue[]
+  upvotes   IssueUpvote[]
+  comments  IssueComment[]
+  auditLogs AuditLog[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -153,7 +158,9 @@ model Issue {
 
   // ─── İlişkiler ───────────────────────────────────────────────────────────
   reportedById String @map("reported_by_id") @db.Uuid
-  reportedBy   User   @relation(fields: [reportedById], references: [id])
+  reportedBy   User   @relation(fields: [reportedById], references: [id], onDelete: Cascade)
+
+  upvoteCount Int @default(0) @map("upvote_count")
 
   statusHistory IssueStatusHistory[]
   upvotes       IssueUpvote[]
@@ -211,4 +218,51 @@ model IssueComment {
   @@index([issueId])
   @@index([authorId])
   @@map("issue_comments")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String   @db.VarChar(100)
+  targetId   String?  @map("target_id") @db.Uuid
+  targetType String?  @map("target_type") @db.VarChar(50)
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetId])
+  @@map("audit_logs")
+}
+
+model AiModerationLog {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  issueId   String?  @map("issue_id") @db.Uuid // bağlı issue (oluşturulduysa)
+  layer     String   @db.VarChar(50) // "local", "openai_moderation", "llm_guardrail", "vision"
+  passed    Boolean
+  code      String   @db.VarChar(100)
+  reason    String?  @db.Text
+  latencyMs Int      @map("latency_ms")
+  model     String   @db.VarChar(50) // "gpt-4o-mini", "google-vision" vb.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([issueId])
+  @@index([layer])
+  @@index([createdAt])
+  @@map("ai_moderation_logs")
+}
+
+model SystemPrompt {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  key       String   @db.VarChar(100) // e.g., "GUARDRAIL", "VISION", "CHATBOT"
+  version   Int      @default(1)
+  content   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, version]) // Her key'in aynı versiyonundan sadece 1 tane olabilir
+  @@index([key, isActive])
+  @@map("system_prompts")
 }

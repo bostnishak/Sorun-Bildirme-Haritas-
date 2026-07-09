@@ -2,8 +2,15 @@ import OpenAI from 'openai';
 import { env } from '../config/env';
 import { BadRequestError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { prisma } from '../config/database';
+import { z } from 'zod';
+import pRetry from 'p-retry';
+import { aiModerationDurationHistogram, openAITokensTotal } from '../utils/metrics';
+import { OpenAIProvider } from './llm/openai.provider';
+import { SystemPromptService } from './systemPrompt.service';
+import { SemanticCache } from './semanticCache';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const llmProvider = new OpenAIProvider();
 
 export interface ModerationResult {
   passed: boolean;
@@ -53,7 +60,7 @@ const PII_PATTERNS = [
 /**
  * Hızlı Hakaret / Küfür Ön Listesi (Sıfır Gecikmeli)
  */
-const QUICK_PROFANITY_REGEX = /\b(amk|aq|sik|siktir|o\.?ç|göt|pezevenk|ibne|kahpe)\b/i;
+const QUICK_PROFANITY_REGEX = /\b(amk|aq|sik|siktir|o\.?ç|göt|pezevenk|ibne|kahpe|orospu|piç|yarak|yarr|yarrak|amcık|am|meme|döl|sürtük|puşt|kaltak|fahişe)\b/i;
 
 export function fastLocalSecurityCheck(text: string): ModerationResult | null {
   const start = Date.now();
@@ -103,17 +110,27 @@ export function fastLocalSecurityCheck(text: string): ModerationResult | null {
 export async function checkOpenAIModerationAPI(text: string): Promise<ModerationResult | null> {
   const start = Date.now();
   try {
-    const response = await openai.moderations.create({
-      model: 'text-moderation-latest',
-      input: text,
-    });
+    const runModeration = async () => {
+      return await llmProvider.moderate(text);
+    };
 
-    const result = response.results[0];
-    if (result && result.flagged) {
+    const response = await pRetry(runModeration, { retries: 3, minTimeout: 1000, maxTimeout: 3000 });
+
+    if (response.flagged) {
+      let reason = 'OpenAI Moderation API ihlal bayrağı kaldırdı.';
+      
+      if (response.categories['harassment'] || response.categories['harassment/threatening']) {
+        reason = 'Kişisel saldırı, taciz veya tehdit barındıran içerik.';
+      } else if (response.categories['self-harm'] || response.categories['self-harm/intent']) {
+        reason = 'Kendine zarar verme, intihar vb. bildirimleri sisteme girilemez.';
+      } else if (response.categories['sexual'] || response.categories['sexual/minors']) {
+        reason = 'Cinsel veya müstehcen içerik.';
+      }
+
       return {
         passed: false,
         code: 'HATE_SPEECH_VIOLENCE',
-        reason: 'OpenAI Moderation API ihlal bayrağı kaldırdı.',
+        reason: reason,
         userFriendlyMessage: 'Bildiriminize nefret söylemi, şiddet veya saldırganlık içeren ifadeler tespit edildiği için işleminiz reddedildi.',
         latencyMs: Date.now() - start,
       };
@@ -149,28 +166,59 @@ KABUL EDİLMESİ GEREKENLER:
   "userFriendlyMessage": "Kullanıcıya gösterilecek kibar, profesyonel Türkçe açıklama"
 }`;
 
+const GuardrailSchema = z.object({
+  passed: z.boolean().default(true),
+  code: z.enum(['OK', 'TROLL_OR_IRRELEVANT', 'POLITICAL_RELIGIOUS_JOKE']).default('OK'),
+  reason: z.string().optional(),
+  userFriendlyMessage: z.string().optional()
+});
+
 export async function checkSemanticGuardrail(text: string): Promise<ModerationResult> {
   const start = Date.now();
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: GUARDRAIL_SYSTEM_PROMPT },
-        { role: 'user', content: `İncelenecek Bildirim Metni:\n"${text.substring(0, 1500)}"` }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.0,
-      max_tokens: 150,
-    });
+    // Semantic Cache Lookup
+    const cachedResult = await SemanticCache.get(text);
+    if (cachedResult) {
+      return cachedResult;
+    }
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || '{"passed":true,"code":"OK"}');
-    return {
-      passed: parsed.passed ?? true,
-      code: parsed.code || 'OK',
+    const runGuardrail = async () => {
+      const activePrompt = await SystemPromptService.getPrompt('LLM_GUARDRAIL', GUARDRAIL_SYSTEM_PROMPT);
+      return await llmProvider.complete(
+        activePrompt,
+        `İncelenecek Bildirim Metni:\n"${text.substring(0, 1500)}"`,
+        {
+          model: 'gpt-4o-mini',
+          responseFormat: 'json_object',
+          temperature: 0.0,
+          maxTokens: 150,
+        }
+      );
+    };
+
+    const response = await pRetry(runGuardrail, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+
+    const parsed = GuardrailSchema.parse(JSON.parse(response.content || '{"passed":true,"code":"OK"}'));
+    
+    // Log Prometheus metrics
+    if (response.usage) {
+      openAITokensTotal.labels('gpt-4o-mini', 'semantic_guardrail').inc(response.usage.totalTokens);
+    }
+
+    const finalResult = {
+      passed: parsed.passed,
+      code: parsed.code as any,
       reason: parsed.reason,
-      userFriendlyMessage: parsed.userFriendlyMessage || 'İhbarınız uygun bulunmadığı için işleme alınamadı.',
+      userFriendlyMessage: parsed.passed
+        ? undefined
+        : 'Bildiriminiz moderasyon politikalarımıza uymadığı için reddedildi.',
       latencyMs: Date.now() - start,
     };
+
+    // Store in semantic cache (run asynchronously)
+    SemanticCache.set(text, finalResult).catch(() => {});
+
+    return finalResult;
   } catch (error) {
     logger.error('Semantic Guardrail hatası — fail-open prensibiyle kabul ediliyor.', { error: String(error) });
     return {
@@ -189,31 +237,63 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
  * Gelen ihbar metnini (başlık, açıklama veya chatbot mesajı) 3 katmanlı güvenlik duvarından geçirir.
  * Eğer ihlal varsa anında BadRequestError fırlatarak veritabanı işlemini durdurur.
  */
-export async function enforceDynamicModeration(text: string): Promise<ModerationResult> {
+export async function enforceDynamicModeration(text: string, issueId?: string): Promise<ModerationResult> {
   const totalStart = Date.now();
+  
+  const logEntry = async (layer: string, result: ModerationResult, model: string) => {
+    try {
+      await prisma.aiModerationLog.create({
+        data: {
+          issueId: issueId || null,
+          layer,
+          passed: result.passed,
+          code: result.code,
+          reason: result.reason,
+          latencyMs: result.latencyMs,
+          model,
+        }
+      });
+      aiModerationDurationHistogram.labels(layer, model).observe(result.latencyMs);
+    } catch (e) {
+      logger.error('Failed to save AiModerationLog', { error: String(e) });
+    }
+  };
 
   // 1. Katman: Yerel Milisaniyelik Kontrol
   const localResult = fastLocalSecurityCheck(text);
-  if (localResult && !localResult.passed) {
-    logger.warn('AI Moderasyon [Katman 1 - Local Regex/PII] ihlali yakaladı.', {
-      code: localResult.code,
-      reason: localResult.reason,
-    });
-    throw new BadRequestError(localResult.userFriendlyMessage || localResult.reason || 'İçerik güvenlik filtresine takıldı.');
+  if (localResult) {
+    await logEntry('local', localResult, 'regex');
+    if (!localResult.passed) {
+      logger.warn('AI Moderasyon [Katman 1 - Local Regex/PII] ihlali yakaladı.', {
+        code: localResult.code,
+        reason: localResult.reason,
+      });
+      throw new BadRequestError(localResult.userFriendlyMessage || localResult.reason || 'İçerik güvenlik filtresine takıldı.');
+    }
   }
 
   // 2. Katman: OpenAI Moderation API
   const moderationApiResult = await checkOpenAIModerationAPI(text);
-  if (moderationApiResult && !moderationApiResult.passed) {
-    logger.warn('AI Moderasyon [Katman 2 - OpenAI Moderation API] ihlali yakaladı.', {
-      code: moderationApiResult.code,
-      reason: moderationApiResult.reason,
-    });
-    throw new BadRequestError(moderationApiResult.userFriendlyMessage || 'İçerik güvenlik ilkelerini ihlal etmektedir.');
+  if (moderationApiResult) {
+    await logEntry('openai_moderation', moderationApiResult, 'text-moderation-latest');
+    if (!moderationApiResult.passed) {
+      logger.warn('AI Moderasyon [Katman 2 - OpenAI Moderation API] ihlali yakaladı.', {
+        code: moderationApiResult.code,
+        reason: moderationApiResult.reason,
+      });
+      throw new BadRequestError(moderationApiResult.userFriendlyMessage || 'İçerik güvenlik ilkelerini ihlal etmektedir.');
+    }
+  }
+
+  // Optimize: Kısa metinler için Semantic Layer'ı atla
+  if (text.length < 50) {
+    logger.info('Metin 50 karakterden kısa, Semantic Guardrail atlanıyor.', { length: text.length });
+    return { passed: true, code: 'OK', latencyMs: Date.now() - totalStart };
   }
 
   // 3. Katman: Semantik LLM Guardrail
   const semanticResult = await checkSemanticGuardrail(text);
+  await logEntry('llm_guardrail', semanticResult, 'gpt-4o-mini');
   if (!semanticResult.passed) {
     logger.warn('AI Moderasyon [Katman 3 - LLM Semantic Guardrail] ihlali yakaladı.', {
       code: semanticResult.code,
