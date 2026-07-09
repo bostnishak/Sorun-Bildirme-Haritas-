@@ -38,25 +38,29 @@ export function AiChatbotWidget() {
     {
       id: '1',
       sender: 'ai',
-      text: 'Merhaba! Ben ChaosMind AI İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
+      text: 'Merhaba! Ben ChaosMind Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Sadece oturum açmış kullanıcılara göster
   if (!user) return null;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Lütfen geçerli bir resim dosyası seçin.');
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -71,7 +75,7 @@ export function AiChatbotWidget() {
     const newMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: userText || '📷 Fotoğraf ile bildirim yapıldı.',
+      text: userText || 'Fotoğraf ile bildirim yapıldı.',
       image: imageToSend,
     };
 
@@ -91,7 +95,7 @@ export function AiChatbotWidget() {
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: `⚠️ Güvenlik Uyarı / Moderasyon: ${data.asistanMesaji}`,
+            text: `Güvenlik Uyarı / Moderasyon: ${data.asistanMesaji}`,
           },
         ]);
       } else if (data.eksikBilgiSoru) {
@@ -100,7 +104,17 @@ export function AiChatbotWidget() {
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: `${data.asistanMesaji}\n\n❓ Eksik Bilgi: ${data.eksikBilgiSoru}`,
+            text: `${data.asistanMesaji}\n\nEksik Bilgi: ${data.eksikBilgiSoru}`,
+          },
+        ]);
+      } else if (data.kategori) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'ai',
+            text: data.asistanMesaji,
+            extraction: data,
           },
         ]);
       } else {
@@ -110,7 +124,6 @@ export function AiChatbotWidget() {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
             text: data.asistanMesaji,
-            extraction: data,
           },
         ]);
       }
@@ -144,12 +157,14 @@ export function AiChatbotWidget() {
             borderRadius: '9999px',
             fontWeight: 600,
             fontSize: '0.95rem',
-            boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.5)',
+            boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
         >
-          <span style={{ fontSize: '1.25rem' }}>🤖</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
           AI İhbar Asistanı
         </button>
       )}
@@ -157,35 +172,50 @@ export function AiChatbotWidget() {
       {isOpen && (
         <div
           style={{
-            width: '380px',
-            height: '520px',
-            backgroundColor: '#0f172a',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '20px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            width: '390px',
+            height: '540px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
           }}
         >
-          {/* Header */}
           <div
             style={{
               padding: '16px 20px',
-              backgroundColor: '#1e293b',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '1.4rem' }}>🤖</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                }}
+              >
+                AI
+              </div>
               <div>
-                <h4 style={{ margin: 0, color: 'white', fontSize: '0.95rem', fontWeight: 600 }}>
+                <h4 style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', fontWeight: 600 }}>
                   Tek İstemli AI Asistan
                 </h4>
-                <span style={{ fontSize: '0.75rem', color: '#10b981' }}>● Aktif & Moderasyon Korumalı</span>
+                <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500 }}>
+                  Aktif & Moderasyon Korumalı
+                </span>
               </div>
             </div>
             <button
@@ -193,16 +223,20 @@ export function AiChatbotWidget() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
-                fontSize: '1.3rem',
+                color: '#64748b',
+                fontSize: '1.25rem',
                 cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
+              title="Kapat"
             >
-              ×
+              ✕
             </button>
           </div>
 
-          {/* Messages Container */}
           <div
             style={{
               flex: 1,
@@ -211,6 +245,7 @@ export function AiChatbotWidget() {
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
+              backgroundColor: '#ffffff',
             }}
           >
             {messages.map(msg => (
@@ -225,11 +260,15 @@ export function AiChatbotWidget() {
                   style={{
                     padding: '12px 14px',
                     borderRadius: '14px',
-                    backgroundColor: msg.sender === 'user' ? '#2563eb' : '#1e293b',
-                    color: 'white',
+                    backgroundColor: msg.sender === 'user' ? '#2563eb' : '#f1f5f9',
+                    color: msg.sender === 'user' ? '#ffffff' : '#1e293b',
+                    border: msg.sender === 'user' ? 'none' : '1px solid #e2e8f0',
                     fontSize: '0.88rem',
-                    lineHeight: '1.45',
+                    lineHeight: '1.5',
                     whiteSpace: 'pre-wrap',
+                    boxShadow: msg.sender === 'user'
+                      ? '0 4px 12px rgba(37, 99, 235, 0.2)'
+                      : '0 1px 2px rgba(0, 0, 0, 0.03)',
                   }}
                 >
                   {msg.image && (
@@ -242,26 +281,27 @@ export function AiChatbotWidget() {
                         objectFit: 'cover',
                         borderRadius: '8px',
                         marginBottom: '8px',
+                        border: '1px solid #e2e8f0',
                       }}
                     />
                   )}
                   {msg.text}
                 </div>
 
-                {msg.extraction && (
+                {msg.extraction && msg.extraction.kategori && !msg.extraction.eksikBilgiSoru && (
                   <div
                     style={{
                       marginTop: '8px',
                       padding: '12px',
                       borderRadius: '12px',
-                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#d1fae5',
-                      fontSize: '0.8rem',
+                      backgroundColor: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#065f46',
+                      fontSize: '0.82rem',
                     }}
                   >
-                    <div style={{ fontWeight: 600, marginBottom: '6px', color: '#10b981' }}>
-                      ⚡ Çıkarılan İhbar Verisi:
+                    <div style={{ fontWeight: 600, marginBottom: '6px', color: '#047857' }}>
+                      Çıkarılan İhbar Verisi:
                     </div>
                     <div><b>Kategori:</b> {msg.extraction.kategoriTurkce || msg.extraction.kategori}</div>
                     <div><b>Başlık:</b> {msg.extraction.baslik}</div>
@@ -280,32 +320,57 @@ export function AiChatbotWidget() {
                   alignSelf: 'flex-start',
                   padding: '10px 14px',
                   borderRadius: '14px',
-                  backgroundColor: '#1e293b',
-                  color: '#94a3b8',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
                   fontSize: '0.85rem',
                 }}
               >
-                🤖 Yapay zeka metninizi ve fotoğrafınızı analiz ediyor...
+                Yapay zeka metninizi ve fotoğrafınızı analiz ediyor...
               </div>
             )}
           </div>
 
-          {/* Görsel Önizleme */}
           {imagePreview && (
-            <div style={{ padding: '6px 16px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <img src={imagePreview} alt="Preview" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', flex: 1 }}>Fotoğraf eklendi</span>
-              <button type="button" onClick={() => setImagePreview(null)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.8rem' }}>Kaldır</button>
+            <div
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                borderTop: '1px solid #e2e8f0',
+              }}
+            >
+              <img
+                src={imagePreview}
+                alt="Preview"
+                style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1px solid #cbd5e1' }}
+              />
+              <span style={{ fontSize: '0.78rem', color: '#475569', flex: 1 }}>Fotoğraf eklendi</span>
+              <button
+                type="button"
+                onClick={() => setImagePreview(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#dc2626',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                }}
+              >
+                Kaldır
+              </button>
             </div>
           )}
 
-          {/* Form */}
           <form
             onSubmit={handleSendMessage}
             style={{
               padding: '12px 16px',
-              backgroundColor: '#1e293b',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
               display: 'flex',
               gap: '8px',
               alignItems: 'center',
@@ -317,10 +382,11 @@ export function AiChatbotWidget() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '8px',
+                padding: '9px',
                 borderRadius: '8px',
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                color: '#94a3b8',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
               }}
               title="Fotoğraf Ekle"
             >
@@ -337,10 +403,10 @@ export function AiChatbotWidget() {
               style={{
                 flex: 1,
                 padding: '10px 14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                backgroundColor: '#0f172a',
-                color: 'white',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
                 fontSize: '0.85rem',
                 outline: 'none',
               }}
@@ -353,7 +419,7 @@ export function AiChatbotWidget() {
                 color: 'white',
                 border: 'none',
                 padding: '10px 16px',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 fontWeight: 600,
                 cursor: (loading || (!input.trim() && !imagePreview)) ? 'not-allowed' : 'pointer',
               }}

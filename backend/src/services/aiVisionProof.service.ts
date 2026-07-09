@@ -26,26 +26,25 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
 const VISION_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (ChaosMind) platformunun yüksek hassasiyetli Bilgisayarlı Görü (Computer Vision) kanıt denetçisisin.
 Görevin, kullanıcının yüklediği fotoğrafı analiz ederek, bildirilen sorun kategorisi ve başlığıyla eşleşip eşleşmediğini ve gerçekten bir belediye/altyapı/çevre sorunu kanıtı olup olmadığını doğrulamaktır.
 
-REDDETMEN GEREKEN DURUMLAR (confidenceScore < 0.65):
-1. Selfie, kişi portresi, oda içi mobilya, evcil hayvan, ekran görüntüsü (screenshot), meme, oyun görüntüsü.
-2. Bildirilen kategoriyle tamamen çelişen görseller (Örn: "Yangın/Çevre" seçilip temiz bir sahil veya düzgün bir bina atılması).
-3. Çok bulanık, tamamen karanlık veya ne olduğu anlaşılamayan fotoğraflar.
+KESİNLİKLE REDDETMEN GEREKEN DURUMLAR (valid: false, confidenceScore < 0.40):
+1. Tarihi fotoğraflar, eski portreler, asker/şahıs portreleri, selfie, oda içi mobilya, evcil hayvan, ekran görüntüsü (screenshot), meme, oyun görüntüsü.
+2. Tamamen karanlık, siyah ekran, bomboş veya ne olduğu anlaşılamayan fotoğraflar.
+3. Bildirilen kategoriyle tamamen çelişen görseller veya kentsel/belediye arızası barındırmayan normal manzaralar.
 
 KABUL ETME KURALI:
-Fotoğrafta bildirilen kentsel arıza veya tehlike (çukur, çöp, su kaçağı, bozuk rögar, kırık lamba vb.) net veya makul bir kanıt olarak seçilebiliyorsa kabul et (confidenceScore >= 0.65).
+Sadece fotoğrafta bildirilen kentsel arıza veya tehlike (çukur, çöp yığını, su kaçağı, bozuk rögar, kırık lamba, yangın vb.) net bir şekilde görülüyorsa kabul et (valid: true, confidenceScore >= 0.70).
 
 YANIT FORMATI (SADECE geçerli JSON döndür):
 {
   "valid": boolean,
-  "confidenceScore": number (0.0 ile 1.0 arası sayı, örn: 0.88),
+  "confidenceScore": number (0.0 ile 1.0 arası sayı),
   "reason": "Tespit edilen durum hakkında kısa analiz",
-  "detectedLabels": ["asfalt", "çukur", "su", ...],
-  "userFriendlyMessage": "Reddedildiyse kullanıcıya gösterilecek kibar Türkçe açıklama"
+  "detectedLabels": ["asfalt", "çukur", ...],
+  "userFriendlyMessage": "Reddedildiyse kullanıcıya gösterilecek net Türkçe açıklama: Örn: Yüklediğiniz fotoğraf bir kentsel sorun kanıtı değildir. Lütfen arızayı net gösteren bir fotoğraf yükleyin."
 }`;
 
 /**
  * Görseli analiz eder ve kanıt geçerliliğini denetler.
- * Senkron modda çalışır (anında ret gerekiyorsa).
  */
 export async function verifyIssuePhotoProof(
   base64ImageOrUrl: string,
@@ -55,6 +54,17 @@ export async function verifyIssuePhotoProof(
 ): Promise<VisionProofResult> {
   const categoryDesc = CATEGORY_DESCRIPTIONS[category] || category;
   const promptContext = `Bildirilen Kategori: ${category} (${categoryDesc})\nBaşlık: "${title}"\nAçıklama: "${description}"\nLütfen ekteki fotoğrafın bu kentsel sorunu kanıtlayacak nitelikte olup olmadığını değerlendir.`;
+
+  // Temel veriyi kontrol et (Çok kısa veya boş base64 verisi)
+  if (!base64ImageOrUrl || base64ImageOrUrl.length < 100) {
+    return {
+      valid: false,
+      confidenceScore: 0.0,
+      reason: 'Görsel verisi boş veya bozuk.',
+      detectedLabels: [],
+      userFriendlyMessage: 'Yüklediğiniz fotoğraf verisi bozuk veya boş görünüyor. Lütfen geçerli bir fotoğraf yükleyin.',
+    };
+  }
 
   try {
     const imageUrlPayload = base64ImageOrUrl.startsWith('http') || base64ImageOrUrl.startsWith('data:')
@@ -75,12 +85,12 @@ export async function verifyIssuePhotoProof(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.1,
-      max_tokens: 200,
+      max_tokens: 250,
     });
 
-    const parsed = JSON.parse(response.choices[0]?.message?.content || '{"valid":true,"confidenceScore":0.85,"detectedLabels":[]}');
-    const score = typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0.85;
-    const isValid = parsed.valid !== false && score >= 0.65;
+    const parsed = JSON.parse(response.choices[0]?.message?.content || '{"valid":false,"confidenceScore":0.3,"detectedLabels":[]}');
+    const score = typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0.3;
+    const isValid = parsed.valid === true && score >= 0.65;
 
     const result: VisionProofResult = {
       valid: isValid,
@@ -101,12 +111,14 @@ export async function verifyIssuePhotoProof(
 
     return result;
   } catch (error) {
-    logger.warn('Vision AI Doğrulama servisi hatası — fail-open kabul edildi:', { error: String(error) });
+    logger.warn('Vision AI Doğrulama servisi hatası:', { error: String(error) });
+    // API anahtarı hatası veya geçici kesinti durumunda bile şüpheli fotoğrafları doğrudan onaylama yerine strict denetim
     return {
-      valid: true,
-      confidenceScore: 0.8,
-      reason: 'Servis yanıt vermedi (fallback onay).',
-      detectedLabels: ['fallback'],
+      valid: false,
+      confidenceScore: 0.0,
+      reason: 'Görsel analiz servisi doğrulayamadı.',
+      detectedLabels: [],
+      userFriendlyMessage: 'Fotoğrafınız yapay zeka denetiminden geçemedi veya olayla ilgili bir kanıt tespit edilemedi. Lütfen sorunu net gösteren bir fotoğraf yükleyin.',
     };
   }
 }
