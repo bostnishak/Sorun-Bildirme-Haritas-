@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
-import { Client as MinioClient } from 'minio';
 import crypto from 'crypto';
 import { prisma } from '../../config/database';
 import { verifyWithNVI, hashTCKimlik } from '../../services/nvi.service';
@@ -19,17 +18,8 @@ import {
 } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 import { randomUUID } from 'crypto';
-import { transporter } from '../../config/nodemailer';
-
-const minio = new MinioClient({
-  endPoint: env.MINIO_ENDPOINT,
-  port: env.MINIO_PORT,
-  useSSL: env.MINIO_USE_SSL,
-  accessKey: env.MINIO_ACCESS_KEY,
-  secretKey: env.MINIO_SECRET_KEY,
-});
-
-
+import { emailService } from '../../services/email.service';
+import { minio } from '../../services/storage.service';
 interface RegisterDto {
   email: string;
   password: string;
@@ -256,7 +246,6 @@ export const authService = {
     const { randomUUID } = crypto;
     const key = `avatars/${userId}/${randomUUID()}.${ext}`;
     const bucket = env.MINIO_BUCKET;
-    const { minio } = await import('../../services/storage.service');
 
     await minio.putObject(bucket, key, buffer, buffer.length, { 'Content-Type': mimeType });
 
@@ -302,8 +291,6 @@ export const authService = {
       INSERT INTO password_reset_tokens (id, token, user_id, expires_at, created_at)
       VALUES (uuid_generate_v4(), ${token}, ${user.id}::uuid, ${expiresAt}, now())
     `;
-
-    const { emailService } = await import('../../services/email.service');
 
     // E-posta gönder
     await emailService.sendPasswordResetEmail(email, user.firstName || email, token);
