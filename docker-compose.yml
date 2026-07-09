@@ -78,6 +78,8 @@ services:
       target: production
     container_name: chaosmap-api
     restart: unless-stopped
+    ports:
+      - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -161,6 +163,8 @@ services:
       target: production
     container_name: chaosmap-web
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_MAPBOX_TOKEN: ${MAPBOX_TOKEN}
