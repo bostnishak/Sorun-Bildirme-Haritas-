@@ -5,6 +5,10 @@ import { BadRequestError } from '../../utils/errors';
 import { handleUpload } from '../../middleware/upload.middleware';
 import { validateExifLocation } from '../../services/exif.service';
 import { guardContent } from '../../services/llm.service';
+import { enforceDynamicModeration } from '../../services/aiModeration.service';
+import { reverseGeocodeHighPrecision } from '../../services/geocoding.service';
+import { verifyIssuePhotoProof } from '../../services/aiVisionProof.service';
+import { parseSinglePromptIssue } from '../../services/aiChatbotAssistant.service';
 import { imageProcessingQueue } from '../../jobs/queue';
 import { logger } from '../../utils/logger';
 
@@ -64,9 +68,9 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
   }
   const data = parsed.data;
 
-  // 3. LLM Guard — içerik denetimi
+  // 3. Dinamik AI Moderasyon Katmanı + LLM Guard
+  await enforceDynamicModeration(`${data.title}\n${data.description}`);
   const llmResult = await guardContent(data.title, data.description);
-  // guardContent geçersizse BadRequestError fırlatır; buraya geldiğimizde geçerli
   const llmGuardPassed = llmResult.valid;
 
   // 4. EXIF doğrulama (fotoğraf varsa)
@@ -240,4 +244,47 @@ export async function addComment(req: Request, res: Response): Promise<void> {
 export async function getMyIssues(req: Request, res: Response): Promise<void> {
   const issues = await issuesService.listMyIssues(req.user.sub);
   res.status(200).json({ success: true, data: issues });
+}
+
+/**
+ * GET /api/v1/issues/geocode?lat=39.9&lng=32.8 — Yüksek Hassasiyetli Tersine Konum Bulma
+ */
+export async function reverseGeocodeAddress(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    lat: z.string().transform(Number).refine(v => v >= -90 && v <= 90, 'Geçersiz enlem'),
+    lng: z.string().transform(Number).refine(v => v >= -180 && v <= 180, 'Geçersiz boylam'),
+  });
+  const { lat, lng } = schema.parse(req.query);
+
+  const address = await reverseGeocodeHighPrecision(lat, lng);
+  res.status(200).json({ success: true, data: address });
+}
+
+/**
+ * POST /api/v1/issues/verify-vision — Bilgisayarlı Görü ile Kanıt Doğrulama
+ */
+export async function verifyPhotoProof(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    imageUrl: z.string().min(1, 'Görsel URL veya Base64 zorunlu'),
+    category: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1),
+  });
+  const { imageUrl, category, title, description } = schema.parse(req.body);
+
+  const result = await verifyIssuePhotoProof(imageUrl, category, title, description);
+  res.status(200).json({ success: true, data: result });
+}
+
+/**
+ * POST /api/v1/issues/ai-assistant — Tek İstemli (Single-Prompt) AI Chatbot Asistanı
+ */
+export async function assistantSinglePrompt(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    message: z.string().min(3, 'Mesaj en az 3 karakter olmalı.').max(1500),
+  });
+  const { message } = schema.parse(req.body);
+
+  const extraction = await parseSinglePromptIssue(message);
+  res.status(200).json({ success: true, data: extraction });
 }

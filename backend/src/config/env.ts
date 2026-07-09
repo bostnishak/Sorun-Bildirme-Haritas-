@@ -26,9 +26,11 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES: z.string().default('15m'),
   JWT_REFRESH_EXPIRES: z.string().default('7d'),
 
-  // AI
+  // AI & Geocoding
   OPENAI_API_KEY: z.string().optional(),
   GOOGLE_VISION_CREDENTIALS_JSON: z.string().optional(),
+  MAPBOX_TOKEN: z.string().optional(),
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
 
   // NVİ
   NVI_ENDPOINT: z.string().url().default('https://tckimlik.nvi.gov.tr/Service/KPSPublic.asmx'),

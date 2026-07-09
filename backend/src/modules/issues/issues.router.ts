@@ -18,6 +18,15 @@ router.get('/summary-stats', issuesController.getSummaryStats);
 // GET /api/v1/issues/my/list — Oturum açmış kullanıcının bildirimleri
 router.get('/my/list', isAuthenticated, issuesController.getMyIssues);
 
+// GET /api/v1/issues/geocode — Yüksek hassasiyetli adres ayrıştırma
+router.get('/geocode', issuesController.reverseGeocodeAddress);
+
+// POST /api/v1/issues/verify-vision — Bilgisayarlı görü ile kanıt analizi
+router.post('/verify-vision', isAuthenticated, issuesController.verifyPhotoProof);
+
+// POST /api/v1/issues/ai-assistant — Tek istemli AI ihbar asistanı
+router.post('/ai-assistant', isAuthenticated, issuesController.assistantSinglePrompt);
+
 // GET /api/v1/issues/:id — Public (sorun detayı)
 router.get('/:id', issuesController.getIssue);
 

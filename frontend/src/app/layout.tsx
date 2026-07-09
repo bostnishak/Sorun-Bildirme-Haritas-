@@ -28,6 +28,8 @@ export const viewport: Viewport = {
   themeColor: '#2563eb',
 };
 
+import { AiChatbotWidget } from '@/components/chat/AiChatbotWidget';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
@@ -56,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <QueryProvider>
           {children}
+          <AiChatbotWidget />
         </QueryProvider>
       </body>
     </html>
