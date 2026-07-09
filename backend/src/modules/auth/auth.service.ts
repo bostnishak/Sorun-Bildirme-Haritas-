@@ -303,36 +303,10 @@ export const authService = {
       VALUES (uuid_generate_v4(), ${token}, ${user.id}::uuid, ${expiresAt}, now())
     `;
 
-    const resetUrl = `${env.APP_URL}/reset-password?token=${token}`;
-    const { transporter } = await import('../../services/email.service');
+    const { emailService } = await import('../../services/email.service');
 
     // E-posta gönder
-    try {
-      await transporter.sendMail({
-        from: env.EMAIL_FROM,
-        to: email,
-        subject: 'Sorun Haritası — Şifre Sıfırlama',
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#f8fafc;border-radius:12px">
-            <h2 style="color:#1e293b;margin-bottom:8px"> 🔑 Şifre Sıfırlama</h2>
-            <p style="color:#475569;line-height:1.6">Merhaba <strong>${user.firstName || email}</strong>,</p>
-            <p style="color:#475569;line-height:1.6">Şifrenizi sıfırlamak için aşağıdaki butona tıklayın. Bu bağlantı <strong>1 saat</strong> boyunca geçerlidir.</p>
-            <div style="text-align:center;margin:32px 0">
-              <a href="${resetUrl}" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block">
-                Şifre Sıfırla
-              </a>
-            </div>
-            <p style="color:#94a3b8;font-size:13px">Bu isteği siz yapmadıysanız bu e-postayı görmezden gelin.</p>
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
-            <p style="color:#94a3b8;font-size:12px">Bağlantı çalışmıyorsa kopyala: ${resetUrl}</p>
-          </div>
-        `,
-      });
-      logger.info('Şifre sıfırlama e-postası gönderildi', { email });
-    } catch (err) {
-      // E-posta gönderimi başarısız olursa log'a token yaz (dev ortamı için)
-      logger.warn('Şifre sıfırlama e-postası gönderilemedi, token loglanıyor', { email, resetUrl });
-    }
+    await emailService.sendPasswordResetEmail(email, user.firstName || email, token);
   },
 
   async resetPassword(token: string, newPassword: string) {
