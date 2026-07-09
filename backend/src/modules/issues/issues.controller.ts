@@ -295,9 +295,9 @@ export async function forwardGeocodeAddress(req: Request, res: Response): Promis
 export async function verifyPhotoProof(req: Request, res: Response): Promise<void> {
   const schema = z.object({
     imageUrl: z.string().min(1, 'Görsel URL veya Base64 zorunlu'),
-    category: z.string().min(1),
-    title: z.string().min(1),
-    description: z.string().min(1),
+    category: z.string().optional().default('ENVIRONMENT'),
+    title: z.string().optional().default('Genel İhbar'),
+    description: z.string().optional().default('Anlık fotoğraf doğrulama'),
   });
   const { imageUrl, category, title, description } = schema.parse(req.body);
 

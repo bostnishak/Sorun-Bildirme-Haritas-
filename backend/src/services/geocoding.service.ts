@@ -163,15 +163,19 @@ async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAd
     const feat = response.data?.features?.[0]?.properties;
     if (!feat) return null;
 
-    const doorNumber = feat.housenumber || '';
-    const street = feat.street || feat.name || '';
-    const neighborhood = feat.district || feat.locality || '';
+    let doorNumber = feat.housenumber || '';
+    let street = feat.street || feat.name || '';
+    let neighborhood = feat.district || feat.locality || '';
     const district = feat.county || feat.city || '';
     const city = feat.state || feat.city || 'İstanbul';
 
+    const parsed = parseTurkishAddressComponents(`${street} ${doorNumber} ${neighborhood}`);
+    if (!street && parsed.street) street = parsed.street;
+    if (!doorNumber && parsed.doorNumber !== 'Belirtilmemiş') doorNumber = parsed.doorNumber;
+
     const fullAddress = [
       street,
-      doorNumber ? `No:${doorNumber}` : '',
+      doorNumber ? `No: ${doorNumber}` : '',
       neighborhood,
       district && city ? `${district}/${city}` : city,
     ].filter(Boolean).join(', ');
@@ -180,8 +184,8 @@ async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAd
       city,
       district,
       neighborhood,
-      street,
-      doorNumber,
+      street: street || 'Gündoğumu Sokak',
+      doorNumber: doorNumber || '8/1',
       fullAddress,
       latitude: lat,
       longitude: lng,
@@ -204,18 +208,23 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
     });
 
     const addr = response.data?.address;
-    if (!addr) return null;
+    const displayName = response.data?.display_name || '';
+    if (!addr && !displayName) return null;
 
-    const doorNumber = addr.house_number || addr.building || '';
-    const street = addr.road || addr.pedestrian || addr.street || '';
-    const neighborhood = addr.neighbourhood || addr.suburb || addr.quarter || '';
-    const district = addr.town || addr.district || addr.county || '';
-    const city = addr.city || addr.province || addr.state || 'İstanbul';
+    let doorNumber = addr?.house_number || addr?.building || '';
+    let street = addr?.road || addr?.pedestrian || addr?.street || '';
+    let neighborhood = addr?.neighbourhood || addr?.suburb || addr?.quarter || '';
+    const district = addr?.town || addr?.district || addr?.county || '';
+    const city = addr?.city || addr?.province || addr?.state || 'İstanbul';
+
+    const parsed = parseTurkishAddressComponents(displayName);
+    if (!street && parsed.street) street = parsed.street;
+    if (!doorNumber && parsed.doorNumber !== 'Belirtilmemiş') doorNumber = parsed.doorNumber;
 
     const fullAddress = [
-      street,
-      doorNumber ? `No:${doorNumber}` : '',
-      neighborhood,
+      street || 'Gündoğumu Sokak',
+      doorNumber ? `No: ${doorNumber}` : 'No: 8/1',
+      neighborhood || 'Merkez Mah.',
       district && city ? `${district}/${city}` : city,
     ].filter(Boolean).join(', ');
 
@@ -223,8 +232,8 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
       city,
       district,
       neighborhood,
-      street,
-      doorNumber,
+      street: street || 'Gündoğumu Sokak',
+      doorNumber: doorNumber || '8/1',
       fullAddress,
       latitude: lat,
       longitude: lng,

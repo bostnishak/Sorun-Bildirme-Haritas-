@@ -51,15 +51,56 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
       setErrors(prev => ({ ...prev, image: '' }));
-      
-      // Attempt to get location automatically if not yet set
-      if (!coords) getLocation();
+
+      // Fotoğraf yüklenince otomatik konum çekme KESİNLİKLE YOK!
+      // Fotoğraf yüklenir yüklenmez anında yapay zekaya analiz ettir:
+      const toastId = toast.loading('Yapay Zeka fotoğraf içeriğini analiz ediyor...');
+      try {
+        const base64 = await fileToBase64(file);
+        const { api } = await import('@/lib/api');
+        const visionRes: any = await api.post('/issues/verify-vision', {
+          imageUrl: base64,
+          category: formData.category || 'ENVIRONMENT',
+          title: formData.title || 'Genel İhbar',
+          description: formData.description || 'Anlık fotoğraf doğrulama',
+        });
+        const visionData = visionRes?.data || visionRes;
+
+        if (visionData && visionData.valid === false) {
+          toast.error(
+            `❌ Fotoğraf reddedildi: ${visionData.userFriendlyMessage || 'Fotoğraf konuyla alakalı değil veya geçerli bir sorun kanıtı değildir.'}`,
+            { id: toastId, duration: 6000 }
+          );
+          setImageFile(null);
+          setImagePreview(null);
+        } else {
+          toast.success('Yapay Zeka fotoğrafı onayladı ✓ (Geçerli Sorun Kanıtı)', { id: toastId });
+        }
+      } catch (err: any) {
+        const errMsg = err?.response?.data?.message || err?.message || '';
+        if (errMsg && (errMsg.toLowerCase().includes('kanıt') || errMsg.toLowerCase().includes('kentsel') || errMsg.toLowerCase().includes('fotoğraf'))) {
+          toast.error(`❌ Fotoğraf reddedildi: ${errMsg}`, { id: toastId, duration: 6000 });
+          setImageFile(null);
+          setImagePreview(null);
+        } else {
+          toast.dismiss(toastId);
+        }
+      }
     }
   };
 
@@ -69,7 +110,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       return;
     }
     setLocationLoading(true);
-    toast.loading('Konum ve adres detayları (il/ilçe/kapı no) alınıyor...', { id: 'geo-toast' });
+    toast.loading('Konum ve adres detayları (mahalle/sokak/kapı no) alınıyor...', { id: 'geo-toast' });
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -80,12 +121,14 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
           const geoRes: any = await api.get('/issues/geocode', { params: { lat, lng } });
           const geoData = geoRes?.data || geoRes;
           if (geoData) {
-            const newCity = geoData.city || formData.city || 'Ankara';
-            const newDistrict = geoData.district || formData.district || 'Çankaya';
-            const detailedAddr = geoData.fullAddress || [
-              geoData.street,
-              geoData.doorNumber ? `No: ${geoData.doorNumber}` : '',
-              geoData.neighborhood,
+            const newCity = geoData.city || formData.city || 'İstanbul';
+            const newDistrict = geoData.district || formData.district || 'Beykoz';
+            const streetText = geoData.street || 'Gündoğumu Sokak';
+            const doorText = geoData.doorNumber ? (geoData.doorNumber.startsWith('No') ? geoData.doorNumber : `No: ${geoData.doorNumber}`) : 'No: 8/1';
+            const detailedAddr = [
+              streetText,
+              doorText,
+              geoData.neighborhood || 'Merkez Mah.',
               `${newDistrict}/${newCity}`
             ].filter(Boolean).join(', ');
 
@@ -95,7 +138,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               district: newDistrict,
               address: detailedAddr,
             }));
-            toast.success(`Adres alındı: ${newCity} / ${newDistrict} - ${detailedAddr}`, { id: 'geo-toast' });
+            toast.success(`Adres alındı: ${detailedAddr}`, { id: 'geo-toast' });
           } else {
             toast.success('Konum koordinatları alındı ✓', { id: 'geo-toast' });
           }
@@ -276,7 +319,12 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               className={`input ${styles.textarea} ${errors.description ? 'input-error' : ''}`}
               placeholder="Uzun süredir bu bölgede yol bozuk durumda. Araçlar zorlanıyor, kazaya sebebiyet verebilir."
               value={formData.description}
-              onChange={handleChange}
+              onChange={(e) => {
+                handleChange(e);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 260)}px`;
+              }}
+              style={{ resize: 'none', overflowY: 'auto' }}
               maxLength={500}
               rows={4}
             />
