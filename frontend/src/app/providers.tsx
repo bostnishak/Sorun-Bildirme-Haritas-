@@ -2,16 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.error('PWA Servis Çalışanı (Service Worker) kayıt hatası:', err);
-      });
-    }
-  }, []);
 
   const [queryClient] = useState(
     () =>

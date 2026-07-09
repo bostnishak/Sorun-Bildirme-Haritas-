@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import Map, { Marker, NavigationControl, MapRef } from 'react-map-gl';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl';
+// @ts-ignore
+import MapboxLanguage from '@mapbox/mapbox-gl-language';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSupercluster from 'use-supercluster';
 import { useAppStore } from '@/store/useAppStore';
@@ -19,15 +21,24 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: '#6b7280',  // Gri
 };
 
-const TURKEY_CENTER = { latitude: 39.0, longitude: 35.2, zoom: 5.8 };
-const TURKEY_BOUNDS: [number, number, number, number] = [25.8, 35.9, 44.2, 42.1];
+const TURKEY_CENTER = {
+  latitude: 38.9637,
+  longitude: 35.2433,
+  zoom: 5.5,
+  pitch: 0, // pitch: 45,
+  bearing: 0 // bearing: -17.6
+};
+const TURKEY_BOUNDS: [[number, number], [number, number]] = [
+  [25.664, 35.808], // Güneybatı (Ege/Akdeniz açıkları)
+  [44.822, 42.104]  // Kuzeydoğu (Artvin/Kars ötesi)
+];
 
-const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number }> = {
-  İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10 },
-  Ankara: { latitude: 39.9334, longitude: 32.8597, zoom: 10 },
-  İzmir: { latitude: 38.4237, longitude: 27.1428, zoom: 10 },
-  Antalya: { latitude: 36.8969, longitude: 30.7133, zoom: 10 },
-  Bursa: { latitude: 40.1828, longitude: 29.0667, zoom: 10 },
+const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
+  İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10, pitch: 0, bearing: 0 },
+  Ankara: { latitude: 39.9334, longitude: 32.8597, zoom: 10, pitch: 0, bearing: 0 },
+  İzmir: { latitude: 38.4237, longitude: 27.1428, zoom: 10, pitch: 0, bearing: 0 },
+  Antalya: { latitude: 36.8969, longitude: 30.7133, zoom: 10, pitch: 0, bearing: 0 },
+  Bursa: { latitude: 40.1828, longitude: 29.0667, zoom: 10, pitch: 0, bearing: 0 },
 };
 
 // SVG Kategori İkon Oluşturucu
@@ -48,6 +59,47 @@ const getCategorySvg = (category: string) => {
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
+
+  // Haritanın 3D modunda olup olmadığını aklında tutan basit kilit
+  const is3DRef = useRef(false);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current.getMap(); 
+    const currentZoom = map.getZoom(); 
+
+    // 1. DURUM: KULLANICI UZAKTA (Zoom < 14.5)
+    if (currentZoom < 14.5) {
+      map.dragRotate.disable(); 
+      map.touchPitch.disable(); 
+
+      // Eğer harita hala 3D modundaysa (kilit açıksa), SADECE 1 KERE çalıştır ve düzelt
+      if (is3DRef.current) {
+        is3DRef.current = false; // Kilidi kapat ki animasyon üst üste binip sapıtmasın
+        
+        map.easeTo({ 
+          pitch: 0, 
+          bearing: 0, // <--- İŞTE SENİN İSTEDİĞİN DÜZELTME BU! Haritayı dümdüz Kuzey'e çevirir.
+          duration: 1200 
+        });
+      }
+    } 
+    // 2. DURUM: KULLANICI SOKAK SEVİYESİNDE (Zoom >= 15)
+    else if (currentZoom >= 15) {
+      map.dragRotate.enable(); 
+      map.touchPitch.enable(); 
+
+      // Eğer harita 3D modunda değilse, SADECE 1 KERE çalıştır ve eğ
+      if (!is3DRef.current) {
+        is3DRef.current = true; // Kilidi aç
+        
+        map.easeTo({ 
+          pitch: 60, 
+          duration: 1200 
+        }); 
+      }
+    }
+  }, [viewState.zoom]);
   const [mapStyle, setMapStyle] = useState<any>('mapbox://styles/mapbox/outdoors-v12');
   
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
@@ -188,6 +240,67 @@ export function MapView() {
     };
   }, [fetchClusters]);
 
+  const handleMapLoad = useCallback((e: any) => {
+    const map = e.target;
+
+    // 1. Dil Eklentisini Haritaya Ekle (Bütün dünyayı otomatik Türkçeye zorlar)
+    try {
+      const language = new MapboxLanguage({ defaultLanguage: 'tr' });
+      map.addControl(language);
+    } catch (error) {
+      console.warn("Language plugin error:", error);
+    }
+
+    // Harita ilk açıldığında Türkiye sınırlarına otomatik cuk diye oturur
+    try {
+      map.fitBounds(TURKEY_BOUNDS, {
+        padding: 20,
+        duration: 0
+      });
+    } catch (error) {
+      console.warn("fitBounds failed:", error);
+    }
+
+    // Gökyüzü (Sky) Katmanı
+    if (!map.getLayer('sky')) {
+      map.addLayer({
+        id: 'sky',
+        type: 'sky',
+        paint: {
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [0.0, 0.0],
+          'sky-atmosphere-sun-intensity': 15
+        }
+      });
+    }
+
+    // 3D Binalar
+    if (!map.getLayer('3d-buildings')) {
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "height"],
+            0, "#e2e8f0",
+            20, "#cbd5e1",
+            40, "#94a3b8",
+            60, "#64748b"
+          ],
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "min_height"],
+          "fill-extrusion-opacity": 0.8
+        }
+      });
+    }
+  }, []);
+
   const handleMoveEnd = (e: any) => {
     setViewState(e.viewState);
     if (!mapRef.current) return;
@@ -270,6 +383,7 @@ export function MapView() {
     <div className={styles.mapWrapper}>
       <Map
         ref={mapRef}
+        onLoad={handleMapLoad}
         initialViewState={viewState}
         onMove={e => setViewState(e.viewState)}
         onMoveEnd={handleMoveEnd}
@@ -277,11 +391,10 @@ export function MapView() {
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={TURKEY_BOUNDS}
-        minZoom={5.8}
+        {...({ maxBoundsViscosity: 1.0 } as any)} // Harita sınıra yapışır, kayma hissi biter
+        minZoom={5.2}            // Çok fazla uzaklaşmayı engeller
+        maxZoom={17.5}
         dragPan={true}
-        dragRotate={false}
-        pitchWithRotate={false}
-        touchPitch={false}
       >
         <NavigationControl position="bottom-right" />
 
