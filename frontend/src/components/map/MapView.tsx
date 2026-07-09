@@ -61,24 +61,18 @@ export function MapView() {
   const [viewState, setViewState] = useState(TURKEY_CENTER);
   const [initialZoom, setInitialZoom] = useState<number | null>(null);
 
+  // Zoom seviyesine göre olması gereken eğimi (pitch) hesaplayan fonksiyon
+  const calculatePitch = (zoom: number) => {
+    if (zoom < 14.5) return 0;
+    if (zoom >= 15.5) return 60;
+    return (zoom - 14.5) * 60;
+  };
+
   // Kusursuz ve iptal edilemez otomatik eğim (scroll'a bağlı)
   const onMove = useCallback((evt: any) => {
-    const nextZoom = evt.viewState.zoom;
-    let targetPitch = 0;
-
-    if (nextZoom < 14.5) {
-      targetPitch = 0;
-    } else if (nextZoom >= 15.5) {
-      targetPitch = 60;
-    } else {
-      // 14.5 ile 15.5 arasında pürüzsüz geçiş (scroll tekerleğine birebir bağlı)
-      const ratio = nextZoom - 14.5;
-      targetPitch = ratio * 60;
-    }
-
     setViewState({
       ...evt.viewState,
-      pitch: targetPitch,
+      pitch: calculatePitch(evt.viewState.zoom),
       bearing: 0 // Asla Kuzey'den şaşmasın
     });
   }, []);
@@ -289,8 +283,13 @@ export function MapView() {
     }
   }, []);
 
-  const handleMoveEnd = (e: any) => {
-    setViewState(e.viewState);
+  const handleMoveEnd = useCallback((e: any) => {
+    setViewState({
+      ...e.viewState,
+      pitch: calculatePitch(e.viewState.zoom),
+      bearing: 0
+    });
+
     if (!mapRef.current) return;
     const bounds = mapRef.current.getBounds();
     if (!bounds) return;
@@ -302,7 +301,7 @@ export function MapView() {
       maxLat: bounds.getNorth(),
       zoom: Math.floor(e.viewState.zoom),
     });
-  };
+  }, [fetchClusters]);
 
   useEffect(() => {
     if (filters.city && CITY_COORDS[filters.city]) {
