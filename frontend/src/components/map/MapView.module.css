@@ -49,7 +49,7 @@
 .mapWrapper :global(.mapboxgl-ctrl-bottom-right),
 .mapWrapper :global(.maplibregl-ctrl-bottom-right),
 .mapWrapper :global(.leaflet-bottom.leaflet-right) {
-  bottom: 165px !important;
+  bottom: 142px !important;
   right: 16px !important;
 }
 

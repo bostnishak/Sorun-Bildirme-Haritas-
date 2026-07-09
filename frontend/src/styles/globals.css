@@ -351,7 +351,7 @@ label {
 .mapboxgl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-right,
 .leaflet-bottom.leaflet-right {
-  bottom: 165px !important;
+  bottom: 142px !important;
   right: 16px !important;
   z-index: 50 !important;
 }
