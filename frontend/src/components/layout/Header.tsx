@@ -20,8 +20,8 @@ export function Header() {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="34" height="34" style={{ filter: 'drop-shadow(0 2px 5px rgba(37,99,235,0.35))' }}>
             <defs>
               <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2563eb" />
-                <stop offset="100%" stopColor="#1e3a8a" />
+                <stop offset="0%" stopColor="#4ea3ed" />
+                <stop offset="100%" stopColor="#1e73be" />
               </linearGradient>
             </defs>
             <rect width="512" height="512" rx="128" fill="url(#logoBgGrad)" />
@@ -33,7 +33,7 @@ export function Header() {
             <line x1="96" y1="256" x2="160" y2="256" stroke="#ffffff" strokeWidth="10" strokeLinecap="round" strokeOpacity="0.8" />
             <line x1="352" y1="256" x2="416" y2="256" stroke="#ffffff" strokeWidth="10" strokeLinecap="round" strokeOpacity="0.8" />
             <circle cx="256" cy="256" r="32" fill="#ffffff" />
-            <circle cx="256" cy="256" r="14" fill="#2563eb" />
+            <circle cx="256" cy="256" r="14" fill="#1e73be" />
           </svg>
         </div>
         <div className={styles.logoText}>
