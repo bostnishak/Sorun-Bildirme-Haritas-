@@ -59,47 +59,33 @@ const getCategorySvg = (category: string) => {
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
+  const [initialZoom, setInitialZoom] = useState<number | null>(null);
 
-  // Haritanın 3D modunda olup olmadığını aklında tutan basit kilit
-  const is3DRef = useRef(false);
+  // Kusursuz ve iptal edilemez otomatik eğim (scroll'a bağlı)
+  const onMove = useCallback((evt: any) => {
+    const nextZoom = evt.viewState.zoom;
+    let targetPitch = 0;
+
+    if (nextZoom < 14.5) {
+      targetPitch = 0;
+    } else if (nextZoom >= 15.5) {
+      targetPitch = 60;
+    } else {
+      // 14.5 ile 15.5 arasında pürüzsüz geçiş (scroll tekerleğine birebir bağlı)
+      const ratio = nextZoom - 14.5;
+      targetPitch = ratio * 60;
+    }
+
+    setViewState({
+      ...evt.viewState,
+      pitch: targetPitch,
+      bearing: 0 // Asla Kuzey'den şaşmasın
+    });
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const map = mapRef.current.getMap(); 
-    const currentZoom = map.getZoom(); 
-
-    // 1. DURUM: KULLANICI UZAKTA (Zoom < 14.5)
-    if (currentZoom < 14.5) {
-      map.dragRotate.disable(); 
-      map.touchPitch.disable(); 
-
-      // Eğer harita hala 3D modundaysa (kilit açıksa), SADECE 1 KERE çalıştır ve düzelt
-      if (is3DRef.current) {
-        is3DRef.current = false; // Kilidi kapat ki animasyon üst üste binip sapıtmasın
-        
-        map.easeTo({ 
-          pitch: 0, 
-          bearing: 0, // <--- İŞTE SENİN İSTEDİĞİN DÜZELTME BU! Haritayı dümdüz Kuzey'e çevirir.
-          duration: 1200 
-        });
-      }
-    } 
-    // 2. DURUM: KULLANICI SOKAK SEVİYESİNDE (Zoom >= 15)
-    else if (currentZoom >= 15) {
-      map.dragRotate.enable(); 
-      map.touchPitch.enable(); 
-
-      // Eğer harita 3D modunda değilse, SADECE 1 KERE çalıştır ve eğ
-      if (!is3DRef.current) {
-        is3DRef.current = true; // Kilidi aç
-        
-        map.easeTo({ 
-          pitch: 60, 
-          duration: 1200 
-        }); 
-      }
-    }
-  }, [viewState.zoom]);
+  }, []);
   const [mapStyle, setMapStyle] = useState<any>('mapbox://styles/mapbox/outdoors-v12');
   
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
@@ -257,6 +243,8 @@ export function MapView() {
         padding: 20,
         duration: 0
       });
+      // Tam oturduğu anki zoom seviyesini kaydet ki bu seviyede sağa sola kaydırmayı yasaklayalım
+      setInitialZoom(map.getZoom());
     } catch (error) {
       console.warn("fitBounds failed:", error);
     }
@@ -288,14 +276,14 @@ export function MapView() {
             "interpolate",
             ["linear"],
             ["get", "height"],
-            0, "#e2e8f0",
-            20, "#cbd5e1",
-            40, "#94a3b8",
-            60, "#64748b"
+            0, "#ffffff",     // Yer seviyesinde bembeyaz
+            20, "#f8fafc",    // Biraz yükseklerde hafif kırık beyaz
+            50, "#e0f2fe",    // Orta boy binalarda çok açık gökyüzü mavisi yansıması
+            100, "#bae6fd"    // Gökdelenlerde premium açık mavi cam efekti
           ],
           "fill-extrusion-height": ["get", "height"],
           "fill-extrusion-base": ["get", "min_height"],
-          "fill-extrusion-opacity": 0.8
+          "fill-extrusion-opacity": 0.95 // Daha net ve parlak görünüm
         }
       });
     }
@@ -384,8 +372,8 @@ export function MapView() {
       <Map
         ref={mapRef}
         onLoad={handleMapLoad}
-        initialViewState={viewState}
-        onMove={e => setViewState(e.viewState)}
+        {...viewState}
+        onMove={onMove}
         onMoveEnd={handleMoveEnd}
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
@@ -393,8 +381,10 @@ export function MapView() {
         maxBounds={TURKEY_BOUNDS}
         {...({ maxBoundsViscosity: 1.0 } as any)} // Harita sınıra yapışır, kayma hissi biter
         minZoom={5.2}            // Çok fazla uzaklaşmayı engeller
-        maxZoom={17.5}
-        dragPan={true}
+        dragPan={initialZoom !== null ? viewState.zoom >= initialZoom + 1.0 : false}
+        dragRotate={false}
+        pitchWithRotate={false}
+        touchZoomRotate={false}
       >
         <NavigationControl position="bottom-right" />
 
