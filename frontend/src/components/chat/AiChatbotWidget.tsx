@@ -28,6 +28,7 @@ interface Message {
   sender: 'ai' | 'user';
   text: string;
   extraction?: ExtractionData;
+  image?: string | null;
 }
 
 export function AiChatbotWidget() {
@@ -37,34 +38,52 @@ export function AiChatbotWidget() {
     {
       id: '1',
       sender: 'ai',
-      text: 'Merhaba! Ben ChaosMind AI İhbar Asistanı. Gördüğünüz sorunu tek cümlede (adres, sorun türü ve detay) yazarak saniyeler içinde ihbarınızı oluşturabilirsiniz.',
+      text: 'Merhaba! Ben ChaosMind AI İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Sadece oturum açmış kullanıcılara göster
   if (!user) return null;
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim() || loading) return;
+    if ((!input.trim() && !imagePreview) || loading) return;
 
     const userText = input.trim();
+    const imageToSend = imagePreview;
     setInput('');
+    setImagePreview(null);
 
     const newMsg: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: userText,
+      text: userText || '📷 Fotoğraf ile bildirim yapıldı.',
+      image: imageToSend,
     };
 
     setMessages(prev => [...prev, newMsg]);
     setLoading(true);
 
     try {
-      const res = await api.post('/issues/ai-assistant', { message: userText });
-      const data: ExtractionData = res.data?.data;
+      const res: any = await api.post('/issues/ai-assistant', {
+        message: userText,
+        imageBase64: imageToSend || undefined,
+      });
+      const data: ExtractionData = res.data || res;
 
       if (data.guvenlik_ihlari) {
         setMessages(prev => [
@@ -213,6 +232,19 @@ export function AiChatbotWidget() {
                     whiteSpace: 'pre-wrap',
                   }}
                 >
+                  {msg.image && (
+                    <img
+                      src={msg.image}
+                      alt="Yüklenen görsel"
+                      style={{
+                        width: '100%',
+                        maxHeight: '160px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                      }}
+                    />
+                  )}
                   {msg.text}
                 </div>
 
@@ -234,7 +266,7 @@ export function AiChatbotWidget() {
                     <div><b>Kategori:</b> {msg.extraction.kategoriTurkce || msg.extraction.kategori}</div>
                     <div><b>Başlık:</b> {msg.extraction.baslik}</div>
                     {msg.extraction.adres && (
-                      <div><b>Adres:</b> {msg.extraction.adres.sokak} No:{msg.extraction.adres.kapiNo}, {msg.extraction.adres.ilce}/{msg.extraction.adres.il}</div>
+                      <div><b>Adres:</b> {msg.extraction.adres.tamAdres || `${msg.extraction.adres.sokak} No:${msg.extraction.adres.kapiNo}, ${msg.extraction.adres.ilce}/${msg.extraction.adres.il}`}</div>
                     )}
                     <div><b>Öncelik:</b> {msg.extraction.oncelik}</div>
                   </div>
@@ -253,10 +285,19 @@ export function AiChatbotWidget() {
                   fontSize: '0.85rem',
                 }}
               >
-                🤖 Yapay zeka metninizi ve adresleri analiz ediyor...
+                🤖 Yapay zeka metninizi ve fotoğrafınızı analiz ediyor...
               </div>
             )}
           </div>
+
+          {/* Görsel Önizleme */}
+          {imagePreview && (
+            <div style={{ padding: '6px 16px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <img src={imagePreview} alt="Preview" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} />
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', flex: 1 }}>Fotoğraf eklendi</span>
+              <button type="button" onClick={() => setImagePreview(null)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.8rem' }}>Kaldır</button>
+            </div>
+          )}
 
           {/* Form */}
           <form
@@ -267,13 +308,32 @@ export function AiChatbotWidget() {
               borderTop: '1px solid rgba(255, 255, 255, 0.08)',
               display: 'flex',
               gap: '8px',
+              alignItems: 'center',
             }}
           >
+            <label
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '8px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                color: '#94a3b8',
+              }}
+              title="Fotoğraf Ekle"
+            >
+              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </label>
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Örn: Kadıköy Moda Cad No:15 rögar çökük..."
+              placeholder="Mesajınızı veya sorunu yazın..."
               style={{
                 flex: 1,
                 padding: '10px 14px',
@@ -287,15 +347,15 @@ export function AiChatbotWidget() {
             />
             <button
               type="submit"
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && !imagePreview)}
               style={{
                 backgroundColor: '#2563eb',
                 color: 'white',
                 border: 'none',
-                padding: '0 16px',
+                padding: '10px 16px',
                 borderRadius: '10px',
                 fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: (loading || (!input.trim() && !imagePreview)) ? 'not-allowed' : 'pointer',
               }}
             >
               Gönder

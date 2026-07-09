@@ -81,6 +81,22 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
       data.latitude,
       data.longitude,
     );
+
+    // Bilgisayarlı Görü ile Fotoğrafın Kategori ve Açıklamayla Uyumunu Anlık Denetle
+    const base64Img = `data:${req.file.mimetype || 'image/jpeg'};base64,${req.file.buffer.toString('base64')}`;
+    const visionProof = await verifyIssuePhotoProof(
+      base64Img,
+      data.category,
+      data.title,
+      data.description,
+    );
+    if (!visionProof.valid || (visionProof.confidenceScore && visionProof.confidenceScore < 0.65)) {
+      throw new BadRequestError(
+        visionProof.userFriendlyMessage ||
+        visionProof.reason ||
+        'Yüklediğiniz fotoğraf seçilen sorun türüyle eşleşmiyor! Lütfen geçerli bir kanıt fotoğrafı yükleyin.'
+      );
+    }
   }
 
   // 5. IP adresi

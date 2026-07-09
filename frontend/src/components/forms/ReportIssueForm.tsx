@@ -69,15 +69,45 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       return;
     }
     setLocationLoading(true);
+    toast.loading('Konum ve adres detayları (il/ilçe/kapı no) alınıyor...', { id: 'geo-toast' });
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocationLoading(false);
-        toast.success('Konumunuz alındı ✓');
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        try {
+          const { api } = await import('@/lib/api');
+          const geoRes: any = await api.get('/issues/geocode', { params: { lat, lng } });
+          const geoData = geoRes?.data || geoRes;
+          if (geoData) {
+            const newCity = geoData.city || formData.city || 'Ankara';
+            const newDistrict = geoData.district || formData.district || 'Çankaya';
+            const detailedAddr = geoData.fullAddress || [
+              geoData.street,
+              geoData.doorNumber ? `No: ${geoData.doorNumber}` : '',
+              geoData.neighborhood,
+              `${newDistrict}/${newCity}`
+            ].filter(Boolean).join(', ');
+
+            setFormData(prev => ({
+              ...prev,
+              city: newCity,
+              district: newDistrict,
+              address: detailedAddr,
+            }));
+            toast.success(`Adres alındı: ${newCity} / ${newDistrict} - ${detailedAddr}`, { id: 'geo-toast' });
+          } else {
+            toast.success('Konum koordinatları alındı ✓', { id: 'geo-toast' });
+          }
+        } catch (err) {
+          toast.success('Konum koordinatları alındı ✓', { id: 'geo-toast' });
+        } finally {
+          setLocationLoading(false);
+        }
       },
       () => {
         setLocationLoading(false);
-        toast.error('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
+        toast.error('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.', { id: 'geo-toast' });
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );

@@ -3,7 +3,6 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  output: "standalone",
   images: {
     remotePatterns: [
       {
@@ -16,6 +15,15 @@ const nextConfig = {
         hostname: 'chaosmap.tr',
       },
     ],
+  },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || 'http://chaosmap-api:3001';
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 
