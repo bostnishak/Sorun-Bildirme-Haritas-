@@ -51,8 +51,8 @@
   box-shadow: var(--shadow-md) !important;
   border-radius: var(--radius-md) !important;
   overflow: hidden;
-  margin-right: 16px !important;
-  margin-bottom: 16px !important;
+  margin-right: 24px !important;
+  margin-bottom: 160px !important;
 }
 
 .mapWrapper :global(.leaflet-control-zoom a) {
