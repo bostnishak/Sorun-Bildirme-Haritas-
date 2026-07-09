@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
+import { Client as MinioClient } from 'minio';
+import crypto from 'crypto';
 import { prisma } from '../../config/database';
 import { verifyWithNVI, hashTCKimlik } from '../../services/nvi.service';
 import {
@@ -16,6 +18,17 @@ import {
   NotFoundError,
 } from '../../utils/errors';
 import { logger } from '../../utils/logger';
+import { randomUUID } from 'crypto';
+import { transporter } from '../../config/nodemailer';
+
+const minio = new MinioClient({
+  endPoint: env.MINIO_ENDPOINT,
+  port: env.MINIO_PORT,
+  useSSL: env.MINIO_USE_SSL,
+  accessKey: env.MINIO_ACCESS_KEY,
+  secretKey: env.MINIO_SECRET_KEY,
+});
+
 
 interface RegisterDto {
   email: string;
@@ -169,6 +182,8 @@ export const authService = {
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
+        avatarUrl: true,
         role: true,
         isVerified: true,
         institution: {
@@ -193,6 +208,162 @@ export const authService = {
     });
 
     logger.info('Kullanıcı hesabı ve bağlı tüm veriler kalıcı olarak silindi (KVKK).', { userId });
+  },
+  async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string }) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName && { firstName: dto.firstName }),
+        ...(dto.lastName && { lastName: dto.lastName }),
+        phone: dto.phone ?? null,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        role: true,
+        isVerified: true,
+      },
+    });
+    logger.info('Kullanıcı profili güncellendi', { userId });
+    return user;
+  },
+
+  async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundError('Kullanıcı');
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isValid) throw new UnauthorizedError('Mevcut şifre hatalı.');
+
+    const newHash = await bcrypt.hash(dto.newPassword, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
+
+    // Tüm refresh token'ları iptal et (güvenlik)
+    await prisma.refreshToken.deleteMany({ where: { userId } });
+
+    logger.info('Kullanıcı şifresi değiştirildi', { userId });
+  },
+
+  async uploadAvatar(userId: string, buffer: Buffer, mimeType: string) {
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const { randomUUID } = crypto;
+    const key = `avatars/${userId}/${randomUUID()}.${ext}`;
+    const bucket = env.MINIO_BUCKET;
+    const { minio } = await import('../../services/storage.service');
+
+    await minio.putObject(bucket, key, buffer, buffer.length, { 'Content-Type': mimeType });
+
+    // Eski avatarı sil
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (existing?.avatarKey) {
+      try { await minio.removeObject(bucket, existing.avatarKey); } catch { /* yoksay */ }
+    }
+
+    // MinIO public URL (minio:9000 internal → localhost:9000 external)
+    const avatarUrl = `http://localhost:9000/${bucket}/${key}`;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl, avatarKey: key },
+    });
+
+    logger.info('Avatar yüklendi', { userId, key });
+    return { avatarUrl };
+  },
+
+  async forgotPassword(email: string) {
+    // Kullanıcı bulunamasa bile hata verme — enumeration saldırısına karşı güvenlik
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      logger.warn('Forgot password: e-posta bulunamadı', { email });
+      return; // sessizce
+    }
+
+    // Eski token'ları sil
+    await prisma.$executeRaw`
+      DELETE FROM password_reset_tokens WHERE user_id = ${user.id}::uuid
+    `;
+
+    // Yeni token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 saat
+
+    await prisma.$executeRaw`
+      INSERT INTO password_reset_tokens (id, token, user_id, expires_at, created_at)
+      VALUES (uuid_generate_v4(), ${token}, ${user.id}::uuid, ${expiresAt}, now())
+    `;
+
+    const resetUrl = `${env.APP_URL}/reset-password?token=${token}`;
+    const { transporter } = await import('../../services/email.service');
+
+    // E-posta gönder
+    try {
+      await transporter.sendMail({
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: 'Sorun Haritası — Şifre Sıfırlama',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#f8fafc;border-radius:12px">
+            <h2 style="color:#1e293b;margin-bottom:8px"> 🔑 Şifre Sıfırlama</h2>
+            <p style="color:#475569;line-height:1.6">Merhaba <strong>${user.firstName || email}</strong>,</p>
+            <p style="color:#475569;line-height:1.6">Şifrenizi sıfırlamak için aşağıdaki butona tıklayın. Bu bağlantı <strong>1 saat</strong> boyunca geçerlidir.</p>
+            <div style="text-align:center;margin:32px 0">
+              <a href="${resetUrl}" style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block">
+                Şifre Sıfırla
+              </a>
+            </div>
+            <p style="color:#94a3b8;font-size:13px">Bu isteği siz yapmadıysanız bu e-postayı görmezden gelin.</p>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+            <p style="color:#94a3b8;font-size:12px">Bağlantı çalışmıyorsa kopyala: ${resetUrl}</p>
+          </div>
+        `,
+      });
+      logger.info('Şifre sıfırlama e-postası gönderildi', { email });
+    } catch (err) {
+      // E-posta gönderimi başarısız olursa log'a token yaz (dev ortamı için)
+      logger.warn('Şifre sıfırlama e-postası gönderilemedi, token loglanıyor', { email, resetUrl });
+    }
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    // Token'i DB'de bul
+    const rows: any[] = await prisma.$queryRaw`
+      SELECT prt.id, prt.user_id, prt.expires_at
+      FROM password_reset_tokens prt
+      WHERE prt.token = ${token}
+      LIMIT 1
+    `;
+
+    if (!rows.length) {
+      throw new BadRequestError('Geçersiz veya süresi dolmuş sıfırlama bağlantısı.');
+    }
+
+    const row = rows[0];
+    if (new Date(row.expires_at) < new Date()) {
+      throw new BadRequestError('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: row.user_id },
+      data: { passwordHash },
+    });
+
+    // Token'i ve tüm refresh token'ları iptal et
+    await prisma.$executeRaw`DELETE FROM password_reset_tokens WHERE id = ${row.id}::uuid`;
+    await prisma.refreshToken.deleteMany({ where: { userId: row.user_id } });
+
+    logger.info('Şifre başarıyla sıfırlandı', { userId: row.user_id });
   },
 
   async createTokenPair(userId: string, role: string, institutionId?: string) {

@@ -67,6 +67,11 @@ model User {
   twoFactorSecret    String? @map("two_factor_secret") @db.VarChar(100)
   isTwoFactorEnabled Boolean @default(false) @map("is_two_factor_enabled")
 
+  // Profil
+  phone     String? @map("phone") @db.VarChar(20)
+  avatarUrl String? @map("avatar_url") @db.VarChar(500)
+  avatarKey String? @map("avatar_key") @db.VarChar(500) // MinIO object key
+
   // Refresh tokens
   refreshTokens RefreshToken[]
 

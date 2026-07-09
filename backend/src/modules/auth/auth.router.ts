@@ -29,4 +29,24 @@ router.post('/2fa/generate', isAuthenticated, authController.generate2FA);
 // POST /api/v1/auth/2fa/verify — 2FA Doğrulama (Admin)
 router.post('/2fa/verify', isAuthenticated, authController.verify2FA);
 
+// PATCH /api/v1/auth/me — Profil bilgilerini güncelle
+router.patch('/me', isAuthenticated, authController.updateProfile);
+
+// PATCH /api/v1/auth/me/password — Şifre değiştir
+router.patch('/me/password', isAuthenticated, authController.changePassword);
+
+// POST /api/v1/auth/me/avatar — Profil fotoğrafı yükle
+router.post(
+  '/me/avatar',
+  isAuthenticated,
+  authController.avatarUpload.single('avatar'),
+  authController.uploadAvatar,
+);
+
+// POST /api/v1/auth/forgot-password — Şifre sıfırlama e-postası gönder
+router.post('/forgot-password', authRateLimit, authController.forgotPassword);
+
+// POST /api/v1/auth/reset-password — Yeni şifre belirle
+router.post('/reset-password', authController.resetPassword);
+
 export { router as authRouter };
