@@ -45,14 +45,18 @@
   to { transform: rotate(360deg); }
 }
 
-/* Leaflet genel iyileştirmeler */
+/* Leaflet sağ alt kontrolleri yukarı taşı */
+.mapWrapper :global(.leaflet-bottom.leaflet-right) {
+  bottom: 165px !important;
+  right: 16px !important;
+}
+
 .mapWrapper :global(.leaflet-control-zoom) {
   border: none !important;
   box-shadow: var(--shadow-md) !important;
   border-radius: var(--radius-md) !important;
   overflow: hidden;
-  margin-right: 24px !important;
-  margin-bottom: 160px !important;
+  margin: 0 !important;
 }
 
 .mapWrapper :global(.leaflet-control-zoom a) {

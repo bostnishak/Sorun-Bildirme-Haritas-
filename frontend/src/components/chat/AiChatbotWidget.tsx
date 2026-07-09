@@ -146,7 +146,7 @@ export function AiChatbotWidget() {
   };
 
   return (
-    <div style={{ position: 'fixed', bottom: '92px', right: '24px', zIndex: 9999 }}>
+    <div style={{ position: 'fixed', bottom: '86px', right: '16px', zIndex: 9999 }}>
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
