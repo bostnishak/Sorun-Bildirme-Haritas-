@@ -151,3 +151,37 @@ export async function uploadAvatar(req: Request, res: Response): Promise<void> {
   );
   res.status(200).json({ success: true, message: 'Profil fotoğrafı güncellendi.', data: result });
 }
+
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  const schema = z.object({ email: z.string().email('Geçerli bir e-posta girin.') });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError(parsed.error.errors.map((e) => e.message).join(', '));
+  }
+
+  await authService.forgotPassword(parsed.data.email);
+
+  // Güvenlik: e-posta bulunsun ya da bulunmasın aynı mesajı döndür
+  res.status(200).json({
+    success: true,
+    message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+  });
+}
+
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  const schema = z.object({
+    token: z.string().min(1, 'Token gerekli.'),
+    newPassword: z
+      .string()
+      .min(8, 'Şifre en az 8 karakter olmalı.')
+      .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
+      .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError(parsed.error.errors.map((e) => e.message).join(', '));
+  }
+
+  await authService.resetPassword(parsed.data.token, parsed.data.newPassword);
+  res.status(200).json({ success: true, message: 'Şifreniz başarıyla sıfırlandı.' });
+}

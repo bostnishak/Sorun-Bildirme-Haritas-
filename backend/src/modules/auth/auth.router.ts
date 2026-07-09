@@ -34,4 +34,10 @@ router.post(
   authController.uploadAvatar,
 );
 
+// POST /api/v1/auth/forgot-password — Şifre sıfırlama e-postası gönder
+router.post('/forgot-password', authRateLimit, authController.forgotPassword);
+
+// POST /api/v1/auth/reset-password — Yeni şifre belirle
+router.post('/reset-password', authController.resetPassword);
+
 export { router as authRouter };
