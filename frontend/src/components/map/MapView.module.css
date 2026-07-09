@@ -45,7 +45,9 @@
   to { transform: rotate(360deg); }
 }
 
-/* Leaflet sağ alt kontrolleri yukarı taşı */
+/* Harita sağ alt zoom kontrollerini yukarı taşı (Mapbox / MapLibre / Leaflet) */
+.mapWrapper :global(.mapboxgl-ctrl-bottom-right),
+.mapWrapper :global(.maplibregl-ctrl-bottom-right),
 .mapWrapper :global(.leaflet-bottom.leaflet-right) {
   bottom: 165px !important;
   right: 16px !important;

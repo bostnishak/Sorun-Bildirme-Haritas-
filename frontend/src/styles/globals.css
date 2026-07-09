@@ -346,3 +346,12 @@ label {
 .maplibregl-ctrl-attrib {
   display: none !important;
 }
+
+/* Harita Zoom Kontrollerini Yukarı Kaldır (AI İhbar Asistanı ile Çakışmaması İçin) */
+.mapboxgl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-right,
+.leaflet-bottom.leaflet-right {
+  bottom: 165px !important;
+  right: 16px !important;
+  z-index: 50 !important;
+}
