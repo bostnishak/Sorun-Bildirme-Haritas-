@@ -215,10 +215,10 @@ export function AiChatbotWidget() {
               </div>
               <div>
                 <h4 style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', fontWeight: 600 }}>
-                  Tek İstemli AI Asistan
+                  Yapay Zeka İhbar Asistanı
                 </h4>
                 <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500 }}>
-                  Aktif & Moderasyon Korumalı
+                  Akıllı Konuşma & Doğrulama Destekli
                 </span>
               </div>
             </div>
