@@ -34,7 +34,7 @@ export default function LoginPage() {
       setUser(user);
 
       toast.success(`Hoş geldiniz, ${user.firstName || user.email || 'Kullanıcı'}! 👋`);
-      router.push('/');
+      router.push('/profile');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Giriş başarısız. E-posta veya şifre hatalı.');
     } finally {
