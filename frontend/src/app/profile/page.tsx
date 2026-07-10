@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { useAppStore } from '@/store/useAppStore';
 import { profileApi, issuesApi } from '@/lib/api';
-import Header from '@/components/layout/Header';
+import { Header } from '@/components/layout/Header';
 import { ReportModalClient } from '../client-components';
 import styles from './Profile.module.css';
 
