@@ -112,16 +112,10 @@ export function Header() {
                 </button>
           </>
         ) : (
-          <>
-            <Link href="/login" className="btn btn-ghost" id="btn-login">
-              <IconLogin size={15} />
-              Giriş Yap
-            </Link>
-            <Link href="/register" className="btn btn-primary" id="btn-register">
-              <IconUserPlus size={15} />
-              Kayıt Ol
-            </Link>
-          </>
+          <Link href="/login" className="btn btn-primary" id="btn-login">
+            <IconLogin size={15} />
+            Giriş Yap
+          </Link>
         )}
       </div>
     </header>
