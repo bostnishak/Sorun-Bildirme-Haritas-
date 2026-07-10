@@ -128,12 +128,23 @@ const STATIC_FALLBACK_MARKERS = [
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
 
-    // 1. Dil Eklentisi
+    // 1. Dil Eklentisi (Manuel olarak tüm harita katmanlarındaki isimleri Türkçe'ye çeviriyoruz)
     try {
-      const language = new MapboxLanguage({ defaultLanguage: 'tr' });
-      map.addControl(language);
+      const currentStyle = map.getStyle();
+      if (currentStyle && currentStyle.layers) {
+        currentStyle.layers.forEach((layer: any) => {
+          if (layer.type === 'symbol' && layer.id.includes('label')) {
+            if (layer.layout && layer.layout['text-field']) {
+              const currentTextField = JSON.stringify(layer.layout['text-field']);
+              if (!currentTextField.includes('name_tr')) {
+                map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name_tr'], ['get', 'name_en'], ['get', 'name']]);
+              }
+            }
+          }
+        });
+      }
     } catch (error) {
-      console.warn("Language plugin error:", error);
+      console.warn("Language override error:", error);
     }
 
     // 2. Türkiye sınırlarına fit
