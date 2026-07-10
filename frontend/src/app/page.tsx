@@ -171,115 +171,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── B2G SAAS ABONELİK VE LİSANSLAMA MODELİ ────────────────────────── */}
-      <section id="pricing-preview" className={`${styles.section} ${styles.sectionAlt}`}>
-        <div className={styles.container}>
-          <div className={styles.sectionBadge}>
-            <IconBuilding size={14} />
-            Kurumsal & Yatırımcı Modeli
-          </div>
-          <h2 className={styles.sectionTitle}>SaaS Abonelik & Lisans Paketleri</h2>
-          <p className={styles.sectionDesc}>
-            Vatandaşlar için her zaman ücretsiz olan platform, belediyeler ve kamu kurumları için
-            yüksek verimli B2G (Belediyeden Devlete) abonelik modeliyle sürdürülebilir gelir yaratır.
-          </p>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '20px',
-              marginTop: '32px',
-              marginBottom: '32px',
-            }}
-          >
-            {[
-              {
-                name: 'Ücretsiz Vatandaş',
-                price: '₺0',
-                period: 'Süresiz',
-                desc: 'Tüm vatandaşlar için sınırsız bildirim ve harita takibi',
-                color: '#2563eb',
-              },
-              {
-                name: 'Belediye Starter',
-                price: '₺15.000',
-                period: '/ ay',
-                desc: 'İlçe belediyeleri için 5.000 sorun/ay, portal erişimi & e-posta/SMS',
-                color: '#16a34a',
-              },
-              {
-                name: 'Belediye Pro',
-                price: '₺45.000',
-                period: '/ ay',
-                featured: true,
-                desc: '153 Beyaz Masa Webhook, AI LLM Guard, SLA ve analitik raporlama',
-                color: '#2563eb',
-              },
-              {
-                name: 'Bakanlık Lisansı',
-                price: 'Özel Fiyat',
-                period: 'Kurumsal',
-                desc: 'White-Label özel etiket, dedicated veritabanı ve sınırsız kapasite',
-                color: '#7c3aed',
-              },
-            ].map((p, i) => (
-              <div
-                key={i}
-                style={{
-                  background: p.featured ? '#eff6ff' : '#ffffff',
-                  border: p.featured ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                }}
-              >
-                {p.featured && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '-11px',
-                      right: '16px',
-                      background: '#2563eb',
-                      color: '#fff',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 10px',
-                      borderRadius: '999px',
-                    }}
-                  >
-                    EN POPÜLER
-                  </span>
-                )}
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
-                  {p.name}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '26px', fontWeight: 800, color: p.color }}>{p.price}</span>
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>{p.period}</span>
-                </div>
-                <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: 0 }}>
-                  {p.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <Link
-              href="/pricing"
-              className="btn btn-primary"
-              style={{ display: 'inline-flex', padding: '12px 28px', fontSize: '15px', borderRadius: '12px' }}
-            >
-              Tüm Kurumsal Abonelik & Yatırımcı Özelliklerini İncele
-              <IconArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ── BASIN / İLETİŞİM ─────────────────────────────────────────────── */}
       <section id="iletisim" className={styles.section}>
         <div className={styles.container}>
@@ -390,7 +281,6 @@ export default function HomePage() {
               <ul className={styles.footerLinks}>
                 <li><a href="#harita">Harita Görünümü</a></li>
                 <li><Link href="/my-issues">Bildirimlerim</Link></li>
-                <li><Link href="/pricing">Kurumsal Paketler</Link></li>
                 <li><Link href="/register">Kayıt Ol</Link></li>
                 <li><Link href="/login">Giriş Yap</Link></li>
                 <li><Link href="/portal">Kurum Portalı</Link></li>
@@ -401,12 +291,9 @@ export default function HomePage() {
             <div className={styles.footerCol}>
               <h4 className={styles.footerColTitle}>Kurumsal</h4>
               <ul className={styles.footerLinks}>
-                <li><a href="#pricing-preview">Hakkımızda</a></li>
-                <li><Link href="/pricing">SaaS Fiyatlandırma</Link></li>
                 <li><a href="#iletisim">İletişim</a></li>
                 <li><a href="#iletisim">Basın</a></li>
                 <li><a href="#nasil-calisir">Nasıl Çalışır?</a></li>
-                <li><Link href="/pricing">Yatırımcı Modeli</Link></li>
               </ul>
             </div>
 

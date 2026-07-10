@@ -177,10 +177,6 @@
     display: none;
   }
 
-  /* Hide "Kurumsal Paketler" link which is the first anchor in actions */
-  .actions > a[href="/pricing"] {
-    display: none;
-  }
 
   #btn-report-issue span {
     display: none;

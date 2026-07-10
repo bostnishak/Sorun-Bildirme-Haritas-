@@ -63,13 +63,6 @@ export function Header() {
 
       {/* Actions */}
       <div className={styles.actions}>
-        <Link
-          href="/pricing"
-          className="btn btn-ghost btn-sm"
-          style={{ fontWeight: 600, color: '#2563eb' }}
-        >
-          Kurumsal Paketler
-        </Link>
 
         {isAuthenticated ? (
           <>
