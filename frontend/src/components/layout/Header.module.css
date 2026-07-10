@@ -192,13 +192,17 @@
     padding: 8px 10px;
   }
 
-  #btn-login, #btn-register {
+  #btn-login {
     padding: 6px 10px;
     font-size: 12px;
   }
 
-  #btn-login svg, #btn-register svg {
+  #btn-login svg {
     width: 14px;
     height: 14px;
+  }
+
+  #btn-register {
+    display: none;
   }
 }
