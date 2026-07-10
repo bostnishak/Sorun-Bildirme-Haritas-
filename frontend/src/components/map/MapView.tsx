@@ -134,11 +134,10 @@ const STATIC_FALLBACK_MARKERS = [
       if (currentStyle && currentStyle.layers) {
         currentStyle.layers.forEach((layer: any) => {
           if (layer.type === 'symbol' && layer.id.includes('label')) {
-            // Sadece text-field olanları ve zaten name_tr eklenmemiş olanları değiştir
             if (layer.layout && layer.layout['text-field']) {
               const currentTextField = JSON.stringify(layer.layout['text-field']);
               if (!currentTextField.includes('name_tr')) {
-                map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name_tr'], ['get', 'name']]);
+                map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name_tr'], ['get', 'name_en'], ['get', 'name']]);
               }
             }
           }
