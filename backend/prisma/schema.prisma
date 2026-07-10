@@ -3,7 +3,7 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch"]
 }
 
 datasource db {
@@ -72,14 +72,16 @@ model User {
   avatarUrl String? @map("avatar_url") @db.VarChar(500)
   avatarKey String? @map("avatar_key") @db.VarChar(500) // MinIO object key
 
-  // Refresh tokens
-  refreshTokens RefreshToken[]
+  // Refresh tokens ve şifre sıfırlama
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   // İlişkiler
   issues    Issue[]
   upvotes   IssueUpvote[]
   comments  IssueComment[]
   auditLogs AuditLog[]
+  statusChanges IssueStatusHistory[] @relation("StatusChanges")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -190,7 +192,8 @@ model IssueStatusHistory {
   issue      Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
   fromStatus IssueStatus @map("from_status")
   toStatus   IssueStatus @map("to_status")
-  changedBy  String      @map("changed_by") @db.Uuid
+  changedBy  String?     @map("changed_by") @db.Uuid
+  changedByUser User?    @relation("StatusChanges", fields: [changedBy], references: [id], onDelete: SetNull)
   note       String?     @db.Text
   createdAt  DateTime    @default(now()) @map("created_at")
 
@@ -270,4 +273,17 @@ model SystemPrompt {
   @@unique([key, version]) // Her key'in aynı versiyonundan sadece 1 tane olabilir
   @@index([key, isActive])
   @@map("system_prompts")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token     String   @unique @db.VarChar(64)
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

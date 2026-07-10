@@ -1,4 +1,5 @@
 import axios from 'axios';
+import pRetry from 'p-retry';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
@@ -11,7 +12,7 @@ export interface StructuredAddress {
   fullAddress: string;
   latitude: number;
   longitude: number;
-  provider: 'MAPBOX' | 'GOOGLE' | 'NOMINATIM' | 'FALLBACK';
+  provider: 'MAPBOX' | 'GOOGLE' | 'NOMINATIM' | 'PHOTON' | 'FALLBACK';
 }
 
 /**
@@ -56,7 +57,10 @@ async function geocodeWithMapbox(lat: number, lng: number): Promise<StructuredAd
 
   try {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${env.MAPBOX_TOKEN}&language=tr&types=address,poi,neighborhood,locality,place`;
-    const response = await axios.get(url, { timeout: 4000 });
+    
+    const runRequest = async () => axios.get(url, { timeout: 4000 });
+    const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
+    
     const features = response.data?.features;
 
     if (!features || features.length === 0) return null;
@@ -84,11 +88,11 @@ async function geocodeWithMapbox(lat: number, lng: number): Promise<StructuredAd
     const parsed = parseTurkishAddressComponents(fullAddress, { neighborhood, street, doorNumber });
 
     return {
-      city: city || 'İstanbul',
-      district: district || 'Merkez',
-      neighborhood: parsed.neighborhood || neighborhood || 'Merkez Mah.',
-      street: parsed.street || street || 'Ana Cadde',
-      doorNumber: parsed.doorNumber || doorNumber || 'No: 1',
+      city: city || 'Bilinmiyor',
+      district: district || 'Bilinmiyor',
+      neighborhood: parsed.neighborhood || neighborhood || '',
+      street: parsed.street || street || '',
+      doorNumber: parsed.doorNumber || doorNumber || '',
       fullAddress,
       latitude: lat,
       longitude: lng,
@@ -109,7 +113,10 @@ async function geocodeWithGoogle(lat: number, lng: number): Promise<StructuredAd
 
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${googleKey}&language=tr`;
-    const response = await axios.get(url, { timeout: 4000 });
+    
+    const runRequest = async () => axios.get(url, { timeout: 4000 });
+    const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
+    
     const results = response.data?.results;
 
     if (!results || results.length === 0) return null;
@@ -137,12 +144,12 @@ async function geocodeWithGoogle(lat: number, lng: number): Promise<StructuredAd
     }
 
     return {
-      city: city || 'İstanbul',
-      district: district || 'Merkez',
-      neighborhood: neighborhood || 'Merkez Mah.',
-      street: street || 'Ana Cadde',
-      doorNumber: doorNumber || '1',
-      fullAddress: bestResult.formatted_address || `${street} No:${doorNumber}, ${neighborhood}, ${district}/${city}`,
+      city: city || 'Bilinmiyor',
+      district: district || 'Bilinmiyor',
+      neighborhood: neighborhood || '',
+      street: street || '',
+      doorNumber: doorNumber || '',
+      fullAddress: bestResult.formatted_address || [street, doorNumber ? `No:${doorNumber}` : '', neighborhood, district, city].filter(Boolean).join(', '),
       latitude: lat,
       longitude: lng,
       provider: 'GOOGLE',
@@ -159,7 +166,10 @@ async function geocodeWithGoogle(lat: number, lng: number): Promise<StructuredAd
 async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAddress | null> {
   try {
     const url = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=tr`;
-    const response = await axios.get(url, { timeout: 4000 });
+    
+    const runRequest = async () => axios.get(url, { timeout: 4000 });
+    const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
+    
     const feat = response.data?.features?.[0]?.properties;
     if (!feat) return null;
 
@@ -181,15 +191,15 @@ async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAd
     ].filter(Boolean).join(', ');
 
     return {
-      city,
-      district,
+      city: city || 'Bilinmiyor',
+      district: district || 'Bilinmiyor',
       neighborhood,
-      street: street || 'Gündoğumu Sokak',
-      doorNumber: doorNumber || '8/1',
+      street: street || '',
+      doorNumber: doorNumber || '',
       fullAddress,
       latitude: lat,
       longitude: lng,
-      provider: 'NOMINATIM',
+      provider: 'PHOTON',
     };
   } catch (error) {
     return null;
@@ -202,10 +212,12 @@ async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAd
 async function geocodeWithNominatim(lat: number, lng: number): Promise<StructuredAddress | null> {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=tr&addressdetails=1&zoom=18`;
-    const response = await axios.get(url, {
+    
+    const runRequest = async () => axios.get(url, {
       timeout: 4500,
       headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
     });
+    const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
 
     const addr = response.data?.address;
     const displayName = response.data?.display_name || '';
@@ -222,18 +234,18 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
     if (!doorNumber && parsed.doorNumber !== 'Belirtilmemiş') doorNumber = parsed.doorNumber;
 
     const fullAddress = [
-      street || 'Gündoğumu Sokak',
-      doorNumber ? `No: ${doorNumber}` : 'No: 8/1',
-      neighborhood || 'Merkez Mah.',
+      street || '',
+      doorNumber ? `No: ${doorNumber}` : '',
+      neighborhood || '',
       district && city ? `${district}/${city}` : city,
     ].filter(Boolean).join(', ');
 
     return {
-      city,
-      district,
+      city: city || 'Bilinmiyor',
+      district: district || 'Bilinmiyor',
       neighborhood,
-      street: street || 'Gündoğumu Sokak',
-      doorNumber: doorNumber || '8/1',
+      street: street || '',
+      doorNumber: doorNumber || '',
       fullAddress,
       latitude: lat,
       longitude: lng,
@@ -266,13 +278,14 @@ export async function reverseGeocodeHighPrecision(lat: number, lng: number): Pro
   if (nominatimRes) return nominatimRes;
 
   // 5. Son çare koordinat tabanlı adres
+  logger.warn('Tüm geocoding servisleri başarısız oldu, tam fallback uygulanıyor.', { lat, lng });
   return {
-    city: 'İstanbul',
-    district: 'Merkez',
+    city: 'Bilinmiyor',
+    district: 'Bilinmiyor',
     neighborhood: '',
     street: '',
     doorNumber: '',
-    fullAddress: `Koordinat Konumu (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+    fullAddress: `GPS Konumu (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
     latitude: lat,
     longitude: lng,
     provider: 'FALLBACK',
@@ -285,10 +298,12 @@ export async function reverseGeocodeHighPrecision(lat: number, lng: number): Pro
 export async function searchAddressForward(query: string): Promise<{ lat: number; lng: number; fullAddress: string; city: string; district: string } | null> {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&countrycodes=tr&limit=1&addressdetails=1`;
-    const response = await axios.get(url, {
+    
+    const runRequest = async () => axios.get(url, {
       timeout: 4500,
       headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
     });
+    const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
 
     if (response.data && response.data.length > 0) {
       const first = response.data[0];

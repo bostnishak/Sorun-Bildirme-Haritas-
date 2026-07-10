@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { adminService } from './admin.service';
+import { slaService } from './sla.service';
 import { z } from 'zod';
 import { BadRequestError } from '../../utils/errors';
 
@@ -113,4 +114,38 @@ export async function getAiLogs(req: Request, res: Response): Promise<void> {
 
   const result = await adminService.getAiLogs(parsed.data);
   res.status(200).json({ success: true, ...result });
+}
+
+/**
+ * GET /api/v1/admin/sla/report
+ */
+export async function getSLAReport(req: Request, res: Response): Promise<void> {
+  if (!req.user.institutionId) {
+    throw new BadRequestError('SLA raporu için kuruma bağlı olmalısınız.');
+  }
+  const report = await slaService.getSLAReport(req.user.institutionId);
+  res.status(200).json({ success: true, data: report });
+}
+
+/**
+ * GET /api/v1/admin/sla/breaches
+ */
+export async function getSLABreaches(req: Request, res: Response): Promise<void> {
+  if (!req.user.institutionId) {
+    throw new BadRequestError('SLA ihlalleri için kuruma bağlı olmalısınız.');
+  }
+  const breaches = await slaService.getSLABreaches(req.user.institutionId);
+  res.status(200).json({ success: true, data: breaches });
+}
+
+/**
+ * GET /api/v1/admin/sla/trend
+ */
+export async function getResolutionTrend(req: Request, res: Response): Promise<void> {
+  if (!req.user.institutionId) {
+    throw new BadRequestError('Trend raporu için kuruma bağlı olmalısınız.');
+  }
+  const days = req.query.days ? parseInt(req.query.days as string, 10) : 7;
+  const trend = await slaService.getResolutionTrend(req.user.institutionId, days);
+  res.status(200).json({ success: true, data: trend });
 }

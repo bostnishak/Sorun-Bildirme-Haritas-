@@ -14,7 +14,16 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
   firstName: z.string().min(2).max(100),
   lastName: z.string().min(2).max(100),
+  // TC kimlik opsiyonel — verilirse NVİ doğrulaması yapılır
+  tcKimlik: z.string().length(11, 'T.C. Kimlik 11 haneli olmalıdır.').regex(/^\d+$/).optional(),
+  birthYear: z.number().int().min(1900).max(new Date().getFullYear() - 18).optional(),
+});
+
+// TC kimlik doğrulama schema'su (sonradan kimlik doğrulama için)
+const verifyIdentitySchema = z.object({
   tcKimlik: z.string().length(11, 'T.C. Kimlik 11 haneli olmalıdır.').regex(/^\d+$/),
+  firstName: z.string().min(2).max(100),
+  lastName: z.string().min(2).max(100),
   birthYear: z.number().int().min(1900).max(new Date().getFullYear() - 18),
 });
 
@@ -41,8 +50,35 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   res.status(201).json({
     success: true,
-    message: 'Kayıt başarılı. Kimliğiniz NVİ üzerinden doğrulandı.',
-    data: result,
+    message: result.message,
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      nviVerified: result.nviVerified,
+    },
+  });
+}
+
+/**
+ * POST /api/v1/auth/verify-identity
+ * Giriş yapmış kullanıcının TC kimliğini NVİ üzerinden doğrular.
+ * Başarılıysa isVerified: true olur ve "Doğrulanmış Vatandaş" rozeti kazanılır.
+ */
+export async function verifyIdentity(req: Request, res: Response): Promise<void> {
+  const parsed = verifyIdentitySchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError(
+      parsed.error.errors.map(e => e.message).join(', '),
+    );
+  }
+
+  const result = await authService.verifyIdentity(req.user.sub, parsed.data);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: result.user,
   });
 }
 

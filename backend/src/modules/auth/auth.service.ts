@@ -15,6 +15,7 @@ import {
   UnauthorizedError,
   BadRequestError,
   NotFoundError,
+  ServiceUnavailableError,
 } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 import { randomUUID } from 'crypto';
@@ -25,8 +26,9 @@ interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
-  tcKimlik: string;
-  birthYear: number;
+  // TC kimlik artık opsiyonel — e-posta ile de kayıt olunabilir
+  tcKimlik?: string;
+  birthYear?: number;
 }
 
 export const authService = {
@@ -37,37 +39,59 @@ export const authService = {
       throw new ConflictError('Bu e-posta adresi zaten kullanımda.');
     }
 
-    // NVİ doğrulama
-    const isVerified = await verifyWithNVI({
-      tcKimlik: dto.tcKimlik,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      birthYear: dto.birthYear,
-    });
-
-    if (!isVerified) {
-      throw new BadRequestError(
-        'Kimlik bilgileri doğrulanamadı. ' +
-        'T.C. Kimlik, Ad, Soyad ve Doğum Yılı bilgilerini kontrol edin.',
-      );
-    }
-
     // Şifre hash
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // TC Kimlik hash (KVKK — plaintext saklanmaz)
-    const tcKimlikHash = hashTCKimlik(dto.tcKimlik);
+    // ─── NVİ Doğrulama (OPSİYONEL) ─────────────────────────────────────────
+    // TC kimlik verilmişse NVİ ile doğrula → isVerified: true
+    // TC kimlik verilmemişse e-posta ile kayıt → isVerified: false
+    let isVerified = false;
+    let tcKimlikHash: string | undefined = undefined;
+
+    if (dto.tcKimlik && dto.birthYear) {
+      try {
+        const nviResult = await verifyWithNVI({
+          tcKimlik: dto.tcKimlik,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          birthYear: dto.birthYear,
+        });
+
+        if (typeof nviResult === 'object' && nviResult.bypassed) {
+          throw new ServiceUnavailableError('NVİ servisi devre dışı (Circuit Open)');
+        }
+
+        if (!nviResult) {
+          throw new BadRequestError(
+            'Kimlik bilgileri doğrulanamadı. ' +
+            'T.C. Kimlik, Ad, Soyad ve Doğum Yılı bilgilerini kontrol edin.',
+          );
+        }
+
+        isVerified = true;
+        tcKimlikHash = hashTCKimlik(dto.tcKimlik);
+        logger.info('NVİ doğrulaması başarılı', { email: dto.email });
+      } catch (err) {
+        // NVİ servisi erişilemez durumdaysa kaydı bloklama,
+        // kullanıcıya sonradan kimlik doğrulama imkânı sun
+        if (err instanceof BadRequestError) throw err;
+        logger.warn('NVİ servisine ulaşılamadı, e-posta ile devam ediliyor', {
+          email: dto.email,
+          error: (err as Error).message,
+        });
+      }
+    }
 
     // Kullanıcı oluştur
     const user = await prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
-        tcKimlikHash,
+        ...(tcKimlikHash && { tcKimlikHash }),
         firstName: dto.firstName,
         lastName: dto.lastName,
-        birthYear: dto.birthYear,
-        isVerified: true,
+        ...(dto.birthYear && { birthYear: dto.birthYear }),
+        isVerified,
         role: 'CITIZEN',
       },
       select: {
@@ -81,12 +105,97 @@ export const authService = {
       },
     });
 
-    logger.info('Yeni kullanıcı kaydedildi', { userId: user.id, email: user.email });
+    logger.info('Yeni kullanıcı kaydedildi', {
+      userId: user.id,
+      email: user.email,
+      nviVerified: isVerified,
+    });
 
     // Token çifti
     const { accessToken, refreshToken } = await this.createTokenPair(user.id, user.role);
 
-    return { user, accessToken, refreshToken };
+    return {
+      user,
+      accessToken,
+      refreshToken,
+      // Kullanıcıyı NVİ doğrulaması yapması için yönlendirmek amacıyla
+      nviVerified: isVerified,
+      message: isVerified
+        ? 'Kayıt başarılı. Kimliğiniz doğrulandı.'
+        : 'Kayıt başarılı. Kimliğinizi doğrulayarak "Doğrulanmış Vatandaş" rozeti kazanabilirsiniz.',
+    };
+  },
+
+  /**
+   * Sonradan TC Kimlik doğrulama — giriş yapmış kullanıcılar için
+   * Başarılıysa isVerified: true ve tcKimlikHash güncellenir
+   */
+  async verifyIdentity(userId: string, dto: {
+    tcKimlik: string;
+    firstName: string;
+    lastName: string;
+    birthYear: number;
+  }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundError('Kullanıcı');
+
+    // Zaten doğrulanmışsa tekrar yapma
+    if (user.isVerified && user.tcKimlikHash) {
+      throw new BadRequestError('Kimliğiniz zaten doğrulanmış.');
+    }
+
+    // TC Kimlik daha önce sisteme eklenmiş mi? (başka kullanıcı aynı TC ile kayıtlı olabilir)
+    const tcHash = hashTCKimlik(dto.tcKimlik);
+    const existingWithSameTc = await prisma.user.findFirst({
+      where: { tcKimlikHash: tcHash, id: { not: userId } },
+    });
+    if (existingWithSameTc) {
+      throw new ConflictError('Bu T.C. Kimlik numarası başka bir hesaba bağlı.');
+    }
+
+    // NVİ
+    try {
+      const nviResult = await verifyWithNVI({
+        tcKimlik: dto.tcKimlik,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        birthYear: dto.birthYear,
+      });
+
+      if (typeof nviResult === 'object' && nviResult.bypassed) {
+        throw new ServiceUnavailableError('NVİ servisi şu an devre dışı (Circuit Open). Lütfen daha sonra tekrar deneyiniz.');
+      }
+
+      if (!nviResult) {
+        throw new BadRequestError(
+          'Kimlik bilgileri doğrulanamadı. Lütfen T.C. Kimlik Numaranızı, ' +
+          'Ad, Soyad ve Doğum Yılı bilgilerinizi kontrol edin.',
+        );
+      }
+    } catch (err) {
+      if (err instanceof BadRequestError) throw err;
+      throw new ServiceUnavailableError('NVİ servislerine şu an ulaşılamıyor. Lütfen daha sonra tekrar deneyiniz.');
+    }
+
+    // Kullanıcıyı güncelle
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isVerified: true,
+        tcKimlikHash: tcHash,
+        birthYear: dto.birthYear,
+      },
+      select: {
+        id: true, email: true, firstName: true,
+        lastName: true, role: true, isVerified: true,
+      },
+    });
+
+    logger.info('Kullanıcı kimliğini doğruladı (NVİ)', { userId });
+    return {
+      user: updated,
+      message: '"Doğrulanmış Vatandaş" rozeti kazanıldı. Bildirimleriniz kurumlar tarafından öncelikli incelenecek.',
+    };
   },
 
   async login(email: string, password: string, twoFactorToken?: string) {
@@ -258,8 +367,8 @@ export const authService = {
       try { await minio.removeObject(bucket, existing.avatarKey); } catch { /* yoksay */ }
     }
 
-    // MinIO public URL (minio:9000 internal → localhost:9000 external)
-    const avatarUrl = `http://localhost:9000/${bucket}/${key}`;
+    // MinIO public URL (minio:9000 internal → env.MINIO_PUBLIC_URL external)
+    const avatarUrl = `${env.MINIO_PUBLIC_URL}/${bucket}/${key}`;
 
     await prisma.user.update({
       where: { id: userId },
@@ -279,18 +388,19 @@ export const authService = {
     }
 
     // Eski token'ları sil
-    await prisma.$executeRaw`
-      DELETE FROM password_reset_tokens WHERE user_id = ${user.id}::uuid
-    `;
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
     // Yeni token
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 saat
 
-    await prisma.$executeRaw`
-      INSERT INTO password_reset_tokens (id, token, user_id, expires_at, created_at)
-      VALUES (uuid_generate_v4(), ${token}, ${user.id}::uuid, ${expiresAt}, now())
-    `;
+    await prisma.passwordResetToken.create({
+      data: {
+        token,
+        userId: user.id,
+        expiresAt,
+      },
+    });
 
     // E-posta gönder
     await emailService.sendPasswordResetEmail(email, user.firstName || email, token);
@@ -298,33 +408,29 @@ export const authService = {
 
   async resetPassword(token: string, newPassword: string) {
     // Token'i DB'de bul
-    const rows: any[] = await prisma.$queryRaw`
-      SELECT prt.id, prt.user_id, prt.expires_at
-      FROM password_reset_tokens prt
-      WHERE prt.token = ${token}
-      LIMIT 1
-    `;
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token }
+    });
 
-    if (!rows.length) {
+    if (!resetToken) {
       throw new BadRequestError('Geçersiz veya süresi dolmuş sıfırlama bağlantısı.');
     }
 
-    const row = rows[0];
-    if (new Date(row.expires_at) < new Date()) {
+    if (resetToken.expiresAt < new Date()) {
       throw new BadRequestError('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
-      where: { id: row.user_id },
+      where: { id: resetToken.userId },
       data: { passwordHash },
     });
 
     // Token'i ve tüm refresh token'ları iptal et
-    await prisma.$executeRaw`DELETE FROM password_reset_tokens WHERE id = ${row.id}::uuid`;
-    await prisma.refreshToken.deleteMany({ where: { userId: row.user_id } });
+    await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+    await prisma.refreshToken.deleteMany({ where: { userId: resetToken.userId } });
 
-    logger.info('Şifre başarıyla sıfırlandı', { userId: row.user_id });
+    logger.info('Şifre başarıyla sıfırlandı', { userId: resetToken.userId });
   },
 
   async createTokenPair(userId: string, role: string, institutionId?: string) {

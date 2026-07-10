@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import * as adminController from './admin.controller';
+import * as dlqController from './dlq.controller';
+import * as heatmapController from './heatmap.controller';
+import * as criticalController from './critical.controller';
 import { isAuthenticated, requireRole } from '../../middleware/auth.middleware';
 
 const router = Router();
@@ -54,6 +57,55 @@ router.get(
   '/ai-logs',
   requireRole('SUPER_ADMIN'),
   adminController.getAiLogs,
+);
+
+// GET /api/v1/admin/sla/report
+router.get(
+  '/sla/report',
+  requireRole('INSTITUTION_OFFICER'),
+  adminController.getSLAReport,
+);
+
+// GET /api/v1/admin/sla/breaches
+router.get(
+  '/sla/breaches',
+  requireRole('INSTITUTION_OFFICER'),
+  adminController.getSLABreaches,
+);
+
+// GET /api/v1/admin/sla/trend
+router.get(
+  '/sla/trend',
+  requireRole('INSTITUTION_OFFICER'),
+  adminController.getResolutionTrend,
+);
+
+// GET /api/v1/admin/webhook-dlq
+router.get(
+  '/webhook-dlq',
+  requireRole('SUPER_ADMIN'),
+  dlqController.getWebhookDLQ,
+);
+
+// POST /api/v1/admin/webhook-dlq/:jobId/retry
+router.post(
+  '/webhook-dlq/:jobId/retry',
+  requireRole('SUPER_ADMIN'),
+  dlqController.retryWebhookDLQJob,
+);
+
+// GET /api/v1/admin/heatmap
+router.get(
+  '/heatmap',
+  requireRole('SUPER_ADMIN', 'INSTITUTION_OFFICER'),
+  heatmapController.getHeatmap,
+);
+
+// GET /api/v1/admin/critical-issues
+router.get(
+  '/critical-issues',
+  requireRole('SUPER_ADMIN', 'INSTITUTION_OFFICER'),
+  criticalController.getCriticalIssues,
 );
 
 export { router as adminRouter };

@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { env } from './env';
 import { logger } from '../utils/logger';
+import { redis } from './redis';
 
 let io: Server;
 
@@ -31,6 +32,19 @@ export function initSocket(server: HttpServer) {
     socket.on('disconnect', () => {
       logger.debug(`[Socket.io] İstemci ayrıldı: ${socket.id}`);
     });
+  });
+
+  const subscriber = redis.duplicate();
+  subscriber.subscribe('image-processed');
+  subscriber.on('message', (channel, message) => {
+    if (channel === 'image-processed') {
+      try {
+        const data = JSON.parse(message);
+        io.emit('image-processed', data);
+      } catch (err) {
+        logger.error('image-processed pub/sub parse hatası:', { error: String(err) });
+      }
+    }
   });
 
   return io;

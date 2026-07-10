@@ -31,8 +31,15 @@ export const webhookQueue = new Queue('webhook-dispatch', {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 5,
-    backoff: { type: 'fixed', delay: 10000 },
+    backoff: { type: 'exponential', delay: 5000 }, // 5s, 10s, 20s, 40s, 80s
+    removeOnComplete: 100,
+    removeOnFail: false, // Başarısız webhook'ları sakla
   },
+});
+
+// Dead Letter Queue
+export const webhookDLQ = new Queue('webhook-dlq', {
+  connection: redis as any,
 });
 
 /**

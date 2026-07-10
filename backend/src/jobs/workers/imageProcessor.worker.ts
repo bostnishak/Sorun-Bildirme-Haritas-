@@ -87,8 +87,14 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
       },
     });
 
-    // (Eğer WebSocket Socket.IO entegrasyonu varsa, burada bildirim emit edilebilir)
-    // const io = getSocket(); io.emit('issue-updated', updatedIssue);
+    // İşlem bittikten sonra Redis'e publish et (socket io için):
+    await redis.publish('image-processed', JSON.stringify({
+      issueId,
+      key,
+      url,
+      status: newStatus,
+      blurred: blurResult.wasModified,
+    }));
 
     await deleteObject(tempImageKey);
     logger.debug(`[ImageWorker] Geçici dosya silindi: ${tempImageKey}`);

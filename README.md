@@ -190,6 +190,11 @@ npm run dev        # Next.js — port 3000
 | POST   | /api/v1/issues | Yeni sorun bildir | Bearer |
 | GET    | /api/v1/issues/map-cluster | Harita cluster verisi | Optional |
 | GET    | /api/v1/issues/:id | Sorun detayı | Optional |
+| POST   | /api/v1/issues/:id/upvote | Sorunu destekle | Bearer |
+| DELETE | /api/v1/issues/:id/upvote | Desteği geri çek | Bearer |
+| GET    | /api/v1/issues/:id/comments | Sorun yorumlarını getir | Optional |
+| POST   | /api/v1/issues/:id/comments | Soruna yorum ekle | Bearer |
+| DELETE | /api/v1/issues/:id/comments/:commentId | Yorumu sil | Bearer (Admin/Sahibi) |
 | PATCH  | /api/v1/issues/:id/status | Durum güncelle | Bearer (Officer/Admin) |
 | DELETE | /api/v1/issues/:id | Sorun sil | Bearer (Admin) |
 
@@ -199,8 +204,15 @@ npm run dev        # Next.js — port 3000
 |--------|----------|----------|------|
 | GET  | /api/v1/admin/issues | Portal sorun listesi | Bearer (Officer/Admin) |
 | GET  | /api/v1/admin/stats | İstatistikler | Bearer (Officer/Admin) |
+| GET  | /api/v1/admin/heatmap | Isı haritası verisi | Bearer (Officer/Admin) |
+| GET  | /api/v1/admin/critical-issues | Kritik ve açık sorunlar | Bearer (Officer/Admin) |
+| GET  | /api/v1/admin/sla/report | SLA genel raporu | Bearer (Officer) |
+| GET  | /api/v1/admin/sla/breaches | SLA ihlal listesi | Bearer (Officer) |
+| GET  | /api/v1/admin/sla/trend | Çözüm trend analizi | Bearer (Officer) |
 | GET  | /api/v1/admin/institutions | Kurum listesi | Bearer (Admin) |
 | POST | /api/v1/admin/institutions | Kurum oluştur | Bearer (Admin) |
+| GET  | /api/v1/admin/webhook-dlq | Başarısız webhook listesi | Bearer (Admin) |
+| POST | /api/v1/admin/webhook-dlq/:id/retry | Başarısız webhook tekrar dene | Bearer (Admin) |
 
 ---
 

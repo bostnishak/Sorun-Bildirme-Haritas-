@@ -115,6 +115,11 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       TC_KIMLIK_PEPPER: ${TC_KIMLIK_PEPPER}
       APP_URL: ${APP_URL}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     depends_on:
       postgres:
         condition: service_healthy
@@ -160,6 +165,11 @@ services:
       TC_KIMLIK_PEPPER: ${TC_KIMLIK_PEPPER}
       APP_URL: ${APP_URL}
       CORS_ORIGIN: ${CORS_ORIGIN}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     depends_on:
       - backend
       - postgres
@@ -181,6 +191,11 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_MAPBOX_TOKEN: ${MAPBOX_TOKEN}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       - backend
     networks:

@@ -48,11 +48,31 @@ router.post(
   issuesController.upvoteIssue,
 );
 
+// DELETE /api/v1/issues/:id/upvote — Oyu geri çek
+router.delete(
+  '/:id/upvote',
+  isAuthenticated,
+  issuesController.removeUpvote,
+);
+
+// GET /api/v1/issues/:id/comments — Yorum listesi (Public veya Authenticated, şimdilik public yapabiliriz ama genelde public'tir. Plan'da isAuthenticated istenmemiş ama biz ekleyebiliriz veya çıkartabiliriz. endpoint tanımına göre yapalım.)
+router.get(
+  '/:id/comments',
+  issuesController.getComments,
+);
+
 // POST /api/v1/issues/:id/comments — Yorum veya resmi açıklama ekle
 router.post(
   '/:id/comments',
   isAuthenticated,
   issuesController.addComment,
+);
+
+// DELETE /api/v1/issues/:id/comments/:commentId — Yorum sil (Admin + kendi yorumu)
+router.delete(
+  '/:id/comments/:commentId',
+  isAuthenticated,
+  issuesController.deleteComment,
 );
 
 // PATCH /api/v1/issues/:id/status — Sadece kurum yetkilisi ve admin

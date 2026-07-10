@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { ServiceUnavailableError, BadRequestError } from '../utils/errors';
+import CircuitBreaker from 'opossum';
 
 const NVI_SOAP_ACTION = 'https://tckimlik.nvi.gov.tr/WS/TCKimlikNoDogrula';
 
@@ -42,7 +43,7 @@ export function validateTCKimlikFormat(tcKimlik: string): boolean {
  * NVİ SOAP servisi üzerinden TC Kimlik doğrulama
  * Returns true if verified, throws error otherwise
  */
-export async function verifyWithNVI(dto: NVIVerifyDto): Promise<boolean> {
+export async function verifyWithNVICore(dto: NVIVerifyDto): Promise<boolean> {
   // Format validasyonu
   if (!validateTCKimlikFormat(dto.tcKimlik)) {
     throw new BadRequestError('Geçersiz T.C. Kimlik numarası formatı.');
@@ -85,6 +86,24 @@ export async function verifyWithNVI(dto: NVIVerifyDto): Promise<boolean> {
     }
     throw new ServiceUnavailableError('NVİ Kimlik Doğrulama');
   }
+}
+
+const nviBreaker = new CircuitBreaker(verifyWithNVICore, {
+  timeout: 8000,
+  errorThresholdPercentage: 50,
+  resetTimeout: 60000,
+  volumeThreshold: 3,
+});
+
+nviBreaker.fallback((dto: NVIVerifyDto, err: Error) => {
+  if (err instanceof BadRequestError) {
+    throw err;
+  }
+  return { bypassed: true, reason: 'NVI_CIRCUIT_OPEN' };
+});
+
+export async function verifyWithNVI(dto: NVIVerifyDto): Promise<boolean | { bypassed: boolean, reason: string }> {
+  return await nviBreaker.fire(dto);
 }
 
 /**

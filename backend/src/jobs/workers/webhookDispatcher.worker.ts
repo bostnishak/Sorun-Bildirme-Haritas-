@@ -1,5 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { redis } from '../../config/redis';
+import { webhookDLQ } from '../queue';
 import { prisma } from '../../config/database';
 import { dispatchWebhook, buildIssueCreatedPayload, buildStatusChangedPayload } from '../../services/webhook.service';
 import { logger } from '../../utils/logger';
@@ -82,9 +83,19 @@ export const webhookDispatcherWorker = new Worker<WebhookJobData>(
   },
 );
 
-webhookDispatcherWorker.on('failed', (job, err) => {
+webhookDispatcherWorker.on('failed', async (job, err) => {
   logger.error(`[WebhookWorker] Job başarısız: ${job?.id}`, {
     error: err.message,
     attempts: job?.attemptsMade,
   });
+
+  if (job && job.attemptsMade >= (job.opts.attempts || 5)) {
+    logger.warn(`[WebhookWorker] Webhook DLQ'ya taşınıyor: ${job.id}`);
+    await webhookDLQ.add('dlq-webhook', {
+      originalJobId: job.id,
+      originalData: job.data,
+      error: err.message,
+      failedAt: new Date().toISOString(),
+    });
+  }
 });

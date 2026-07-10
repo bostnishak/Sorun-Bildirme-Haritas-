@@ -5,8 +5,11 @@ import { authRateLimit, nviRateLimit } from '../../middleware/rateLimiter.middle
 
 const router = Router();
 
-// POST /api/v1/auth/register — NVİ doğrulamalı kayıt
-router.post('/register', nviRateLimit, authController.register);
+// POST /api/v1/auth/register — Kayıt (TC kimlik opsiyonel; verilirse NVİ doğrulaması yapılır)
+router.post('/register', authRateLimit, authController.register);
+
+// POST /api/v1/auth/verify-identity — Sonradan TC Kimlik doğrulama (Doğrulanmış Vatandaş rozeti)
+router.post('/verify-identity', isAuthenticated, nviRateLimit, authController.verifyIdentity);
 
 // POST /api/v1/auth/login — Giriş
 router.post('/login', authRateLimit, authController.login);

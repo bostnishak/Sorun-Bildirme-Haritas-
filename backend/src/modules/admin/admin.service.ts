@@ -77,7 +77,10 @@ export const adminService = {
         COUNT(*) FILTER (WHERE status = 'OPEN')::int        AS open_count,
         COUNT(*) FILTER (WHERE status = 'IN_REVIEW')::int   AS in_review_count,
         COUNT(*) FILTER (WHERE status = 'RESOLVED')::int    AS resolved_count,
-        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::int AS this_month
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::int AS this_month,
+        AVG(EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600) FILTER (WHERE status = 'OPEN') AS avg_open_hours,
+        COUNT(*) FILTER (WHERE status = 'OPEN' AND created_at < NOW() - INTERVAL '48 hours')::int AS sla_breached,
+        AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600) FILTER (WHERE status = 'RESOLVED' AND resolved_at IS NOT NULL) AS avg_resolution_hours
       FROM issues i
       JOIN institutions inst ON inst.id = ${institutionId}::uuid
       WHERE ST_Within(i.location, inst.boundary)

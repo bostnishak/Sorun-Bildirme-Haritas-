@@ -234,11 +234,27 @@ export async function upvoteIssue(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * DELETE /api/v1/issues/:id/upvote — Desteği geri çek
+ */
+export async function removeUpvote(req: Request, res: Response): Promise<void> {
+  await issuesService.removeUpvote(req.params.id, req.user.sub);
+  res.status(200).json({ success: true, message: 'Destek geri çekildi.' });
+}
+
+/**
  * GET /api/v1/issues/summary-stats — Genel özet istatistikler (Public)
  */
 export async function getSummaryStats(_req: Request, res: Response): Promise<void> {
   const stats = await issuesService.getPublicSummaryStats();
   res.status(200).json({ success: true, data: stats });
+}
+
+/**
+ * GET /api/v1/issues/:id/comments — Yorumları getir
+ */
+export async function getComments(req: Request, res: Response): Promise<void> {
+  const comments = await issuesService.getComments(req.params.id);
+  res.status(200).json({ success: true, data: comments });
 }
 
 /**
@@ -252,6 +268,14 @@ export async function addComment(req: Request, res: Response): Promise<void> {
 
   const comment = await issuesService.addComment(req.params.id, req.user.sub, content, req.user.role);
   res.status(201).json({ success: true, message: 'Yorum eklendi.', data: comment });
+}
+
+/**
+ * DELETE /api/v1/issues/:id/comments/:commentId — Yorum sil
+ */
+export async function deleteComment(req: Request, res: Response): Promise<void> {
+  await issuesService.deleteComment(req.params.commentId, req.user.sub, req.user.role);
+  res.status(200).json({ success: true, message: 'Yorum silindi.' });
 }
 
 /**

@@ -2,6 +2,8 @@ import { PrismaClient, Category, IssueStatus, Priority } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import { hashTCKimlik } from '../src/services/nvi.service';
 
 // Root dizindeki veya backend dizindeki env dosyasını yükle
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -32,14 +34,50 @@ async function main() {
     },
   });
 
+  console.log('Kurumlar oluşturuluyor...');
+  const geojsonDir = path.join(__dirname, 'geojson');
+  if (!fs.existsSync(geojsonDir)) {
+    fs.mkdirSync(geojsonDir, { recursive: true });
+  }
+
+  const geojsonPath = path.join(geojsonDir, 'turkey-districts.geojson');
+  if (!fs.existsSync(geojsonPath)) {
+    fs.writeFileSync(geojsonPath, JSON.stringify({ type: "FeatureCollection", features: [] }));
+  }
+
+  const istanbulInstitutionId = '22222222-2222-2222-2222-222222222222';
+  try {
+    const istanbulBoundary = {
+      type: "MultiPolygon",
+      coordinates: [[[[28.0, 40.0], [29.0, 40.0], [29.0, 41.0], [28.0, 41.0], [28.0, 40.0]]]]
+    };
+    await prisma.$executeRaw`
+      INSERT INTO institutions (id, name, city, district, email_address, created_at, updated_at, boundary)
+      VALUES (
+        ${istanbulInstitutionId}::uuid,
+        'İstanbul Büyükşehir Belediyesi',
+        'İstanbul',
+        'Merkez',
+        'iletisim@istanbul.bel.tr',
+        NOW(),
+        NOW(),
+        ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(istanbulBoundary)}), 4326)
+      ) ON CONFLICT DO NOTHING
+    `;
+    console.log('İBB kurumu oluşturuldu.');
+  } catch (err) {
+    console.error('İBB oluşturulurken hata:', err);
+  }
+
   const officer = await prisma.user.create({
     data: {
-      tcKimlikHash: '22222222222',
+      tcKimlikHash: hashTCKimlik('22222222222'),
       firstName: 'Zeynep',
       lastName: 'Kaya',
       email: 'yetkili@istanbul.bel.tr',
       passwordHash: hashedPassword,
       role: 'INSTITUTION_OFFICER',
+      institutionId: istanbulInstitutionId,
     },
   });
 

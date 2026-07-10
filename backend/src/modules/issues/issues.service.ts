@@ -70,9 +70,11 @@ export const issuesService = {
 
     // Socket.io ile canlı harita güncellemesi gönder
     try {
-      getSocket().emit('issue-updated', { type: 'CREATED', issue: created });
+      const socket = getSocket();
+      socket.emit('issue-updated', { type: 'CREATED', issue: created });
     } catch (e) {
-      logger.error('Socket.io emit hatası:', e);
+      // Socket başlatılmamışsa sessizce atla — issue yine de oluşturulmuş
+      logger.warn('[Socket] Emit başarısız, issue kaydedildi:', { error: (e as Error).message });
     }
 
     return created;
@@ -83,7 +85,7 @@ export const issuesService = {
       where: { id },
       include: {
         reportedBy: {
-          select: { id: true, firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, tcKimlikHash: true },
         },
         statusHistory: {
           orderBy: { createdAt: 'desc' },
@@ -101,7 +103,16 @@ export const issuesService = {
     });
 
     if (!issue) throw new NotFoundError('Sorun');
-    return issue;
+
+    return {
+      ...issue,
+      reportedBy: {
+        id: issue.reportedBy.id,
+        firstName: issue.reportedBy.firstName,
+        lastName: issue.reportedBy.lastName,
+        isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
+      },
+    };
   },
 
   async list(params: {
@@ -117,10 +128,12 @@ export const issuesService = {
     if (params.category) where.category = params.category as any;
     if (params.status) where.status = params.status as any;
     if (params.search) {
+      // PostgreSQL Full-Text Search (Trigram vb.)
+      const searchQuery = params.search.trim().split(/\s+/).join(' | ');
       where.OR = [
-        { title: { contains: params.search, mode: 'insensitive' } },
-        { description: { contains: params.search, mode: 'insensitive' } },
-        { address: { contains: params.search, mode: 'insensitive' } },
+        { title: { search: searchQuery } },
+        { description: { search: searchQuery } },
+        { address: { search: searchQuery } },
       ];
     }
 
@@ -135,7 +148,7 @@ export const issuesService = {
           id: true, title: true, category: true, priority: true, status: true,
           latitude: true, longitude: true, city: true, district: true,
           imageUrl: true, createdAt: true, updatedAt: true,
-          reportedBy: { select: { firstName: true, lastName: true } },
+          reportedBy: { select: { firstName: true, lastName: true, tcKimlikHash: true } },
         },
       }),
       prisma.issue.count({ where }),
@@ -147,7 +160,16 @@ export const issuesService = {
       nextCursor = nextItem?.id;
     }
 
-    return { issues: rawIssues, total, nextCursor };
+    const mappedIssues = rawIssues.map(issue => ({
+      ...issue,
+      reportedBy: {
+        firstName: issue.reportedBy.firstName,
+        lastName: issue.reportedBy.lastName,
+        isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
+      },
+    }));
+
+    return { issues: mappedIssues, total, nextCursor };
   },
 
   /**
@@ -272,9 +294,11 @@ export const issuesService = {
 
     // Socket.io ile canlı harita güncellemesi gönder
     try {
-      getSocket().emit('issue-updated', { type: 'STATUS_CHANGED', issue: updated });
+      const socket = getSocket();
+      socket.emit('issue-updated', { type: 'STATUS_CHANGED', issue: updated });
     } catch (e) {
-      logger.error('Socket.io emit hatası:', e);
+      // Socket başlatılmamışsa sessizce atla
+      logger.warn('[Socket] Emit başarısız, issue güncellendi:', { error: (e as Error).message });
     }
 
     logger.info('Sorun durumu güncellendi', {
@@ -318,6 +342,57 @@ export const issuesService = {
     ]);
 
     return upvote;
+  },
+
+  async removeUpvote(issueId: string, userId: string) {
+    const existing = await prisma.issueUpvote.findUnique({
+      where: {
+        issueId_userId: { issueId, userId }
+      }
+    });
+
+    if (!existing) {
+      throw new BadRequestError('Bu sorunu zaten desteklemediniz.');
+    }
+
+    await prisma.$transaction([
+      prisma.issueUpvote.delete({
+        where: {
+          issueId_userId: { issueId, userId }
+        }
+      }),
+      prisma.issue.update({
+        where: { id: issueId },
+        data: { upvoteCount: { decrement: 1 } }
+      })
+    ]);
+  },
+
+  async getComments(issueId: string) {
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundError('Sorun');
+
+    return prisma.issueComment.findMany({
+      where: { issueId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+      },
+    });
+  },
+
+  async deleteComment(commentId: string, userId: string, userRole: Role) {
+    const comment = await prisma.issueComment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new NotFoundError('Yorum');
+
+    // Sadece yorumun sahibi veya SUPER_ADMIN silebilir
+    if (comment.authorId !== userId && userRole !== Role.SUPER_ADMIN) {
+      throw new ForbiddenError('Bu yorumu silme yetkiniz yok.');
+    }
+
+    await prisma.issueComment.delete({ where: { id: commentId } });
   },
 
   /**

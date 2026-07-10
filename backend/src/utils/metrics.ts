@@ -32,6 +32,12 @@ export const openAITokensTotal = new client.Counter({
   labelNames: ['model', 'purpose'],
 });
 
+export const openAIGuardrailFailureTotal = new client.Counter({
+  name: 'chaosmap_openai_guardrail_failure_total',
+  help: 'OpenAI Semantic Guardrail hatalarının toplam sayısı',
+  labelNames: ['reason'],
+});
+
 // ─── Middleware ─────────────────────────────────────────────────────────────
 
 export const metricsMiddleware = (req: Request, res: Response, next: NextFunction) => {

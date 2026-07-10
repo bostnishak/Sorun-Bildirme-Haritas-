@@ -1,0 +1,40 @@
+version: "3.9"
+
+networks:
+  chaosmap-test-net:
+    driver: bridge
+
+services:
+  postgres-test:
+    image: postgis/postgis:16-3.4
+    container_name: chaosmap-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chaosmap_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432" # Ana veritabanıyla çakışmaması için 5433
+    networks:
+      - chaosmap-test-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U test_user -d chaosmap_test" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis-test:
+    image: redis/redis-stack-server:latest
+    container_name: chaosmap-redis-test
+    restart: unless-stopped
+    command: redis-server --appendonly yes --loadmodule /opt/redis-stack/lib/redisearch.so --loadmodule /opt/redis-stack/lib/redisjson.so
+    ports:
+      - "6380:6379" # Ana redis ile çakışmaması için 6380
+    networks:
+      - chaosmap-test-net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5

@@ -70,13 +70,14 @@ export const nviLimiter = new RateLimiterRedis({
 /**
  * Rate limiter middleware oluşturur
  */
-export function createRateLimitMiddleware(limiter: RateLimiterRedis) {
+export function createRateLimitMiddleware(limiter: RateLimiterRedis, useUserId = false) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // IP adresi (X-Forwarded-For Nginx'ten gelir)
-    const clientIp =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      req.ip ||
-      'unknown';
+    // IP adresi veya Kullanıcı ID (varsa ve isteniyorsa)
+    const clientIp = useUserId && req.user?.sub 
+      ? `user:${req.user.sub}`
+      : (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+        req.ip ||
+        'unknown';
 
     try {
       const result = await limiter.consume(clientIp);
@@ -121,6 +122,6 @@ export function createRateLimitMiddleware(limiter: RateLimiterRedis) {
 
 export const globalRateLimit = createRateLimitMiddleware(globalLimiter);
 export const authRateLimit = createRateLimitMiddleware(authLimiter);
-export const issueCreateRateLimit = createRateLimitMiddleware(issueCreateLimiter);
+export const issueCreateRateLimit = createRateLimitMiddleware(issueCreateLimiter, true);
 export const nviRateLimit = createRateLimitMiddleware(nviLimiter);
-export const chatbotRateLimit = createRateLimitMiddleware(chatbotLimiter);
+export const chatbotRateLimit = createRateLimitMiddleware(chatbotLimiter, true);

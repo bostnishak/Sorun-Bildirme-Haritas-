@@ -5,10 +5,11 @@ import { logger } from '../utils/logger';
 import { prisma } from '../config/database';
 import { z } from 'zod';
 import pRetry from 'p-retry';
-import { aiModerationDurationHistogram, openAITokensTotal } from '../utils/metrics';
+import { aiModerationDurationHistogram, openAITokensTotal, openAIGuardrailFailureTotal } from '../utils/metrics';
 import { OpenAIProvider } from './llm/openai.provider';
 import { SystemPromptService } from './systemPrompt.service';
 import { SemanticCache } from './semanticCache';
+import { redis } from '../config/redis';
 
 const llmProvider = new OpenAIProvider();
 
@@ -220,7 +221,36 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
 
     return finalResult;
   } catch (error) {
-    logger.error('Semantic Guardrail hatası — fail-open prensibiyle kabul ediliyor.', { error: String(error) });
+    openAIGuardrailFailureTotal.labels('api_error').inc();
+    
+    // LLM Fail-Closed Logic:
+    // Redis üzerinden hata sayacını artır, eğer dakikada >10 hata ise sistemi kapat (fail-closed)
+    const currentMinute = Math.floor(Date.now() / 60000);
+    const failKey = `llm_guardrail_fail_count:${currentMinute}`;
+    let failCount = 1;
+    
+    try {
+      failCount = await redis.incr(failKey);
+      if (failCount === 1) {
+        await redis.expire(failKey, 120); // 2 dakika sonra silinsin
+      }
+    } catch (redisErr) {
+      // Redis de çöktüyse logla ama devam et
+      logger.error('Redis sayaç artırma hatası:', { error: String(redisErr) });
+    }
+
+    if (failCount > 10) {
+      logger.error('Semantic Guardrail ardışık hatalar (fail-closed devreye girdi). İstemci isteği reddedilecek.', { error: String(error), failCount });
+      return {
+        passed: false,
+        code: 'TROLL_OR_IRRELEVANT',
+        reason: 'Sistem yoğunluğu veya servis kesintisi nedeniyle geçici olarak hizmet verilemiyor (Fail-Closed).',
+        userFriendlyMessage: 'Sistemlerimizde geçici bir yoğunluk var. Lütfen bildiriminizi birkaç dakika sonra tekrar deneyiniz.',
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    logger.error('Semantic Guardrail izole hata — fail-open prensibiyle kabul ediliyor.', { error: String(error), failCount });
     return {
       passed: true,
       code: 'OK',
