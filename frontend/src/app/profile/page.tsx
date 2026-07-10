@@ -36,7 +36,7 @@ function getRoleLabel(role?: string) {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, updateUser } = useAppStore();
+  const { user, isAuthenticated, updateUser, logout } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<Tab>('info');
 
@@ -194,7 +194,9 @@ export default function ProfilePage() {
                   <>{user.firstName?.[0]}{user.lastName?.[0]}</>
                 )}
               </div>
-              <div className={styles.avatarOverlay}>📷</div>
+              <div className={styles.avatarOverlay}>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
             </div>
             <h2 className={styles.sidebarName}>{user.firstName} {user.lastName}</h2>
             <span className={styles.roleBadge}>{getRoleLabel(user.role)}</span>
@@ -202,11 +204,11 @@ export default function ProfilePage() {
 
           <nav className={styles.sidebarNav}>
             {([
-              { id: 'info',          icon: '👤', label: 'Hesap Bilgileri' },
-              { id: 'password',      icon: '🔑', label: 'Şifre Değiştir' },
-              { id: 'avatar',        icon: '📷', label: 'Profil Fotoğrafı' },
-              { id: 'notifications', icon: '📋', label: 'Bildirimlerim' },
-            ] as { id: Tab; icon: string; label: string }[]).map((item) => (
+              { id: 'info',          icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Hesap Bilgileri' },
+              { id: 'password',      icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>, label: 'Şifre Değiştir' },
+              { id: 'avatar',        icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>, label: 'Profil Fotoğrafı' },
+              { id: 'notifications', icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M15 2H9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>, label: 'Bildirimlerim' },
+            ] as { id: Tab; icon: React.ReactNode; label: string }[]).map((item) => (
               <button
                 key={item.id}
                 className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ''}`}
@@ -216,6 +218,21 @@ export default function ProfilePage() {
                 {item.label}
               </button>
             ))}
+
+            <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button className={styles.navItem} onClick={() => router.push('/')}>
+                <span className={styles.navIcon}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </span>
+                Ana Sayfaya Dön
+              </button>
+              <button className={styles.navItem} style={{ color: '#dc2626' }} onClick={async () => { await logout(); router.push('/login'); }}>
+                <span className={styles.navIcon}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </span>
+                Çıkış Yap
+              </button>
+            </div>
           </nav>
         </aside>
 
