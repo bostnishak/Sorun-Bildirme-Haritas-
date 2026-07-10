@@ -111,7 +111,7 @@ export default function PricingPage() {
             Akıllı Şehirler İçin Ölçeklenebilir<br />SaaS Abonelik ve Lisans Paketleri
           </h1>
           <p className={styles.subtitle}>
-            Türkiye Sorun Bildirim Haritası (ChaosMind), vatandaşlara ücretsiz sunulurken belediyeler,
+            Türkiye Sorun Bildirim Haritası (Etiya Project), vatandaşlara ücretsiz sunulurken belediyeler,
             kamu kurumları ve veri abonelerine kurumsal B2G SaaS abonelik modeliyle yüksek sürdürülebilir gelir sağlar.
           </p>
         </div>

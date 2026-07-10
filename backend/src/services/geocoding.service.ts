@@ -215,7 +215,7 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
     
     const runRequest = async () => axios.get(url, {
       timeout: 4500,
-      headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
+      headers: { 'User-Agent': 'Etiya Project-TR-Issue-Reporter/1.0' },
     });
     const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
 
@@ -301,7 +301,7 @@ export async function searchAddressForward(query: string): Promise<{ lat: number
     
     const runRequest = async () => axios.get(url, {
       timeout: 4500,
-      headers: { 'User-Agent': 'ChaosMind-TR-Issue-Reporter/1.0' },
+      headers: { 'User-Agent': 'Etiya Project-TR-Issue-Reporter/1.0' },
     });
     const response = await pRetry(runRequest, { retries: 2, minTimeout: 1000, maxTimeout: 3000 });
 

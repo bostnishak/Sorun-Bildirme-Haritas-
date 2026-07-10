@@ -37,6 +37,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'OPEN',
     city: 'İstanbul',
     district: 'Fatih',
+    address: 'Alemdar, Divan Yolu Cd. No:1, 34110 Fatih/İstanbul',
     createdAt: '2026-07-06T08:30:00Z',
     latitude: 41.0082,
     longitude: 28.9784,
@@ -50,6 +51,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'IN_REVIEW',
     city: 'Ankara',
     district: 'Çankaya',
+    address: 'Kızılay, Atatürk Blv, 06420 Çankaya/Ankara',
     createdAt: '2026-07-06T09:15:00Z',
     latitude: 39.9208,
     longitude: 32.8541,
@@ -63,6 +65,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'RESOLVED',
     city: 'İzmir',
     district: 'Konak',
+    address: 'Alsancak, Atatürk Cd. No:120, 35220 Konak/İzmir',
     createdAt: '2026-07-05T14:20:00Z',
     latitude: 38.4237,
     longitude: 27.1428,
@@ -76,6 +79,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'OPEN',
     city: 'Bursa',
     district: 'Nilüfer',
+    address: 'Nilüfer OSB, Pembe Cd. No:4, 16140 Nilüfer/Bursa',
     createdAt: '2026-07-06T10:00:00Z',
     latitude: 40.2115,
     longitude: 28.9818,
@@ -89,6 +93,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'IN_REVIEW',
     city: 'Antalya',
     district: 'Konyaaltı',
+    address: 'Gürsu, Akdeniz Blv. Sahil Yolu, 07070 Konyaaltı/Antalya',
     createdAt: '2026-07-05T21:45:00Z',
     latitude: 36.8687,
     longitude: 30.6439,
@@ -102,6 +107,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'RESOLVED',
     city: 'Adana',
     district: 'Seyhan',
+    address: 'Reşatbey, Atatürk Parkı İçi, 01120 Seyhan/Adana',
     createdAt: '2026-07-04T16:10:00Z',
     latitude: 36.9914,
     longitude: 35.3308,
@@ -115,6 +121,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'OPEN',
     city: 'Eskişehir',
     district: 'Tepebaşı',
+    address: 'Yenibağlar, Üniversite Cd. No:25, 26150 Tepebaşı/Eskişehir',
     createdAt: '2026-07-06T11:12:00Z',
     latitude: 39.7767,
     longitude: 30.5206,
@@ -128,6 +135,7 @@ const FALLBACK_ISSUES: any[] = [
     status: 'IN_REVIEW',
     city: 'Gaziantep',
     district: 'Şahinbey',
+    address: 'Karataş, 103233. Cd. No:15, 27470 Şahinbey/Gaziantep',
     createdAt: '2026-07-05T18:30:00Z',
     latitude: 37.0662,
     longitude: 37.3833,
@@ -166,18 +174,16 @@ export function TableView() {
       return;
     }
 
-    const headers = ['ID', 'Başlık', 'Sorun Türü', 'Şehir', 'İlçe', 'Durum', 'Öncelik', 'Tarih', 'Enlem', 'Boylam'];
+    const headers = ['ID', 'Başlık', 'Sorun Türü', 'Açık Adres', 'Durum', 'Öncelik', 'İhbar Tarihi', 'İhbar Saati'];
     const rows = dataToExport.map(issue => [
       `"#${issue.id}"`,
       `"${issue.title.replace(/"/g, '""')}"`,
       `"${CATEGORY_LABELS[issue.category] || issue.category}"`,
-      `"${issue.city}"`,
-      `"${issue.district}"`,
+      `"${(issue.address || `${issue.district}, ${issue.city}`).replace(/"/g, '""')}"`,
       `"${STATUS_LABELS[issue.status] || issue.status}"`,
       `"${PRIORITY_LABELS[issue.priority] || issue.priority}"`,
-      `"${format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy HH:mm')}"`,
-      `"${issue.latitude || ''}"`,
-      `"${issue.longitude || ''}"`,
+      `" ${format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy')} "`,
+      `" ${format(new Date(issue.createdAt || Date.now()), 'HH:mm')} "`,
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
@@ -206,7 +212,7 @@ export function TableView() {
         <td>#${issue.id}</td>
         <td><strong>${issue.title}</strong></td>
         <td>${CATEGORY_LABELS[issue.category] || issue.category}</td>
-        <td>${issue.city} / ${issue.district}</td>
+        <td>${issue.address || `${issue.district}, ${issue.city}`}</td>
         <td><span style="font-weight: bold; color: ${issue.status === 'OPEN' ? '#dc2626' : issue.status === 'IN_REVIEW' ? '#d97706' : '#16a34a'}">${STATUS_LABELS[issue.status] || issue.status}</span></td>
         <td>${PRIORITY_LABELS[issue.priority] || issue.priority}</td>
         <td>${format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy HH:mm')}</td>
@@ -241,7 +247,7 @@ export function TableView() {
               <th>ID</th>
               <th>Başlık</th>
               <th>Sorun Türü</th>
-              <th>Konum</th>
+              <th>Açık Adres</th>
               <th>Durum</th>
               <th>Öncelik</th>
               <th>Tarih</th>
@@ -254,9 +260,6 @@ export function TableView() {
         <div class="footer">
           Toplam ${dataToExport.length} kayıt listelenmiştir. Rapor oluşturma tarihi: ${format(new Date(), 'dd.MM.yyyy HH:mm')}
         </div>
-        <script>
-          window.onload = () => { window.print(); };
-        </script>
       </body>
       </html>
     `);
@@ -397,8 +400,7 @@ export function TableView() {
                 <th>ID</th>
                 <th>Başlık</th>
                 <th>Sorun Türü</th>
-                <th>Şehir</th>
-                <th>İlçe</th>
+                <th>Açık Adres</th>
                 <th>Durum</th>
                 <th>Öncelik</th>
                 <th>Oluşturma Tarihi</th>
@@ -434,8 +436,9 @@ export function TableView() {
                       {CATEGORY_LABELS[issue.category]}
                     </span>
                   </td>
-                  <td>{issue.city}</td>
-                  <td>{issue.district}</td>
+                  <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={issue.address || `${issue.district}, ${issue.city}`}>
+                    {issue.address || `${issue.district}, ${issue.city}`}
+                  </td>
                   <td>
                     <span className={`${styles.statusBadge} ${styles[`status_${issue.status}`]}`}>
                       <span className={styles.statusDot} />

@@ -245,7 +245,7 @@ export const useAppStore = create<AppStore>()(
       clearFilters: () => set({ filters: defaultFilters }),
     }),
     {
-      name: 'chaosmap-store',
+      name: 'etiya-project-store',
       partialize: (state) => ({
         // Sadece user ve token'ları persist et
         user: state.user,

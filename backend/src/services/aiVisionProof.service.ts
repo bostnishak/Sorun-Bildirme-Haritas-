@@ -34,7 +34,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   PARKS: 'Kırık park bankı/oyuncakları, kurumuş/devrilmiş ağaçlar veya zarar görmüş yeşil alan.',
 };
 
-const VISION_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (ChaosMind) platformunun yüksek hassasiyetli Bilgisayarlı Görü (Computer Vision) kanıt denetçisisin.
+const VISION_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (Etiya Project) platformunun yüksek hassasiyetli Bilgisayarlı Görü (Computer Vision) kanıt denetçisisin.
 Görevin, kullanıcının yüklediği fotoğrafı analiz ederek, bildirilen sorun kategorisi ve başlığıyla eşleşip eşleşmediğini ve gerçekten bir belediye/altyapı/çevre sorunu kanıtı olup olmadığını doğrulamaktır.
 
 KESİNLİKLE REDDETMEN GEREKEN DURUMLAR (valid: false, confidenceScore < 0.40):

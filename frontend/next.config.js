@@ -12,12 +12,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'chaosmap.tr',
+        hostname: 'etiya-project.tr',
       },
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || 'http://chaosmap-api:3001';
+    const backendUrl = process.env.BACKEND_URL || 'http://etiya-project-api:3001';
     return [
       {
         source: '/api/:path*',

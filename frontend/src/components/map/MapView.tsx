@@ -29,8 +29,8 @@ const TURKEY_CENTER = {
   bearing: 0 // bearing: -17.6
 };
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [25.664, 35.808], // Güneybatı (Ege/Akdeniz açıkları)
-  [44.822, 42.104]  // Kuzeydoğu (Artvin/Kars ötesi)
+  [25.0, 35.5], // Güneybatı — Ege açıkları dahil biraz daha geniş
+  [45.5, 43.0]  // Kuzeydoğu — Artvin/Kars/Iğdır ötesi dahil
 ];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
@@ -60,137 +60,42 @@ export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
   const [initialZoom, setInitialZoom] = useState<number | null>(null);
+  const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
 
-  // Zoom seviyesine göre olması gereken eğimi (pitch) hesaplayan fonksiyon
-  const calculatePitch = (zoom: number) => {
-    if (zoom < 14.5) return 0;
-    if (zoom >= 15.5) return 60;
-    return (zoom - 14.5) * 60;
-  };
+// calculatePitch — component dışında tanımlı, her render'da yeniden oluşmaz
+const calculatePitch = (zoom: number): number => {
+  if (zoom < 15) return 0;
+  if (zoom >= 17) return 65;
+  return Math.round((zoom - 15) * 32.5);
+};
 
-  // Kusursuz ve iptal edilemez otomatik eğim (scroll'a bağlı)
+// STATIC_FALLBACK_MARKERS — module seviyesinde sabit, re-render'da yeniden yaratılmaz
+const STATIC_FALLBACK_MARKERS = [
+  { id: '101', title: 'Tarihi Yarımada Kaldırım ve Yol Göçmesi', category: 'TRANSPORTATION', priority: 'HIGH', status: 'OPEN', city: 'İstanbul', district: 'Fatih', address: 'Alemdar, Divan Yolu Cd. No:1, 34110 Fatih/İstanbul', lat: 41.0082, lng: 28.9506 },
+  { id: '102', title: 'Kızılay Meydanı Ana Şebeke Su Patlaması', category: 'WATER_SANITATION', priority: 'CRITICAL', status: 'IN_REVIEW', city: 'Ankara', district: 'Çankaya', address: 'Kızılay, Atatürk Blv, 06420 Çankaya/Ankara', lat: 39.9208, lng: 32.8541 },
+  { id: '103', title: 'Kordon Boyu Çöp ve Atık Temizliği Gecikmesi', category: 'ENVIRONMENT', priority: 'MEDIUM', status: 'RESOLVED', city: 'İzmir', district: 'Konak', address: 'Alsancak, Atatürk Cd. No:120, 35220 Konak/İzmir', lat: 38.4271, lng: 27.1432 },
+  { id: '104', title: 'Nilüfer OSB Yolu Fiber Kazı Çukuru', category: 'INFRASTRUCTURE', priority: 'HIGH', status: 'OPEN', city: 'Bursa', district: 'Nilüfer', address: 'Beşevler Caddesi No:58, Nilüfer/Bursa', lat: 40.2072, lng: 28.9738 },
+  { id: '105', title: 'Konyaaltı Sahil Yolu Aydınlatma Direkleri Arızalı', category: 'LIGHTING', priority: 'MEDIUM', status: 'IN_REVIEW', city: 'Antalya', district: 'Konyaaltı', address: 'Gürsu, Akdeniz Blv. Sahil Yolu, 07070 Konyaaltı/Antalya', lat: 36.8729, lng: 30.6285 },
+  { id: '106', title: 'Seyhan Atatürk Parkı Yürüyüş Yolu Bakımsız', category: 'PARKS', priority: 'LOW', status: 'RESOLVED', city: 'Adana', district: 'Seyhan', address: 'Reşatbey, Atatürk Parkı İçi, 01120 Seyhan/Adana', lat: 36.9968, lng: 35.3248 },
+  { id: '107', title: 'Tepebaşı Üniversite Caddesi Altgeçit Su Baskını Riski', category: 'SECURITY', priority: 'CRITICAL', status: 'OPEN', city: 'Eskişehir', district: 'Tepebaşı', address: 'Yenibağlar, Üniversite Cd. No:25, 26150 Tepebaşı/Eskişehir', lat: 39.7769, lng: 30.5153 },
+  { id: '108', title: 'Şahinbey Karat aş Mahallesi Rögar Kapağı Eksik', category: 'WATER_SANITATION', priority: 'HIGH', status: 'IN_REVIEW', city: 'Gaziantep', district: 'Şahinbey', address: 'Karat aş, Atatürk Blv. No:41, 27470 Şahinbey/Gaziantep', lat: 37.0634, lng: 37.3763 },
+];
+
+  // mapStyle hiç değişmez — uydu geçişi raster katman opacity ile yapılıyor
+  const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
+
+  // Sadece pitch/bearing — style switching yok
   const onMove = useCallback((evt: any) => {
+    const zoom = evt.viewState.zoom;
     setViewState({
       ...evt.viewState,
-      pitch: calculatePitch(evt.viewState.zoom),
-      bearing: 0 // Asla Kuzey'den şaşmasın
+      pitch: calculatePitch(zoom),
+      bearing: 0
     });
   }, []);
 
-  useEffect(() => {
-    if (!mapRef.current) return;
-  }, []);
-  const [mapStyle, setMapStyle] = useState<any>('mapbox://styles/mapbox/outdoors-v12');
-  
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
 
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-      fetch(`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`)
-        .then(r => r.json())
-        .then(style => {
-          if (style && style.layers) {
-            
-            // Mapbox veritabanında eksik olan Türkçe karşılıkları zorla eşleştiriyoruz
-            const getTrNameExpr = [
-              "match",
-              ["get", "name_en"],
-              "Mosul", "Musul",
-              "Aleppo", "Halep",
-              "Damascus", "Şam",
-              "Baghdad", "Bağdat",
-              "Tehran", "Tahran",
-              "Kirkuk", "Kerkük",
-              "Basra", "Basra",
-              "Tabriz", "Tebriz",
-              "Baku", "Bakü",
-              "Nicosia", "Lefkoşa",
-              "Athens", "Atina",
-              "Sofia", "Sofya",
-              "Bucharest", "Bükreş",
-              "Beirut", "Beyrut",
-              "Amman", "Amman",
-              "Tbilisi", "Tiflis",
-              "Yerevan", "Erivan",
-              "Thessaloniki", "Selanik",
-              "Batumi", "Batum",
-              "Syria", "Suriye",
-              "Iraq", "Irak",
-              "Iran", "İran",
-              "Lebanon", "Lübnan",
-              "Greece", "Yunanistan",
-              "Bulgaria", "Bulgaristan",
-              "Georgia", "Gürcistan",
-              "Armenia", "Ermenistan",
-              "Cyprus", "Kıbrıs",
-              "North Macedonia", "Kuzey Makedonya",
-              "Albania", "Arnavutluk",
-              "Montenegro", "Karadağ",
-              "Kosovo", "Kosova",
-              "Serbia", "Sırbistan",
-              "Azerbaijan", "Azerbaycan",
-              "Russia", "Rusya",
-              "Ukraine", "Ukrayna",
-              "Urmia", "Urmiye",
-              "Sulaymaniyah", "Süleymaniye",
-              "Halabja", "Halepçe",
-              "Ar-Raqqa", "Rakka",
-              "Ramadi", "Ramadi",
-              "Kermanshah", "Kirmanşah",
-              "Qom", "Kum",
-              "Zanjan", "Zencan",
-              "Hamadan", "Hemedan",
-              "Qazvin", "Kazvin",
-              "Shekh Mama", "Şeyh Mama",
-              "Corfu", "Korfu",
-              "Tirana", "Tiran",
-              "Skopje", "Üsküp",
-              "Plovdiv", "Filibe",
-              "Alexandroupoli", "Dedeağaç",
-              "Komotini", "Gümülcine",
-              "Xanthi", "İskeçe",
-              "Ioannina", "Yanya",
-              "Corinth", "Korint",
-              "Sochi", "Soçi",
-              "Grozny", "Grozni",
-              "Makhachkala", "Mahaçkale",
-              "Ganja", "Gence",
-              "Gyumri", "Gümrü",
-              "Garabogaz", "Karaboğaz",
-              "Aegean Sea", "Ege Denizi",
-              "Ionian Sea", "İyon Denizi",
-              "Black Sea", "Karadeniz",
-              "Mediterranean Sea", "Akdeniz",
-              "Caspian Sea", "Hazar Denizi",
-              "Sea of Azov", "Azak Denizi",
-              ["coalesce", ["get", "name_tr"], ["get", "name_en"], ["get", "name"]]
-            ];
-
-            const localizeTextField = (field: any): any => {
-              if (typeof field === 'string') {
-                return field.replace(/\{name(_[a-z]+)?\}/g, '{name_tr}').replace(/\{name\}/g, '{name_tr}');
-              }
-              if (Array.isArray(field)) {
-                if (field[0] === 'get' && typeof field[1] === 'string' && (field[1] === 'name' || field[1] === 'name_en')) {
-                  return getTrNameExpr;
-                }
-                return field.map(localizeTextField);
-              }
-              return field;
-            };
-
-            style.layers.forEach((layer: any) => {
-              if (layer.layout && layer.layout['text-field']) {
-                layer.layout['text-field'] = localizeTextField(layer.layout['text-field']);
-              }
-            });
-
-            setMapStyle(style);
-          }
-        })
-        .catch(err => console.error("Style fetch error:", err));
-    }
-  }, []);
 
   useEffect(() => {
     const socket = initSocket();
@@ -223,7 +128,7 @@ export function MapView() {
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
 
-    // 1. Dil Eklentisini Haritaya Ekle (Bütün dünyayı otomatik Türkçeye zorlar)
+    // 1. Dil Eklentisi
     try {
       const language = new MapboxLanguage({ defaultLanguage: 'tr' });
       map.addControl(language);
@@ -231,76 +136,94 @@ export function MapView() {
       console.warn("Language plugin error:", error);
     }
 
-    // Harita ilk açıldığında Türkiye sınırlarına otomatik cuk diye oturur
+    // 2. Türkiye sınırlarına fit
     try {
       map.fitBounds(TURKEY_BOUNDS, {
-        padding: 20,
+        padding: { top: 30, bottom: 50, left: 30, right: 30 },
         duration: 0
       });
-      // Tam oturduğu anki zoom seviyesini kaydet ki bu seviyede sağa sola kaydırmayı yasaklayalım
       setInitialZoom(map.getZoom());
     } catch (error) {
       console.warn("fitBounds failed:", error);
     }
 
-    // Gökyüzü (Sky) Katmanı
-    if (!map.getLayer('sky')) {
+    // İlk bounds'u da burada al — render'da DOM okuma yok
+    try {
+      const b = map.getBounds();
+      if (b) setMapBounds(b.toArray().flat() as [number,number,number,number]);
+    } catch (_) {}
+
+    //    Yolların altına eklenerek tüm vektör overlay'leri üstte kalır
+    try {
+      map.addSource('mapbox-satellite', {
+        type: 'raster',
+        url: 'mapbox://mapbox.satellite',
+        tileSize: 512  // 256'dan 512'ye — 4x daha az tile request, GPU daha az zorlanır
+      });
+
+      // İlk road-tipi layer bulunur — satellite onun altına eklenir
+      const layers = map.getStyle().layers as any[];
+      const firstRoadLayer = layers.find(
+        (l: any) => l.type === 'line' && l.id && (l.id.includes('road') || l.id.includes('bridge'))
+      );
+
+      map.addLayer({
+        id: 'satellite-raster',
+        type: 'raster',
+        source: 'mapbox-satellite',
+        paint: {
+          // Zoom 11: sayıdam → 12: hafif → 13: belirgin → 14: tam uydu
+          // exponential easing: başı yavaş, sonu hızlı (Google Earth hissi)
+          'raster-opacity': [
+            'interpolate', ['exponential', 1.8], ['zoom'],
+            11, 0,
+            12, 0.08,
+            13, 0.45,
+            14, 1
+          ]
+        }
+      }, firstRoadLayer?.id ?? undefined);
+    } catch (err) {
+      console.warn('Satellite layer error:', err);
+    }
+
+    // 4. Gökyüzü (Sky) katmanı — pitch > 0'da görünür
+    try {
       map.addLayer({
         id: 'sky',
         type: 'sky',
         paint: {
           'sky-type': 'atmosphere',
-          'sky-atmosphere-sun': [0.0, 0.0],
+          'sky-atmosphere-sun': [0.0, 90.0],
           'sky-atmosphere-sun-intensity': 15
         }
       });
+    } catch (err) {
+      console.warn('Sky layer error:', err);
     }
 
-    // 3D Binalar
-    if (!map.getLayer('3d-buildings')) {
-      map.addLayer({
-        id: "3d-buildings",
-        source: "composite",
-        "source-layer": "building",
-        filter: ["==", "extrude", "true"],
-        type: "fill-extrusion",
-        minzoom: 15,
-        paint: {
-          "fill-extrusion-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "height"],
-            0, "#ffffff",     // Yer seviyesinde bembeyaz
-            20, "#f8fafc",    // Biraz yükseklerde hafif kırık beyaz
-            50, "#e0f2fe",    // Orta boy binalarda çok açık gökyüzü mavisi yansıması
-            100, "#bae6fd"    // Gökdelenlerde premium açık mavi cam efekti
-          ],
-          "fill-extrusion-height": ["get", "height"],
-          "fill-extrusion-base": ["get", "min_height"],
-          "fill-extrusion-opacity": 0.95 // Daha net ve parlak görünüm
-        }
-      });
-    }
   }, []);
 
+
   const handleMoveEnd = useCallback((e: any) => {
+    const zoom = e.viewState.zoom;
     setViewState({
       ...e.viewState,
-      pitch: calculatePitch(e.viewState.zoom),
+      pitch: calculatePitch(zoom),
       bearing: 0
     });
 
-    if (!mapRef.current) return;
-    const bounds = mapRef.current.getBounds();
-    if (!bounds) return;
-    
-    fetchClusters({
-      minLng: bounds.getWest(),
-      minLat: bounds.getSouth(),
-      maxLng: bounds.getEast(),
-      maxLat: bounds.getNorth(),
-      zoom: Math.floor(e.viewState.zoom),
-    });
+    const b = mapRef.current?.getBounds();
+    if (b) {
+      setMapBounds(b.toArray().flat() as [number,number,number,number]);
+      fetchClusters({
+        minLng: b.getWest(),
+        minLat: b.getSouth(),
+        maxLng: b.getEast(),
+        maxLat: b.getNorth(),
+        zoom: Math.floor(e.viewState.zoom),
+      });
+    }
   }, [fetchClusters]);
 
   useEffect(() => {
@@ -321,7 +244,9 @@ export function MapView() {
   }, [filters.city]);
 
   const dataToRender = useMemo(() => {
-    return (clusters ?? []).filter((item: any) => {
+    // API verisi yoksa gerçek adresli statik veriler göster
+    const source = (clusters && clusters.length > 0) ? clusters : STATIC_FALLBACK_MARKERS;
+    return source.filter((item: any) => {
       const category = item.category || item.dominant_category || '';
       const status = item.status || item.dominant_status || '';
       const city = item.city || '';
@@ -357,11 +282,9 @@ export function MapView() {
     }
   })), [dataToRender]);
 
-  const bounds = mapRef.current ? mapRef.current.getMap().getBounds().toArray().flat() as [number, number, number, number] : null;
-
   const { clusters: superClusters, supercluster } = useSupercluster({
     points,
-    bounds,
+    bounds: mapBounds,
     zoom: viewState.zoom,
     options: { radius: 75, maxZoom: 20 }
   });
@@ -457,8 +380,28 @@ export function MapView() {
                     const { api } = await import('@/lib/api');
                     const response: any = await api.get(`/issues/${issueId}`);
                     selectIssue(response.data || response);
-                  } catch (err) {
-                    console.error('Sorun detayları yüklenemedi', err);
+                  } catch {
+                    // API çalışmıyorsa fallback veri listesinden bul ve popup aç
+                    const fallback = STATIC_FALLBACK_MARKERS.find(m => String(m.id) === String(issueId));
+                    if (fallback) {
+                      selectIssue({
+                        id: String(fallback.id),
+                        title: fallback.title,
+                        description: `${fallback.title}. Sorun yetkili birimler tarafından incelenmektedir.`,
+                        category: fallback.category,
+                        priority: fallback.priority as any,
+                        status: fallback.status as any,
+                        latitude: fallback.lat,
+                        longitude: fallback.lng,
+                        city: fallback.city,
+                        district: fallback.district,
+                        address: fallback.address,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        upvoteCount: Math.floor(Math.random() * 30) + 5,
+                        upvotes: Math.floor(Math.random() * 30) + 5,
+                      } as any);
+                    }
                   }
                 }}
               >

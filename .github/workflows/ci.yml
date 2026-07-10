@@ -1,4 +1,4 @@
-name: ChaosMind Continuous Integration (CI)
+name: Etiya Project Continuous Integration (CI)
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
-          tags: chaosmind-backend:ci-test
+          tags: etiya-project-backend:ci-test
 
       - name: Test Build Frontend Docker Image
         uses: docker/build-push-action@v5
@@ -82,4 +82,4 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
-          tags: chaosmind-frontend:ci-test
+          tags: etiya-project-frontend:ci-test

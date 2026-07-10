@@ -147,7 +147,7 @@ export async function checkOpenAIModerationAPI(text: string): Promise<Moderation
 // KATMAN 3: Semantik LLM Guardrail (Troller, Siyasi/Dini Şakalar, Sahte İhbarlar)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GUARDRAIL_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (ChaosMind) platformunun sıfır toleranslı AI güvenlik denetçisisin.
+const GUARDRAIL_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (Etiya Project) platformunun sıfır toleranslı AI güvenlik denetçisisin.
 Görevin, kullanıcının girdiği ihbar metnini (form veya chatbot) inceleyerek geçerli bir kentsel/altyapı/çevre sorunu olup olmadığını doğrulamaktır.
 
 REDDETMEN GEREKEN DURUMLAR:

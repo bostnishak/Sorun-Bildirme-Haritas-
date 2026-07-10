@@ -38,7 +38,7 @@ export function AiChatbotWidget() {
     {
       id: '1',
       sender: 'ai',
-      text: 'Merhaba! Ben ChaosMind Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
+      text: 'Merhaba! Ben Etiya Project Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
     },
   ]);
   const [input, setInput] = useState('');

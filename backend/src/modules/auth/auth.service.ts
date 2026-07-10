@@ -475,7 +475,7 @@ export const authService = {
 
   async generate2FA(userId: string, email: string) {
     const secret = speakeasy.generateSecret({
-      name: `ChaosMind (${email})`,
+      name: `Etiya Project (${email})`,
     });
 
     await prisma.user.update({

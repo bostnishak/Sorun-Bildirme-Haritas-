@@ -137,13 +137,13 @@ export const adminService = {
     }
 
     const testPayload = {
-      event: 'chaosmind.webhook.test',
+      event: 'etiya-project.webhook.test',
       timestamp: new Date().toISOString(),
       version: '1.0',
       data: {
         institutionId: institution.id,
         institutionName: institution.name,
-        message: 'Bu bir ChaosMind 153 Beyaz Masa Entegrasyon test bildirimidir.',
+        message: 'Bu bir Etiya Project 153 Beyaz Masa Entegrasyon test bildirimidir.',
       },
     };
 

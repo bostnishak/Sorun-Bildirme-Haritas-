@@ -3,18 +3,18 @@ import { QueryProvider } from './providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'ChaosMind — Türkiye Sorun Bildirim Haritası',
+  title: 'Etiya Project — Türkiye Sorun Bildirim Haritası',
   description: 'Şehrinizdeki sorunları harita üzerinde anlık bildirin ve belediye/kurum çözüm sürecini şeffafça takip edin.',
-  keywords: ['sorun bildirim', 'belediye', 'harita', 'kentsel sorun', 'türkiye', 'chaosmind'],
-  authors: [{ name: 'ChaosMind Team' }],
+  keywords: ['sorun bildirim', 'belediye', 'harita', 'kentsel sorun', 'türkiye', 'etiya-project'],
+  authors: [{ name: 'Etiya Project Team' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ChaosMind',
+    title: 'Etiya Project',
   },
   openGraph: {
-    title: 'ChaosMind — Türkiye Sorun Bildirim Haritası',
+    title: 'Etiya Project — Türkiye Sorun Bildirim Haritası',
     description: 'Şehir sorunlarını anlık bildirin ve takip edin.',
     type: 'website',
     locale: 'tr_TR',

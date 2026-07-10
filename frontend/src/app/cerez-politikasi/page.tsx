@@ -19,7 +19,7 @@ export default function CerezPolitikasiPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0 }}>Çerez (Cookie) Politikası</h1>
         </div>
         <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6 }}>
-          Türkiye Sorun Bildirim Haritası (ChaosMind) platformunu ziyaretiniz sırasında kullanıcı deneyiminizin iyileştirilmesi,
+          Türkiye Sorun Bildirim Haritası (Etiya Project) platformunu ziyaretiniz sırasında kullanıcı deneyiminizin iyileştirilmesi,
           oturumuzun güvenle sürdürülmesi ve anonim site kullanım istatistiklerinin toplanması amacıyla çerezler kullanılmaktadır.
         </p>
 

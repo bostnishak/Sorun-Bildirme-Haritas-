@@ -12,7 +12,7 @@ export interface WebhookPayload {
 
 /**
  * HMAC-SHA256 imzası oluşturur
- * Alıcı sistem imzayı doğrulayarak isteğin gerçekten ChaosMind'dan geldiğini anlar
+ * Alıcı sistem imzayı doğrulayarak isteğin gerçekten Etiya Project'dan geldiğini anlar
  */
 export function generateWebhookSignature(payload: WebhookPayload): string {
   const body = JSON.stringify(payload);
@@ -36,10 +36,10 @@ export async function dispatchWebhook(
     const response = await axios.post(url, body, {
       headers: {
         'Content-Type': 'application/json',
-        'X-ChaosMind-Signature': `sha256=${signature}`,
-        'X-ChaosMind-Event': payload.event,
-        'X-ChaosMind-Timestamp': payload.timestamp,
-        'User-Agent': 'ChaosMind-Webhook/1.0',
+        'X-Etiya Project-Signature': `sha256=${signature}`,
+        'X-Etiya Project-Event': payload.event,
+        'X-Etiya Project-Timestamp': payload.timestamp,
+        'User-Agent': 'Etiya Project-Webhook/1.0',
       },
       timeout: 15000,
       maxRedirects: 3,

@@ -1,4 +1,4 @@
-# ChaosMind — Yatırımcı Sunumu & Yönetici Özeti (Pitch Deck)
+# Etiya Project — Yatırımcı Sunumu & Yönetici Özeti (Pitch Deck)
 
 > **"Türkiye'nin Yeni Nesil, Yapay Zeka Destekli ve Harita Tabanlı Kentsel Çözüm ve Şeffaf Katılım Platformu"**
 
@@ -13,9 +13,9 @@
 
 ---
 
-## 2. ChaosMind Çözümü & Değer Önerisi
+## 2. Etiya Project Çözümü & Değer Önerisi
 
-**ChaosMind**, vatandaşlar ile yerel yönetimler arasında **akıllı, doğrulanmış ve gerçek zamanlı** bir köprü kurar:
+**Etiya Project**, vatandaşlar ile yerel yönetimler arasında **akıllı, doğrulanmış ve gerçek zamanlı** bir köprü kurar:
 
 - **📍 PostGIS Coğrafi Sınır Otomasyonu:** Bildirilen sorunun koordinatı (`ST_Within`), Türkiye'nin 81 ilindeki kurumsal poligonlarla eşleştirilerek doğrudan sorumlu kuruma yönlendirilir.
 - **🤖 AI LLM Guard & EXIF Doğrulama:** Yüklenen görsellerin GPS metaverileri ile harita seçimi karşılaştırılır; yapay zeka ile küfürlü, ilgisiz veya sahte içerikler otomatik filtrelenir.

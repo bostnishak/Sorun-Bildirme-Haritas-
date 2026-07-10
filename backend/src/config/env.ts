@@ -19,7 +19,7 @@ const envSchema = z.object({
   MINIO_USE_SSL: z.string().default('false').transform(v => v === 'true'),
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(1),
-  MINIO_BUCKET: z.string().default('chaosmap-media'),
+  MINIO_BUCKET: z.string().default('etiya-project-media'),
   MINIO_PUBLIC_URL: z.string().url().default('http://localhost:9000'),
 
   // JWT
@@ -43,7 +43,7 @@ const envSchema = z.object({
   SMTP_PORT: z.string().default('587').transform(Number),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  EMAIL_FROM: z.string().default('ChaosMind <noreply@chaosmap.tr>'),
+  EMAIL_FROM: z.string().default('Etiya Project <noreply@etiya-project.tr>'),
 
   // Webhooks
   WEBHOOK_HMAC_SECRET: z.string().default('dev_secret_key_1234'),

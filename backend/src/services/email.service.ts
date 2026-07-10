@@ -25,7 +25,7 @@ export const emailService = {
 
     try {
       await transporter.sendMail({
-        from: env.EMAIL_FROM || '"Sorun Haritası" <noreply@chaosmap.tr>',
+        from: env.EMAIL_FROM || '"Sorun Haritası" <noreply@etiya-project.tr>',
         to: email,
         subject: 'Sorun Haritası — E-posta Doğrulama Kodu: ' + code,
         html: htmlContent,
@@ -66,7 +66,7 @@ export const emailService = {
 
     try {
       await transporter.sendMail({
-        from: env.EMAIL_FROM || '"Sorun Haritası" <noreply@chaosmap.tr>',
+        from: env.EMAIL_FROM || '"Sorun Haritası" <noreply@etiya-project.tr>',
         to: email,
         subject: 'Sorun Haritası — Şifre Sıfırlama Bağlantısı',
         html: htmlContent,

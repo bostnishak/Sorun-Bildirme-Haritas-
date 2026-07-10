@@ -18,7 +18,7 @@ export const logger = winston.createLogger({
     errors({ stack: true }),
     json(),
   ),
-  defaultMeta: { service: 'chaosmap-api' },
+  defaultMeta: { service: 'etiya-project-api' },
   transports: [
     new winston.transports.File({
       filename: path.join(logDir, 'error.log'),
@@ -39,7 +39,7 @@ if (process.env.LOKI_HOST) {
   logger.add(
     new LokiTransport({
       host: process.env.LOKI_HOST,
-      labels: { app: 'chaosmap-backend' },
+      labels: { app: 'etiya-project-backend' },
       json: true,
       format: winston.format.json(),
       replaceTimestamp: true,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chaosmind-v1';
+const CACHE_NAME = 'etiya-project-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

@@ -1,4 +1,4 @@
-name: ChaosMind Automated Staging Deployment
+name: Etiya Project Automated Staging Deployment
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            cd /opt/chaosmind
+            cd /opt/etiya-project
             docker compose pull
             docker compose up -d --remove-orphans
             docker system prune -f

@@ -1,13 +1,27 @@
+/* ─── Overlay ─────────────────────────────────────────────────────────────── */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
+  z-index: var(--z-modal, 1000);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  /* Haritanın ortasında soft bir blur gölgesi */
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    rgba(15, 23, 42, 0.28) 0%,
+    rgba(15, 23, 42, 0.12) 55%,
+    transparent 100%
+  );
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: overlayIn 0.22s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @media (min-width: 768px) {
@@ -15,117 +29,233 @@
     align-items: center;
     justify-content: flex-end;
     padding: 24px;
+    /* Desktop'ta sağa yaslanınca blur da sağa kayar */
+    background: radial-gradient(
+      ellipse 55% 70% at 72% 50%,
+      rgba(15, 23, 42, 0.22) 0%,
+      rgba(15, 23, 42, 0.08) 55%,
+      transparent 100%
+    );
   }
 }
 
+/* ─── Popup Kartı — Light/White Glassmorphism ─────────────────────────────── */
 .popup {
+  position: relative;
   width: 100%;
   max-width: 400px;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  max-height: 85vh;
+  max-height: 88vh;
   overflow-y: auto;
+  border-radius: var(--radius-xl);
+  /* Beyaz cam efekti */
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(29, 78, 216, 0.12);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    0 24px 64px rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+  animation: popupIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  scrollbar-width: none;
 }
 
+.popup::-webkit-scrollbar { display: none; }
+
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ─── Üst Renk Şeridi ─────────────────────────────────────────────────────── */
+.colorStrip {
+  height: 4px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* ─── Kapat Butonu ────────────────────────────────────────────────────────── */
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: var(--color-open);
+  transform: rotate(90deg);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 20px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 18px 52px 12px 18px;
 }
 
 .categoryIcon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-surface-3);
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
   flex-shrink: 0;
 }
 
 .headerInfo { flex: 1; min-width: 0; }
 
+.idBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
 .title {
   font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin: 0 0 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
-.location {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.closeBtn {
-  background: var(--color-surface-3);
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+/* ─── Adres Bandı ─────────────────────────────────────────────────────────── */
+.addressBand {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 18px 12px;
   font-size: 12px;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.closeBtn:hover {
-  background: var(--color-open-bg);
-  color: var(--color-open);
+.addressBand svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ─── Rozet Grubu ─────────────────────────────────────────────────────────── */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border);
 }
 
+.statusBadge,
+.priorityBadge,
+.catBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ─── Fotoğraf ────────────────────────────────────────────────────────────── */
 .imageWrapper {
-  position: relative;
-  height: 180px;
+  height: 160px;
   overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
 }
-
 .image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.body { padding: 20px; }
-
+/* ─── Açıklama ────────────────────────────────────────────────────────────── */
 .description {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+.description p {
   font-size: 13px;
   color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: 16px;
+  line-height: 1.65;
+  margin: 0;
 }
 
+/* ─── Meta Bilgiler ───────────────────────────────────────────────────────── */
 .meta {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 14px 18px 18px;
+}
+
+.metaRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .metaItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
 }
 
 .metaLabel {
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--color-text-muted);
-  font-weight: 500;
+  margin-bottom: 5px;
 }
 
 .metaValue {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-text-primary);
-  font-weight: 500;
 }
+
+.upvoteRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--color-primary-muted);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.upvoteRow svg { color: var(--color-primary); }

@@ -86,7 +86,7 @@ async function main() {
       tcKimlikHash: '33333333333',
       firstName: 'Sistem',
       lastName: 'Yöneticisi',
-      email: 'admin@chaosmap.com',
+      email: 'admin@etiya-project.com',
       passwordHash: hashedPassword,
       role: 'SUPER_ADMIN',
     },

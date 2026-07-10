@@ -10,7 +10,7 @@ const traceExporter = new OTLPTraceExporter({
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'chaosmap-backend',
+    [SemanticResourceAttributes.SERVICE_NAME]: 'etiya-project-backend',
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
   }),
   traceExporter,

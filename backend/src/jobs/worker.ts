@@ -1,6 +1,6 @@
 /**
  * Worker Entry Point
- * Bu dosya ayrı bir Docker container'da (chaosmap-worker) çalışır.
+ * Bu dosya ayrı bir Docker container'da (etiya-project-worker) çalışır.
  * API sunucusundan bağımsız olarak tüm arka plan işlerini yönetir.
  */
 
@@ -27,7 +27,7 @@ import { dailyReportCron } from './schedulers/dailyReport.cron';
 import { ensureBucketExists } from '../services/storage.service';
 
 async function main() {
-  logger.info('🚀 ChaosMind Worker başlatılıyor...');
+  logger.info('🚀 Etiya Project Worker başlatılıyor...');
 
   // MinIO bucket hazırlığı
   await ensureBucketExists();

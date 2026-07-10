@@ -1,4 +1,4 @@
-# 🗺️ ChaosMind — Türkiye Sorun Bildirim Haritası
+# 🗺️ Etiya Project — Türkiye Sorun Bildirim Haritası
 
 > **Vatandaşların şehir sorunlarını anlık olarak bildirebildiği, yetkili kurumların bu sorunları sistematik şekilde yönettiği ve çözüm sürecinin şeffaf biçimde takip edilebildiği merkezi dijital platform.**
 
@@ -10,7 +10,7 @@
 
 ## 📌 Proje Hakkında
 
-ChaosMind, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur. Detaylı yatırımcı ve iş modeli dokümanı için **[PITCH_DECK.md](./PITCH_DECK.md)** dosyasını inceleyebilirsiniz.
+Etiya Project, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, su kaçağı, sokak lambası arızası vb.) vatandaşların coğrafi olarak bildirebildiği, yetkili belediye ve kamu kurumlarının bu bildirimleri **PostGIS tabanlı bölge yönetimi** ile yönetebildiği ve çözüm sürecinin şeffaf şekilde takip edilebildiği tam yığın bir web platformudur. Detaylı yatırımcı ve iş modeli dokümanı için **[PITCH_DECK.md](./PITCH_DECK.md)** dosyasını inceleyebilirsiniz.
 
 ### 🎯 Rol Yapısı
 
@@ -115,7 +115,7 @@ cp .env.example .env
 `.env` dosyasındaki zorunlu değerleri doldurun:
 
 ```env
-DB_USER=chaosmap_user
+DB_USER=etiya-project_user
 DB_PASSWORD=<guclu_sifre>
 REDIS_PASSWORD=<guclu_sifre>
 MINIO_USER=minioadmin
@@ -135,13 +135,13 @@ docker compose up -d
 ```
 
 Çalışan servisler:
-- `chaosmap-db`    — PostgreSQL 16 + PostGIS 3.4
-- `chaosmap-redis` — Redis 7.2
-- `chaosmap-minio` — MinIO Object Storage
-- `chaosmap-api`   — Backend API (:3001)
-- `chaosmap-worker`— Background Worker
-- `chaosmap-web`   — Frontend (:3000)
-- `chaosmap-nginx` — Reverse Proxy (:80/:443)
+- `etiya-project-db`    — PostgreSQL 16 + PostGIS 3.4
+- `etiya-project-redis` — Redis 7.2
+- `etiya-project-minio` — MinIO Object Storage
+- `etiya-project-api`   — Backend API (:3001)
+- `etiya-project-worker`— Background Worker
+- `etiya-project-web`   — Frontend (:3000)
+- `etiya-project-nginx` — Reverse Proxy (:80/:443)
 
 ### 3. Veritabanı migrasyonları
 
@@ -227,7 +227,7 @@ npm run dev        # Next.js — port 3000
 | LLM İçerik Denetimi | GPT-4o-mini ile sahte/uygunsuz içerik filtreleme |
 | EXIF Doğrulama | Konum sapması >= 5 km ise işaretlenir |
 | Görsel Gizlilik | Google Vision ile yüz + plaka bulanıklaştırma |
-| Webhook HMAC | X-ChaosMind-Signature: sha256=<hmac> |
+| Webhook HMAC | X-Etiya Project-Signature: sha256=<hmac> |
 | HTTPS Only | Nginx TLS 1.2+; HTTP -> HTTPS redirect |
 | PostGIS Yetki | Kurum yetkilisi sadece kendi poligonundaki sorunları görür |
 

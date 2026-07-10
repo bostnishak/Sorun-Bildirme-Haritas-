@@ -2,38 +2,38 @@ import client from 'prom-client';
 import { Request, Response, NextFunction } from 'express';
 
 // Varsayılan Node.js metriklerini topla (memory, event loop vs)
-client.collectDefaultMetrics({ prefix: 'chaosmap_' });
+client.collectDefaultMetrics({ prefix: 'etiya_project_' });
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 
 export const httpRequestDurationMicroseconds = new client.Histogram({
-  name: 'chaosmap_http_request_duration_ms',
+  name: 'etiya_project_http_request_duration_ms',
   help: 'HTTP istek süreleri (ms cinsinden)',
   labelNames: ['method', 'route', 'code'],
   buckets: [10, 50, 100, 300, 500, 1000, 3000, 5000],
 });
 
 export const activeIssuesGauge = new client.Gauge({
-  name: 'chaosmap_active_issues_total',
+  name: 'etiya_project_active_issues_total',
   help: 'Sistemdeki aktif sorun sayısı',
   labelNames: ['status', 'category'],
 });
 
 export const aiModerationDurationHistogram = new client.Histogram({
-  name: 'chaosmap_ai_duration_ms',
+  name: 'etiya_project_ai_duration_ms',
   help: 'AI Moderasyon ve işlem süreleri (ms)',
   labelNames: ['layer', 'model'],
   buckets: [50, 100, 300, 500, 1000, 2000, 5000, 10000],
 });
 
 export const openAITokensTotal = new client.Counter({
-  name: 'chaosmap_openai_tokens_total',
+  name: 'etiya_project_openai_tokens_total',
   help: 'OpenAI toplam token tüketimi',
   labelNames: ['model', 'purpose'],
 });
 
 export const openAIGuardrailFailureTotal = new client.Counter({
-  name: 'chaosmap_openai_guardrail_failure_total',
+  name: 'etiya_project_openai_guardrail_failure_total',
   help: 'OpenAI Semantic Guardrail hatalarının toplam sayısı',
   labelNames: ['reason'],
 });

@@ -1,7 +1,7 @@
 version: "3.9"
 
 networks:
-  chaosmap-net:
+  etiya-project-net:
     driver: bridge
 
 volumes:
@@ -13,23 +13,23 @@ services:
   # ─── DATABASE ──────────────────────────────────────────────────────────────
   postgres:
     image: postgis/postgis:16-3.4
-    container_name: chaosmap-db-dev
+    container_name: etiya-project-db-dev
     restart: unless-stopped
     environment:
-      POSTGRES_DB: chaosmap
-      POSTGRES_USER: ${DB_USER:-chaosmap_user}
+      POSTGRES_DB: etiya-project
+      POSTGRES_USER: ${DB_USER:-etiya-project_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-change_this_strong_password}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
-      - chaosmap-net
+      - etiya-project-net
 
   # ─── CACHE ─────────────────────────────────────────────────────────────────
   redis:
     image: redis:7.2-alpine
-    container_name: chaosmap-redis-dev
+    container_name: etiya-project-redis-dev
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-change_this_redis_password} --appendonly yes
     volumes:
@@ -37,12 +37,12 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - chaosmap-net
+      - etiya-project-net
 
   # ─── OBJECT STORAGE ──────────────────────────────────────────────────────────
   minio:
     image: minio/minio:latest
-    container_name: chaosmap-minio-dev
+    container_name: etiya-project-minio-dev
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -54,4 +54,4 @@ services:
       - "9000:9000" # S3 API
       - "9001:9001" # MinIO Console
     networks:
-      - chaosmap-net
+      - etiya-project-net
