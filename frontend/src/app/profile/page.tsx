@@ -2,8 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { useAppStore } from '@/store/useAppStore';
 import { profileApi, issuesApi } from '@/lib/api';
+import Header from '@/components/layout/Header';
+import { ReportModalClient } from '../client-components';
 import styles from './Profile.module.css';
 
 type Tab = 'info' | 'password' | 'avatar' | 'notifications';
@@ -179,8 +182,11 @@ export default function ProfilePage() {
 
   /* ─── Render ────────────────────────────────────────────────────────────── */
   return (
-    <div className={styles.profilePage}>
-      <div className={styles.profileContainer}>
+    <>
+      <Header />
+      <ReportModalClient />
+      <div className={styles.profilePage}>
+        <div className={styles.profileContainer}>
 
         {/* ── Sidebar ── */}
         <aside className={styles.sidebar}>
@@ -465,6 +471,7 @@ export default function ProfilePage() {
 
         </main>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

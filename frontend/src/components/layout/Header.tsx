@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import {
   IconMapPin, IconMap, IconTable, IconPlus,
@@ -9,6 +10,8 @@ import {
 import styles from './Header.module.css';
 
 export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, logout, activeView, setActiveView, setReportModalOpen } =
     useAppStore();
 
@@ -46,7 +49,10 @@ export function Header() {
         <button
           id="view-map"
           className={`${styles.viewBtn} ${activeView === 'map' ? styles.viewBtnActive : ''}`}
-          onClick={() => setActiveView('map')}
+          onClick={() => {
+            setActiveView('map');
+            if (pathname !== '/') router.push('/');
+          }}
         >
           <IconMap size={15} />
           <span>Harita</span>
@@ -54,7 +60,10 @@ export function Header() {
         <button
           id="view-table"
           className={`${styles.viewBtn} ${activeView === 'table' ? styles.viewBtnActive : ''}`}
-          onClick={() => setActiveView('table')}
+          onClick={() => {
+            setActiveView('table');
+            if (pathname !== '/') router.push('/');
+          }}
         >
           <IconTable size={15} />
           <span>Tablo</span>

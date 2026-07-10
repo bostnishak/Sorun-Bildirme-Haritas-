@@ -1,7 +1,7 @@
 .profilePage {
   min-height: calc(100vh - 64px);
   background: linear-gradient(135deg, #f0f4ff 0%, #e8effd 50%, #f5f0ff 100%);
-  padding: 40px 24px;
+  padding: 100px 24px 40px;
   font-family: 'Inter', 'Outfit', system-ui, sans-serif;
 }
 
