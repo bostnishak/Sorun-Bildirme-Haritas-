@@ -266,13 +266,14 @@
 
 @media (max-width: 768px) {
   .sidebar {
-    position: absolute;
+    position: fixed;
     left: -280px;
     top: 0;
     bottom: 0;
     width: 260px;
     transition: left 0.3s ease;
     box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    z-index: 1000;
   }
 
   .sidebar.open {
@@ -289,6 +290,7 @@
 
   .overlay {
     display: block;
+    z-index: 999;
   }
 
   .closeBtn {
