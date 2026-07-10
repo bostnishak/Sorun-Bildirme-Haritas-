@@ -128,10 +128,16 @@ const STATIC_FALLBACK_MARKERS = [
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
 
-    // 1. Dil Eklentisi
+    // 1. Dil Eklentisi (Tüm dünyayı Türkçe yapmaya zorlar)
     try {
       const language = new MapboxLanguage({ defaultLanguage: 'tr' });
       map.addControl(language);
+      
+      // SSR veya React Map GL gecikmesinden dolayı event kaçarsa diye manuel tetikliyoruz
+      const currentStyle = map.getStyle();
+      if (currentStyle) {
+        map.setStyle(language.setLanguage(currentStyle, 'tr'));
+      }
     } catch (error) {
       console.warn("Language plugin error:", error);
     }
