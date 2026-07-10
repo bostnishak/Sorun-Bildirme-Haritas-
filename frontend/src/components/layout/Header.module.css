@@ -163,7 +163,12 @@
   }
 
   .viewBtn {
-    padding: 6px;
+    padding: 8px;
+  }
+
+  .viewBtn svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .userInfo {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import {
-  IconFilter, CATEGORY_ICON_MAP, CATEGORY_COLORS, CATEGORY_LABELS,
+  IconFilter, IconMenu, CATEGORY_ICON_MAP, CATEGORY_COLORS, CATEGORY_LABELS,
   IconAlertCircle, IconClock, IconCheckCircle,
 } from '@/components/ui/Icon';
 import styles from './FilterSidebar.module.css';
@@ -47,9 +47,9 @@ export function FilterSidebar() {
       <button 
         className={`${styles.mobileToggle} ${isOpen ? styles.hidden : ''}`}
         onClick={() => setIsOpen(true)}
+        aria-label="Menüyü Aç"
       >
-        <IconFilter size={18} />
-        <span>Filtreler</span>
+        <IconMenu size={22} />
       </button>
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
