@@ -49,7 +49,7 @@ export function Header() {
           onClick={() => setActiveView('map')}
         >
           <IconMap size={15} />
-          <span>Harita Görünümü</span>
+          <span>Harita</span>
         </button>
         <button
           id="view-table"
@@ -57,7 +57,7 @@ export function Header() {
           onClick={() => setActiveView('table')}
         >
           <IconTable size={15} />
-          <span>Tablo Görünümü</span>
+          <span>Tablo</span>
         </button>
       </div>
 
