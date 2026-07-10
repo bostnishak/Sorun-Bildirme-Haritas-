@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import {
   IconFilter, CATEGORY_ICON_MAP, CATEGORY_COLORS, CATEGORY_LABELS,
@@ -27,6 +28,7 @@ const MAIN_CATEGORIES = [
 
 export function FilterSidebar() {
   const { filters, setFilter, clearFilters } = useAppStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleCategoryClick = (key: string) => {
     if (filters.category === key) {
@@ -37,11 +39,29 @@ export function FilterSidebar() {
   };
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.header}>
-        <IconFilter size={15} />
-        <h2 className={styles.title}>Filtreler</h2>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && <div className={styles.overlay} onClick={() => setIsOpen(false)} />}
+      
+      {/* Mobile Toggle Button */}
+      <button 
+        className={`${styles.mobileToggle} ${isOpen ? styles.hidden : ''}`}
+        onClick={() => setIsOpen(true)}
+      >
+        <IconFilter size={18} />
+        <span>Filtreler</span>
+      </button>
+
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+        <div className={styles.header}>
+          <div className={styles.headerTitleWrap}>
+            <IconFilter size={15} />
+            <h2 className={styles.title}>Filtreler</h2>
+          </div>
+          <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
+            &times;
+          </button>
+        </div>
 
       <div className={styles.filters}>
         {/* Kategori */}
@@ -143,5 +163,6 @@ export function FilterSidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

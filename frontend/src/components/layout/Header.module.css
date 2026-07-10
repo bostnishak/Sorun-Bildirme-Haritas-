@@ -152,3 +152,34 @@
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+@media (max-width: 768px) {
+  .logoName {
+    display: none;
+  }
+
+  .viewToggle span {
+    display: none;
+  }
+
+  .viewBtn {
+    padding: 6px;
+  }
+
+  .userInfo {
+    display: none;
+  }
+
+  /* Hide "Kurumsal Paketler" link which is the first anchor in actions */
+  .actions > a[href="/pricing"] {
+    display: none;
+  }
+
+  #btn-report-issue span {
+    display: none;
+  }
+  
+  #btn-report-issue {
+    padding: 8px 10px;
+  }
+}
