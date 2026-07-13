@@ -118,7 +118,7 @@ interface AppStore {
   }) => Promise<void>;
   logout: () => Promise<void>;
   fetchClusters: (bbox: BoundingBox, force?: boolean) => Promise<void>;
-  selectIssue: (issue: Issue | null) => void;
+  selectIssue: (issueOrId: Issue | string | number | null) => Promise<void>;
   setReportModalOpen: (open: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setActiveView: (view: 'map' | 'table') => void;
@@ -229,7 +229,24 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      selectIssue: (issue) => set({ selectedIssue: issue }),
+      selectIssue: async (issueOrId) => {
+        if (!issueOrId) {
+          set({ selectedIssue: null });
+          return;
+        }
+        if (typeof issueOrId === 'string' || typeof issueOrId === 'number') {
+          try {
+            const response = await issuesApi.getById(issueOrId.toString()) as any;
+            const issueData = response.data ?? response;
+            set({ selectedIssue: issueData });
+          } catch (err) {
+            console.error('İhbar detayı yüklenirken hata oluştu:', err);
+            set({ selectedIssue: null });
+          }
+        } else {
+          set({ selectedIssue: issueOrId as Issue });
+        }
+      },
 
       // UI actions
       setReportModalOpen: (open) => set({ isReportModalOpen: open }),
