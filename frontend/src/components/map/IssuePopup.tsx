@@ -154,7 +154,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
               </svg>
               <span>{(issue as any).upvotes || (issue as any).upvoteCount || 0} kişi destekledi</span>
             </div>
-          </div>
+          )}
 
           {/* ── 5651 Uyar-Kaldır Şikayet Bildirimi ── */}
           <div style={{ padding: '10px 16px 14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border)' }}>
