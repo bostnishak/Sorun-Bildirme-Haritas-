@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import * as issuesController from './issues.controller';
-import { isAuthenticated } from '../../middleware/auth.middleware';
+import { isAuthenticated, optionalAuth } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/auth.middleware';
-import { issueCreateRateLimit, chatbotRateLimit } from '../../middleware/rateLimiter.middleware';
+import { issueCreateRateLimit, chatbotRateLimit, guestChatbotRateLimit } from '../../middleware/rateLimiter.middleware';
+
+const dynamicChatbotRateLimit = (req: any, res: any, next: any) => {
+  if (!req.user) {
+    return guestChatbotRateLimit(req, res, next);
+  }
+  return chatbotRateLimit(req, res, next);
+};
 
 const router = Router();
 
@@ -28,7 +35,7 @@ router.get('/geocode', issuesController.reverseGeocodeAddress);
 router.post('/verify-vision', isAuthenticated, issuesController.verifyPhotoProof);
 
 // POST /api/v1/issues/ai-assistant — Tek istemli AI ihbar asistanı
-router.post('/ai-assistant', isAuthenticated, chatbotRateLimit, issuesController.assistantSinglePrompt);
+router.post('/ai-assistant', optionalAuth, dynamicChatbotRateLimit, issuesController.assistantSinglePrompt);
 
 // GET /api/v1/issues/:id — Public (sorun detayı)
 router.get('/:id', issuesController.getIssue);

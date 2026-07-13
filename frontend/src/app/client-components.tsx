@@ -8,6 +8,7 @@ import { ReportIssueForm } from '@/components/forms/ReportIssueForm';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { IconMessageSquare, IconCheckCircle, IconClock, IconMapPin } from '@/components/ui/Icon';
+import { MOCK_STATS } from '@/lib/mockData';
 import styles from './page.module.css';
 
 const MapView = dynamic(() => import('@/components/map/MapView').then(m => ({ default: m.MapView })), {
@@ -40,10 +41,10 @@ export function BigStatsClient() {
   return (
     <div className={styles.statsShowcaseNumbers}>
       {[
-        { value: summaryStats?.totalCount ? summaryStats.totalCount.toLocaleString('tr-TR') : '12.458', label: 'Toplam Bildirim', Icon: IconMessageSquare, color: '#1d4ed8' },
-        { value: summaryStats?.resolvedRate || '87%', label: 'Çözüm Oranı', Icon: IconCheckCircle, color: '#16a34a' },
-        { value: summaryStats?.avgResponseHours || '48 Saat', label: 'Ortalama Yanıt Süresi', Icon: IconClock, color: '#d97706' },
-        { value: summaryStats?.citiesCount || '81 İl', label: 'Kapsanan Şehir', Icon: IconMapPin, color: '#7c3aed' },
+        { value: summaryStats?.totalCount ? summaryStats.totalCount.toLocaleString('tr-TR') : MOCK_STATS.total.toLocaleString('tr-TR'), label: 'Toplam Bildirim', Icon: IconMessageSquare, color: '#1d4ed8' },
+        { value: summaryStats?.resolvedCount ? summaryStats.resolvedCount.toLocaleString('tr-TR') : MOCK_STATS.resolved.toLocaleString('tr-TR'), label: 'Çözülen Bildirim', Icon: IconCheckCircle, color: '#16a34a' },
+        { value: '48 Saat', label: 'Ortalama Yanıt Süresi', Icon: IconClock, color: '#f59e0b' },
+        { value: '81 İl', label: 'Kapsanan Şehir', Icon: IconMapPin, color: '#8b5cf6' },
       ].map((s, i) => (
         <div key={i} className={styles.bigStat}>
           <div className={styles.bigStatIcon} style={{ color: s.color, background: `${s.color}12` }}>

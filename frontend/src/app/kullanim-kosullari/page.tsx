@@ -4,7 +4,7 @@ import styles from '../kvkk/page.module.css';
 
 export const metadata: Metadata = {
   title: 'Kullanım Koşulları | Türkiye Sorun Bildirim Haritası',
-  description: 'Platform kullanım koşulları.',
+  description: 'Türkiye Sorun Bildirim Haritası (Etiya Project) kullanım koşulları ve yasal uyarılar.',
 };
 
 export default function KullanimKosullariPage() {
@@ -18,7 +18,7 @@ export default function KullanimKosullariPage() {
           </Link>
           <span className={styles.pageTitle}>Kullanım Koşulları</span>
         </div>
-        <span className={styles.lastUpdated}>Son Güncelleme: Ocak 2024</span>
+        <span className={styles.lastUpdated}>Son Güncelleme: 13 Temmuz 2026</span>
       </header>
 
       <div className={styles.hero}>
@@ -26,62 +26,61 @@ export default function KullanimKosullariPage() {
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
         <h1 className={styles.heroTitle}>Kullanım Koşulları</h1>
-        <p className={styles.heroDesc}>Platformu kullanmadan önce bu koşulları dikkatlice okuyunuz.</p>
+        <p className={styles.heroDesc}>Platformu kullanmadan önce hak ve yükümlülüklerinizi düzenleyen bu koşulları dikkatlice okuyunuz.</p>
       </div>
 
       <div className={styles.content}>
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
-            1. Genel Hükümler
+            <span className={styles.sectionIcon}>1</span>
+            Genel Hükümler ve Platform Niteliği
           </h2>
-          <p className={styles.text}>Bu koşullar, "Türkiye Sorun Bildirim Haritası" platformunun T.C. İçişleri Bakanlığı tarafından sunulan hizmetlerini düzenlemektedir. Platformu kullanan her kullanıcı bu koşulları kabul etmiş sayılır.</p>
+          <p className={styles.text}>
+            Bu koşullar, Türkiye Sorun Bildirim Haritası (Etiya Project) platformunun vatandaş ve kurumlara sunduğu dijital etkileşim hizmetlerini düzenlemektedir. Platform <strong>112 vb. acil müdahale hattı değildir</strong>. Platform kamu yararına çalışan sivil/bağımsız bir teknoloji girişimidir.
+          </p>
         </div>
 
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-            2. Kullanıcı Yükümlülükleri
-          </h2>
-          <ul className={styles.list}>
-            <li>Gerçek ve doğru kimlik bilgileri ile kayıt olmak</li>
-            <li>Yalnızca gerçek ve mevcut sorunları bildirmek</li>
-            <li>Yanıltıcı, asılsız veya kötü niyetli bildirim yapmamak</li>
-            <li>Başkalarının kişisel verilerini izinsiz paylaşmamak</li>
-            <li>Platformu spam amacıyla kullanmamak</li>
-          </ul>
-          <div className={styles.highlight}><strong>Önemli:</strong> Asılsız bildirim durumunda hesabınız kapatılabilir ve yasal işlem başlatılabilir.</div>
-        </div>
-
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-            3. Sorumluluk Sınırları
+            <span className={styles.sectionIcon}>2</span>
+            Kullanıcı Yükümlülükleri ve İçerik Beyanı
           </h2>
           <ul className={styles.list}>
-            <li>Platform, bildirimlerin belirli sürede çözüleceğini garanti etmez</li>
-            <li>Kullanıcı içeriklerinin doğruluğundan platform sorumlu değildir</li>
-            <li>Teknik arızalarda oluşabilecek veri kayıplarında sorumluluk kabul edilmez</li>
+            <li>Kayıt esnasında verilen ad, soyad ve T.C. Kimlik numarasının doğru ve kişiye ait olması zorunludur.</li>
+            <li>Yalnızca kamusal alana ve çevre/altyapıya ait gerçek sorunların bildirilmesi esastır.</li>
+            <li>Başkalarının mahremiyetini ihlal eden, kişilik haklarına saldıran veya sahte içerik üretilmesi kesinlikle yasaktır.</li>
+            <li>Yüklenen içerikler yapay zeka (LLM ve Vision AI) tarafından otomatik denetlenir. Kural ihlalinde içerikler yayından kaldırılır.</li>
+          </ul>
+          <div className={styles.highlight}><strong>Önemli:</strong> Asılsız, hakaret içerikli veya kasıtlı yanıltıcı bildirimlerde bulunan hesaplar kapatılır ve 5651 Sayılı Kanun gereğince IP kayıtları yasal makamlarla paylaşılır.</div>
+        </div>
+
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.sectionIcon}>3</span>
+            Sorumluluk Reddi ve Sınırları
+          </h2>
+          <ul className={styles.list}>
+            <li>Platform, kullanıcılar tarafından oluşturulan içeriklerin (UGC - User Generated Content) doğruluğu konusunda 5651 Sayılı Kanun uyarınca yer sağlayıcı statüsündedir; içeriklerden doğrudan bildirimi yapan kullanıcı sorumludur.</li>
+            <li>Platform, bildirilen sorunların belediyeler veya ilgili kurumlar tarafından çözüleceğini taahhüt etmez.</li>
           </ul>
         </div>
 
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-            4. Fikri Mülkiyet
+            <span className={styles.sectionIcon}>4</span>
+            Fikri Mülkiyet
           </h2>
-          <p className={styles.text}>Platform üzerindeki tüm yazılım, tasarım ve içerikler T.C. İçişleri Bakanlığı'na aittir. İzinsiz kopyalama veya dağıtım yasaktır.</p>
+          <p className={styles.text}>Platform üzerindeki tüm yazılım mimarisi, logo ve harita arayüz tasarımları Etiya Project ekibine aittir.</p>
         </div>
 
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-            5. İletişim
+            <span className={styles.sectionIcon}>5</span>
+            İletişim ve Şikâyet Bildirimi
           </h2>
           <div className={styles.contactBox}>
             <div className={styles.contactRow}>
-              <svg className={styles.contactRowIcon} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <span>hukuk@sorunharitasi.gov.tr</span>
+              <span>📧 destek@sorunharitasi.tr</span>
             </div>
           </div>
         </div>

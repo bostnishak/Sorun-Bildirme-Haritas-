@@ -34,6 +34,9 @@ export const viewport: Viewport = {
 };
 
 import { AiChatbotWidget } from '@/components/chat/AiChatbotWidget';
+import { EmergencyBanner } from '@/components/ui/EmergencyBanner';
+import { CookieBanner } from '@/components/ui/CookieBanner';
+import { Footer } from '@/components/layout/Footer';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -62,10 +65,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <QueryProvider>
-          {children}
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <EmergencyBanner />
+            <div style={{ flex: '1 0 auto' }}>
+              {children}
+            </div>
+            <Footer />
+          </div>
           <AiChatbotWidget />
+          <CookieBanner />
         </QueryProvider>
       </body>
     </html>
   );
 }
+
+

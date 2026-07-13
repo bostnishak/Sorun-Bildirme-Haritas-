@@ -14,7 +14,8 @@
 .modal {
   width: 100%;
   max-width: 520px;
-  max-height: 92vh;
+  max-height: 90vh;
+  max-height: 88dvh;
   overflow-y: auto;
   border-radius: var(--radius-xl);
   background: var(--color-surface);
@@ -324,4 +325,25 @@
 }
 .removeImageBtn:hover {
   background: rgba(220, 38, 38, 0.9);
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 86dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .form {
+    padding: 14px 16px 20px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
 }

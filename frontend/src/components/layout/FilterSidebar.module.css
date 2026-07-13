@@ -238,14 +238,15 @@
 
 .mobileToggle {
   display: none;
-  position: absolute;
-  top: 76px; /* below header */
+  position: fixed;
+  top: 74px; /* below header */
   left: 16px;
-  z-index: 10; /* above map */
+  z-index: 15; /* above map */
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 8px 16px;
+  min-height: 44px;
   box-shadow: var(--shadow-md);
   align-items: center;
   gap: 6px;

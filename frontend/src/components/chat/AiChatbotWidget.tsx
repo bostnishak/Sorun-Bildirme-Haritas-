@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -21,6 +21,8 @@ interface ExtractionData {
   guvenlik_ihlari: boolean;
   eksikBilgiSoru: string | null;
   asistanMesaji: string;
+  onayBekliyor: boolean;
+  ihbarOlusturuldu: boolean;
 }
 
 interface Message {
@@ -44,8 +46,26 @@ export function AiChatbotWidget() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
+  const loadingStates = [
+    'Metin ve bağlam inceleniyor...', 
+    'Güvenlik ve kurallar analiz ediliyor...', 
+    'Kategori eşleştiriliyor...', 
+    'İhbar detayları hazırlanıyor...'
+  ];
 
-  if (!user) return null;
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setLoadingTextIndex(prev => (prev + 1) % loadingStates.length);
+      }, 1500);
+      return () => clearInterval(interval);
+    } else {
+      setLoadingTextIndex(0);
+    }
+  }, [loading]);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,6 +141,36 @@ export function AiChatbotWidget() {
             extraction: data,
           },
         ]);
+
+        if (data.ihbarOlusturuldu && data.adres) {
+          try {
+            const formData = new FormData();
+            formData.append('title', data.baslik || 'AI Bildirimi');
+            formData.append('description', data.aciklama || 'AI tarafından oluşturuldu.');
+            formData.append('category', data.kategori);
+            formData.append('city', data.adres.il || 'İstanbul');
+            formData.append('district', data.adres.ilce || 'Beykoz');
+            formData.append('address', data.adres.tamAdres);
+            
+            // Eğer resim varsa blob'a çevirip ekle
+            if (imageToSend) {
+              const res = await fetch(imageToSend);
+              const blob = await res.blob();
+              formData.append('image', blob, 'ai-upload.jpg');
+            }
+
+            await api.post('/issues', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            const currentBbox = useAppStore.getState().currentBbox;
+            if (currentBbox) {
+              useAppStore.getState().fetchClusters(currentBbox, true);
+            }
+          } catch (createErr) {
+            console.error("AI Issue creation failed:", createErr);
+          }
+        }
       } else {
         setMessages(prev => [
           ...prev,
@@ -132,12 +182,15 @@ export function AiChatbotWidget() {
         ]);
       }
     } catch (err: any) {
+      const isRateLimit = err.response?.status === 429;
       setMessages(prev => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: 'ai',
-          text: `Hata: ${err.response?.data?.error?.message || err.message || 'İletişim sırasında bir sorun oluştu.'}`,
+          text: isRateLimit 
+            ? 'Çok fazla istek gönderdiniz. Lütfen biraz bekleyip tekrar deneyin veya hesabınıza giriş yapın.' 
+            : `Hata: ${err.response?.data?.error?.message || err.message || 'İletişim sırasında bir sorun oluştu.'}`,
         },
       ]);
     } finally {
@@ -241,6 +294,23 @@ export function AiChatbotWidget() {
             </button>
           </div>
 
+          {!user && (
+            <div style={{
+              background: '#fffbeb',
+              borderBottom: '1px solid #fde68a',
+              padding: '12px 16px',
+              fontSize: '0.85rem',
+              color: '#92400e',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: 500
+            }}>
+              <span style={{ flexShrink: 0, fontSize: '16px' }}>⚠️</span>
+              <span>Sadece giriş yapanlar ihbar oluşturabilir. Şu an sadece bilgi alabilirsiniz.</span>
+            </div>
+          )}
+
           <div
             style={{
               flex: 1,
@@ -313,6 +383,16 @@ export function AiChatbotWidget() {
                       <div><b>Adres:</b> {msg.extraction.adres.tamAdres || `${msg.extraction.adres.sokak} No:${msg.extraction.adres.kapiNo}, ${msg.extraction.adres.ilce}/${msg.extraction.adres.il}`}</div>
                     )}
                     <div><b>Öncelik:</b> {msg.extraction.oncelik}</div>
+                    {msg.extraction.onayBekliyor && (
+                      <div style={{ marginTop: '8px', padding: '6px', background: '#d1fae5', borderRadius: '6px', textAlign: 'center', fontWeight: 600, color: '#065f46' }}>
+                        Lütfen onaylamak için "evet" yazınız.
+                      </div>
+                    )}
+                    {msg.extraction.ihbarOlusturuldu && (
+                      <div style={{ marginTop: '8px', padding: '6px', background: '#dcfce7', borderRadius: '6px', textAlign: 'center', fontWeight: 700, color: '#166534' }}>
+                        ✓ İhbar Başarıyla Kaydedildi
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -330,7 +410,10 @@ export function AiChatbotWidget() {
                   fontSize: '0.85rem',
                 }}
               >
-                Yapay zeka metninizi ve fotoğrafınızı analiz ediyor...
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+                  <span style={{ fontSize: '16px' }}>⏳</span>
+                  {loadingStates[loadingTextIndex]}
+                </div>
               </div>
             )}
           </div>

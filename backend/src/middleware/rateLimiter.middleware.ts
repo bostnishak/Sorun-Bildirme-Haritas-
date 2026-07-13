@@ -54,6 +54,18 @@ export const chatbotLimiter = new RateLimiterRedis({
 });
 
 /**
+ * Guest Chatbot limiter: strict AI cost control for non-logged in users
+ * 3 istek / dakika / IP
+ */
+export const guestChatbotLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'rl_guest_chatbot',
+  points: 3,
+  duration: 60,
+  blockDuration: 300,
+});
+
+/**
  * NVİ doğrulama limiter: sistemi aşırı yüklemeden korur
  * 3 istek / saat / IP
  */
@@ -125,3 +137,4 @@ export const authRateLimit = createRateLimitMiddleware(authLimiter);
 export const issueCreateRateLimit = createRateLimitMiddleware(issueCreateLimiter, true);
 export const nviRateLimit = createRateLimitMiddleware(nviLimiter);
 export const chatbotRateLimit = createRateLimitMiddleware(chatbotLimiter, true);
+export const guestChatbotRateLimit = createRateLimitMiddleware(guestChatbotLimiter, false);

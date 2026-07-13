@@ -12,6 +12,8 @@ import {
   IconSearch, IconFilter, IconRefreshCw, IconMessageSquare,
   IconAlertCircle, IconClock, IconCheckCircle, IconMoreHorizontal,
 } from '@/components/ui/Icon';
+import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
+import { MOCK_ISSUES } from '@/lib/mockData';
 
 const STATUS_LABELS: Record<string, string> = {
   OPEN: 'Açık', IN_REVIEW: 'İnceleniyor', RESOLVED: 'Çözüldü', REJECTED: 'Reddedildi',
@@ -21,134 +23,14 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITICAL: 'Kritik', HIGH: 'Yüksek', MEDIUM: 'Orta', LOW: 'Düşük',
 };
 
-const TR_CITIES = [
-  'Adana', 'Ankara', 'Antalya', 'Bursa', 'Diyarbakır',
-  'Erzurum', 'Eskişehir', 'Gaziantep', 'İstanbul', 'İzmir',
-  'Kahramanmaraş', 'Kayseri', 'Kocaeli', 'Konya', 'Malatya',
-  'Mersin', 'Rize', 'Sakarya', 'Samsun', 'Trabzon', 'Van',
-];
+const TR_CITIES = Object.keys(TR_CITIES_DISTRICTS);
 
-const FALLBACK_ISSUES: any[] = [
-  {
-    id: '101',
-    title: 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
-    category: 'TRANSPORTATION',
-    priority: 'HIGH',
-    status: 'OPEN',
-    city: 'İstanbul',
-    district: 'Fatih',
-    address: 'Alemdar, Divan Yolu Cd. No:1, 34110 Fatih/İstanbul',
-    createdAt: '2026-07-06T08:30:00Z',
-    latitude: 41.0082,
-    longitude: 28.9784,
-    upvoteCount: 14,
-  },
-  {
-    id: '102',
-    title: 'Kızılay Meydanı Ana Şebeke Su Patlaması',
-    category: 'WATER_SANITATION',
-    priority: 'CRITICAL',
-    status: 'IN_REVIEW',
-    city: 'Ankara',
-    district: 'Çankaya',
-    address: 'Kızılay, Atatürk Blv, 06420 Çankaya/Ankara',
-    createdAt: '2026-07-06T09:15:00Z',
-    latitude: 39.9208,
-    longitude: 32.8541,
-    upvoteCount: 28,
-  },
-  {
-    id: '103',
-    title: 'Kordon Boyu Çöp ve Atık Temizliği Gecikmesi',
-    category: 'ENVIRONMENT',
-    priority: 'MEDIUM',
-    status: 'RESOLVED',
-    city: 'İzmir',
-    district: 'Konak',
-    address: 'Alsancak, Atatürk Cd. No:120, 35220 Konak/İzmir',
-    createdAt: '2026-07-05T14:20:00Z',
-    latitude: 38.4237,
-    longitude: 27.1428,
-    upvoteCount: 9,
-  },
-  {
-    id: '104',
-    title: 'Nilüfer Organize Sanayi Yolu Fiber Kazı Çukuru',
-    category: 'INFRASTRUCTURE',
-    priority: 'HIGH',
-    status: 'OPEN',
-    city: 'Bursa',
-    district: 'Nilüfer',
-    address: 'Nilüfer OSB, Pembe Cd. No:4, 16140 Nilüfer/Bursa',
-    createdAt: '2026-07-06T10:00:00Z',
-    latitude: 40.2115,
-    longitude: 28.9818,
-    upvoteCount: 19,
-  },
-  {
-    id: '105',
-    title: 'Konyaaltı Sahil Yolu Aydınlatma Direkleri Arızalı',
-    category: 'LIGHTING',
-    priority: 'MEDIUM',
-    status: 'IN_REVIEW',
-    city: 'Antalya',
-    district: 'Konyaaltı',
-    address: 'Gürsu, Akdeniz Blv. Sahil Yolu, 07070 Konyaaltı/Antalya',
-    createdAt: '2026-07-05T21:45:00Z',
-    latitude: 36.8687,
-    longitude: 30.6439,
-    upvoteCount: 11,
-  },
-  {
-    id: '106',
-    title: 'Seyhan Atatürk Parkı Yürüyüş Yolu Bakımsız',
-    category: 'PARKS',
-    priority: 'LOW',
-    status: 'RESOLVED',
-    city: 'Adana',
-    district: 'Seyhan',
-    address: 'Reşatbey, Atatürk Parkı İçi, 01120 Seyhan/Adana',
-    createdAt: '2026-07-04T16:10:00Z',
-    latitude: 36.9914,
-    longitude: 35.3308,
-    upvoteCount: 7,
-  },
-  {
-    id: '107',
-    title: 'Tepebaşı Üniversite Caddesi Altgeçit Su Baskını RİSKİ',
-    category: 'SECURITY',
-    priority: 'CRITICAL',
-    status: 'OPEN',
-    city: 'Eskişehir',
-    district: 'Tepebaşı',
-    address: 'Yenibağlar, Üniversite Cd. No:25, 26150 Tepebaşı/Eskişehir',
-    createdAt: '2026-07-06T11:12:00Z',
-    latitude: 39.7767,
-    longitude: 30.5206,
-    upvoteCount: 35,
-  },
-  {
-    id: '108',
-    title: 'Şahinbey Karataş Mahallesi Rögar Kapağı Eksik',
-    category: 'WATER_SANITATION',
-    priority: 'HIGH',
-    status: 'IN_REVIEW',
-    city: 'Gaziantep',
-    district: 'Şahinbey',
-    address: 'Karataş, 103233. Cd. No:15, 27470 Şahinbey/Gaziantep',
-    createdAt: '2026-07-05T18:30:00Z',
-    latitude: 37.0662,
-    longitude: 37.3833,
-    upvoteCount: 22,
-  },
-];
-
-export function TableView() {
+export function TableView({ issues: initialIssues }: { issues?: any[] }) {
   const router = useRouter();
   const { filters, setFilter, clearFilters, selectIssue } = useAppStore();
   const { data: queryData, isLoading, isError } = useIssues(filters as any);
-  const rawIssues = queryData?.pages.flatMap(p => p.issues) || [];
-  const issues = rawIssues.length > 0 ? rawIssues : FALLBACK_ISSUES;
+  const rawIssues = queryData?.pages.flatMap(p => p.issues) || initialIssues || MOCK_ISSUES;
+  const issues = rawIssues;
 
   const filtered = useMemo(() => {
     return issues.filter(issue => {

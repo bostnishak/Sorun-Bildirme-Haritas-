@@ -1,0 +1,59 @@
+.banner {
+  background: linear-gradient(90deg, #b91c1c 0%, #dc2626 100%);
+  color: white;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  position: relative;
+  z-index: 10000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fef08a;
+}
+
+.text {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.closeBtn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 640px) {
+  .banner {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+}

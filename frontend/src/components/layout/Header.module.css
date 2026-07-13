@@ -120,6 +120,16 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.userMenu:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
 }
 
 .avatar {
@@ -155,6 +165,10 @@
 }
 
 @media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+  }
+
   .logoName {
     display: none;
   }
@@ -166,6 +180,7 @@
 
   .viewBtn {
     padding: 8px;
+    min-height: 38px;
   }
 
   .viewBtn svg {
@@ -177,6 +192,13 @@
     display: none;
   }
 
+  .actions {
+    gap: 6px;
+  }
+
+  .portalBtn {
+    display: none;
+  }
 
   #btn-report-issue span {
     display: none;
@@ -184,15 +206,29 @@
   
   #btn-report-issue {
     padding: 8px 10px;
+    min-height: 40px;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  .logoutBtn {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 38px;
   }
 
   #btn-login {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   #btn-login svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
 }

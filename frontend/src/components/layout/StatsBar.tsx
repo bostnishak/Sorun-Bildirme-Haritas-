@@ -8,10 +8,7 @@ import {
 } from '@/components/ui/Icon';
 import styles from './StatsBar.module.css';
 
-const MOCK_STATS = {
-  total: 12458, open: 4231, inReview: 3276, resolved: 4951,
-  thisMonth: 1248, thisMonthChange: 12.5,
-};
+import { MOCK_STATS } from '@/lib/mockData';
 
 export function StatsBar() {
   const [stats, setStats] = useState(MOCK_STATS);

@@ -7,6 +7,7 @@ import MapboxLanguage from '@mapbox/mapbox-gl-language';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import useSupercluster from 'use-supercluster';
 import { useAppStore } from '@/store/useAppStore';
+import { MOCK_ISSUES } from '@/lib/mockData';
 import { IssuePopup } from './IssuePopup';
 import { initSocket } from '@/lib/socket';
 import styles from './MapView.module.css';
@@ -62,29 +63,14 @@ export function MapView() {
   const [initialZoom, setInitialZoom] = useState<number | null>(null);
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
 
-// calculatePitch — component dışında tanımlı, her render'da yeniden oluşmaz
-const calculatePitch = (zoom: number): number => {
-  if (zoom < 15) return 0;
-  if (zoom >= 17) return 65;
-  return Math.round((zoom - 15) * 32.5);
-};
+  const calculatePitch = (zoom: number): number => {
+    if (zoom < 15) return 0;
+    if (zoom >= 17) return 65;
+    return Math.round((zoom - 15) * 32.5);
+  };
 
-// STATIC_FALLBACK_MARKERS — module seviyesinde sabit, re-render'da yeniden yaratılmaz
-const STATIC_FALLBACK_MARKERS = [
-  { id: '101', title: 'Tarihi Yarımada Kaldırım ve Yol Göçmesi', category: 'TRANSPORTATION', priority: 'HIGH', status: 'OPEN', city: 'İstanbul', district: 'Fatih', address: 'Alemdar, Divan Yolu Cd. No:1, 34110 Fatih/İstanbul', lat: 41.0082, lng: 28.9506 },
-  { id: '102', title: 'Kızılay Meydanı Ana Şebeke Su Patlaması', category: 'WATER_SANITATION', priority: 'CRITICAL', status: 'IN_REVIEW', city: 'Ankara', district: 'Çankaya', address: 'Kızılay, Atatürk Blv, 06420 Çankaya/Ankara', lat: 39.9208, lng: 32.8541 },
-  { id: '103', title: 'Kordon Boyu Çöp ve Atık Temizliği Gecikmesi', category: 'ENVIRONMENT', priority: 'MEDIUM', status: 'RESOLVED', city: 'İzmir', district: 'Konak', address: 'Alsancak, Atatürk Cd. No:120, 35220 Konak/İzmir', lat: 38.4271, lng: 27.1432 },
-  { id: '104', title: 'Nilüfer OSB Yolu Fiber Kazı Çukuru', category: 'INFRASTRUCTURE', priority: 'HIGH', status: 'OPEN', city: 'Bursa', district: 'Nilüfer', address: 'Beşevler Caddesi No:58, Nilüfer/Bursa', lat: 40.2072, lng: 28.9738 },
-  { id: '105', title: 'Konyaaltı Sahil Yolu Aydınlatma Direkleri Arızalı', category: 'LIGHTING', priority: 'MEDIUM', status: 'IN_REVIEW', city: 'Antalya', district: 'Konyaaltı', address: 'Gürsu, Akdeniz Blv. Sahil Yolu, 07070 Konyaaltı/Antalya', lat: 36.8729, lng: 30.6285 },
-  { id: '106', title: 'Seyhan Atatürk Parkı Yürüyüş Yolu Bakımsız', category: 'PARKS', priority: 'LOW', status: 'RESOLVED', city: 'Adana', district: 'Seyhan', address: 'Reşatbey, Atatürk Parkı İçi, 01120 Seyhan/Adana', lat: 36.9968, lng: 35.3248 },
-  { id: '107', title: 'Tepebaşı Üniversite Caddesi Altgeçit Su Baskını Riski', category: 'SECURITY', priority: 'CRITICAL', status: 'OPEN', city: 'Eskişehir', district: 'Tepebaşı', address: 'Yenibağlar, Üniversite Cd. No:25, 26150 Tepebaşı/Eskişehir', lat: 39.7769, lng: 30.5153 },
-  { id: '108', title: 'Şahinbey Karat aş Mahallesi Rögar Kapağı Eksik', category: 'WATER_SANITATION', priority: 'HIGH', status: 'IN_REVIEW', city: 'Gaziantep', district: 'Şahinbey', address: 'Karat aş, Atatürk Blv. No:41, 27470 Şahinbey/Gaziantep', lat: 37.0634, lng: 37.3763 },
-];
-
-  // mapStyle hiç değişmez — uydu geçişi raster katman opacity ile yapılıyor
   const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
 
-  // Sadece pitch/bearing — style switching yok
   const onMove = useCallback((evt: any) => {
     const zoom = evt.viewState.zoom;
     setViewState({
@@ -96,14 +82,9 @@ const STATIC_FALLBACK_MARKERS = [
 
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
 
-
   useEffect(() => {
     const socket = initSocket();
-
     const handleIssueUpdate = (data: any) => {
-      console.log('[Socket] Harita verisi güncellendi', data);
-      
-      // Haritanın mevcut bounding box'ını alıp yeniden veri çeker
       if (mapRef.current) {
         const bounds = mapRef.current.getBounds();
         if (bounds) {
@@ -117,9 +98,7 @@ const STATIC_FALLBACK_MARKERS = [
         }
       }
     };
-
     socket.on('issue-updated', handleIssueUpdate);
-
     return () => {
       socket.off('issue-updated', handleIssueUpdate);
     };
@@ -127,8 +106,6 @@ const STATIC_FALLBACK_MARKERS = [
 
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
-
-    // 1. Dil Eklentisi (Manuel olarak tüm harita katmanlarındaki isimleri Türkçe'ye çeviriyoruz)
     try {
       const currentStyle = map.getStyle();
       if (currentStyle && currentStyle.layers) {
@@ -146,8 +123,6 @@ const STATIC_FALLBACK_MARKERS = [
     } catch (error) {
       console.warn("Language override error:", error);
     }
-
-    // 2. Türkiye sınırlarına fit
     try {
       map.fitBounds(TURKEY_BOUNDS, {
         padding: { top: 30, bottom: 50, left: 30, right: 30 },
@@ -157,34 +132,25 @@ const STATIC_FALLBACK_MARKERS = [
     } catch (error) {
       console.warn("fitBounds failed:", error);
     }
-
-    // İlk bounds'u da burada al — render'da DOM okuma yok
     try {
       const b = map.getBounds();
       if (b) setMapBounds(b.toArray().flat() as [number,number,number,number]);
     } catch (_) {}
-
-    //    Yolların altına eklenerek tüm vektör overlay'leri üstte kalır
     try {
       map.addSource('mapbox-satellite', {
         type: 'raster',
         url: 'mapbox://mapbox.satellite',
-        tileSize: 512  // 256'dan 512'ye — 4x daha az tile request, GPU daha az zorlanır
+        tileSize: 512
       });
-
-      // İlk road-tipi layer bulunur — satellite onun altına eklenir
       const layers = map.getStyle().layers as any[];
       const firstRoadLayer = layers.find(
         (l: any) => l.type === 'line' && l.id && (l.id.includes('road') || l.id.includes('bridge'))
       );
-
       map.addLayer({
         id: 'satellite-raster',
         type: 'raster',
         source: 'mapbox-satellite',
         paint: {
-          // Zoom 11: sayıdam → 12: hafif → 13: belirgin → 14: tam uydu
-          // exponential easing: başı yavaş, sonu hızlı (Google Earth hissi)
           'raster-opacity': [
             'interpolate', ['exponential', 1.8], ['zoom'],
             11, 0,
@@ -197,8 +163,6 @@ const STATIC_FALLBACK_MARKERS = [
     } catch (err) {
       console.warn('Satellite layer error:', err);
     }
-
-    // 4. Gökyüzü (Sky) katmanı — pitch > 0'da görünür
     try {
       map.addLayer({
         id: 'sky',
@@ -212,9 +176,7 @@ const STATIC_FALLBACK_MARKERS = [
     } catch (err) {
       console.warn('Sky layer error:', err);
     }
-
   }, []);
-
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
@@ -223,7 +185,6 @@ const STATIC_FALLBACK_MARKERS = [
       pitch: calculatePitch(zoom),
       bearing: 0
     });
-
     const b = mapRef.current?.getBounds();
     if (b) {
       setMapBounds(b.toArray().flat() as [number,number,number,number]);
@@ -255,15 +216,13 @@ const STATIC_FALLBACK_MARKERS = [
   }, [filters.city]);
 
   const dataToRender = useMemo(() => {
-    // API verisi yoksa gerçek adresli statik veriler göster
-    const source = (clusters && clusters.length > 0) ? clusters : STATIC_FALLBACK_MARKERS;
+    const source = (clusters && clusters.length > 0) ? clusters : MOCK_ISSUES;
     return source.filter((item: any) => {
       const category = item.category || item.dominant_category || '';
       const status = item.status || item.dominant_status || '';
       const city = item.city || '';
       const district = item.district || '';
       const title = item.title || item.label || '';
-
       if (filters.category && category !== filters.category) return false;
       if (filters.status && status !== filters.status) return false;
       if (filters.city && city !== filters.city) return false;
@@ -276,7 +235,6 @@ const STATIC_FALLBACK_MARKERS = [
     });
   }, [clusters, filters]);
 
-  // Points format for supercluster
   const points = useMemo(() => dataToRender.map((item: any) => ({
     type: 'Feature' as const,
     properties: {
@@ -289,7 +247,7 @@ const STATIC_FALLBACK_MARKERS = [
     },
     geometry: {
       type: 'Point' as const,
-      coordinates: [item.lng, item.lat] as [number, number]
+      coordinates: [item.lng || item.longitude || 0, item.lat || item.latitude || 0] as [number, number]
     }
   })), [dataToRender]);
 
@@ -297,7 +255,7 @@ const STATIC_FALLBACK_MARKERS = [
     points,
     bounds: mapBounds,
     zoom: viewState.zoom,
-    options: { radius: 75, maxZoom: 20 }
+    options: { radius: 75, maxZoom: 16 }
   });
 
   return (
@@ -312,53 +270,32 @@ const STATIC_FALLBACK_MARKERS = [
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={TURKEY_BOUNDS}
-        {...({ maxBoundsViscosity: 1.0 } as any)} // Harita sınıra yapışır, kayma hissi biter
-        minZoom={5.2}            // Çok fazla uzaklaşmayı engeller
-        dragPan={initialZoom !== null ? viewState.zoom >= initialZoom + 1.0 : false}
+        {...({ maxBoundsViscosity: 1.0 } as any)}
+        minZoom={5.2}
+        dragPan={true}
         dragRotate={false}
         pitchWithRotate={false}
-        touchZoomRotate={false}
+        touchPitch={false}
       >
         <NavigationControl position="bottom-right" />
-
         {superClusters.map((cluster: any) => {
           const [longitude, latitude] = cluster.geometry.coordinates;
-          const { cluster: isCluster, point_count: pointCount, issueId, status, category, title } = cluster.properties;
-
+          const { cluster: isCluster, point_count: pointCount, issueId, status, category } = cluster.properties;
           if (isCluster) {
             const size = Math.min(58, Math.max(38, 32 + Math.log(pointCount) * 8));
             return (
-              <Marker
-                key={`cluster-${cluster.id}`}
-                latitude={latitude}
-                longitude={longitude}
-              >
+              <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
                 <div
                   className="cluster-marker"
                   style={{
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    background: STATUS_COLORS.OPEN,
-                    border: '3.5px solid white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.28)'
+                    width: `${size}px`, height: `${size}px`, background: STATUS_COLORS.OPEN,
+                    border: '3.5px solid white', borderRadius: '50%', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: 'white',
+                    fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.28)'
                   }}
                   onClick={() => {
-                    const expansionZoom = Math.min(
-                      supercluster.getClusterExpansionZoom(cluster.id),
-                      20
-                    );
-                    mapRef.current?.flyTo({
-                      center: [longitude, latitude],
-                      zoom: expansionZoom,
-                      duration: 500
-                    });
+                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20);
+                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
                   }}
                 >
                   {pointCount}
@@ -366,15 +303,24 @@ const STATIC_FALLBACK_MARKERS = [
               </Marker>
             );
           }
-
           const statusColor = STATUS_COLORS[status || 'OPEN'] || '#3b82f6';
-
           return (
             <Marker
               key={`issue-${issueId}`}
               latitude={latitude}
               longitude={longitude}
               anchor="bottom"
+              onClick={async (e) => {
+                e.originalEvent.stopPropagation();
+                try {
+                  const { api } = await import('@/lib/api');
+                  const response: any = await api.get(`/issues/${issueId}`);
+                  selectIssue(response.data || response);
+                } catch {
+                  const fallback = MOCK_ISSUES.find(m => String(m.id) === String(issueId));
+                  if (fallback) selectIssue(fallback as any);
+                }
+              }}
             >
               <div
                 className="individual-marker-container"
@@ -385,35 +331,6 @@ const STATIC_FALLBACK_MARKERS = [
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'center'
-                }}
-                onClick={async () => {
-                  try {
-                    const { api } = await import('@/lib/api');
-                    const response: any = await api.get(`/issues/${issueId}`);
-                    selectIssue(response.data || response);
-                  } catch {
-                    // API çalışmıyorsa fallback veri listesinden bul ve popup aç
-                    const fallback = STATIC_FALLBACK_MARKERS.find(m => String(m.id) === String(issueId));
-                    if (fallback) {
-                      selectIssue({
-                        id: String(fallback.id),
-                        title: fallback.title,
-                        description: `${fallback.title}. Sorun yetkili birimler tarafından incelenmektedir.`,
-                        category: fallback.category,
-                        priority: fallback.priority as any,
-                        status: fallback.status as any,
-                        latitude: fallback.lat,
-                        longitude: fallback.lng,
-                        city: fallback.city,
-                        district: fallback.district,
-                        address: fallback.address,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        upvoteCount: Math.floor(Math.random() * 30) + 5,
-                        upvotes: Math.floor(Math.random() * 30) + 5,
-                      } as any);
-                    }
-                  }
                 }}
               >
                 {/* Teardrop Pin */}

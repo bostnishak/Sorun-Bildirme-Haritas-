@@ -79,6 +79,8 @@ export function Header() {
               id="btn-report-issue"
               className="btn btn-primary"
               onClick={() => setReportModalOpen(true)}
+              title="Sorun Bildir"
+              aria-label="Sorun Bildir"
             >
               <IconPlus size={14} />
               <span>Sorun Bildir</span>
@@ -86,12 +88,12 @@ export function Header() {
 
 
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
-                <Link href="/portal" className="btn btn-secondary btn-sm">
-                  Yönetim Portalı
+                <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı">
+                  <span>Yönetim Portalı</span>
                 </Link>
               )}
 
-              <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }}>
+              <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }} title="Profil sayfama git">
                 <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
                   {user?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -108,13 +110,16 @@ export function Header() {
                   <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
                   <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
                 </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </Link>
-                <button className="btn btn-ghost btn-sm" onClick={logout}>
+                <button className={`btn btn-ghost btn-sm ${styles.logoutBtn}`} onClick={logout} title="Çıkış Yap">
                   Çıkış
                 </button>
           </>
         ) : (
-          <Link href="/login" className="btn btn-primary" id="btn-login">
+          <Link href="/login" className="btn btn-primary" id="btn-login" title="Giriş Yap">
             <IconLogin size={15} />
             Giriş Yap
           </Link>

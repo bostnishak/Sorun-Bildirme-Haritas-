@@ -117,7 +117,7 @@ interface AppStore {
     birthYear: number;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  fetchClusters: (bbox: BoundingBox) => Promise<void>;
+  fetchClusters: (bbox: BoundingBox, force?: boolean) => Promise<void>;
   selectIssue: (issue: Issue | null) => void;
   setReportModalOpen: (open: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
@@ -200,12 +200,13 @@ export const useAppStore = create<AppStore>()(
       },
 
       // Map actions — gerçek API
-      fetchClusters: async (bbox: BoundingBox) => {
+      fetchClusters: async (bbox: BoundingBox, force = false) => {
         const { isLoadingClusters, currentBbox } = get();
 
         // Aynı bbox için tekrar istek atma
         if (isLoadingClusters) return;
         if (
+          !force &&
           currentBbox &&
           Math.abs(currentBbox.minLng - bbox.minLng) < 0.001 &&
           Math.abs(currentBbox.minLat - bbox.minLat) < 0.001 &&

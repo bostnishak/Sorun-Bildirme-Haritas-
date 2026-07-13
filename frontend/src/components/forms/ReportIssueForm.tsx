@@ -188,7 +188,6 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     if (!formData.category) newErrors.category = 'Sorun türü seçiniz.';
     if (!formData.city) newErrors.city = 'Şehir seçiniz.';
     if (!formData.district) newErrors.district = 'İlçe seçiniz.';
-    if (!imageFile) newErrors.image = 'Anlık doğrulama için fotoğraf yüklemek zorunludur.';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -233,7 +232,13 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       });
 
       localStorage.setItem('last_issue_submit_time', String(Date.now()));
-      toast.success('Sorun bildirimi Yapay Zeka incelemesine alındı! 🎉', { id: toastId });
+      toast.success('Sorun bildirimi başarıyla alındı! 🎉', { id: toastId });
+      
+      const currentBbox = useAppStore.getState().currentBbox;
+      if (currentBbox) {
+        useAppStore.getState().fetchClusters(currentBbox, true);
+      }
+
       onClose();
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || 'Bildirim gönderilirken bir hata oluştu.';
@@ -336,7 +341,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
 
           {/* Image Upload */}
           <div className={styles.field}>
-            <label>Fotoğraf (Zorunlu)</label>
+            <label>Fotoğraf (İsteğe Bağlı)</label>
             <div className={`${styles.imageUploadBox} ${errors.image ? 'input-error' : ''}`}>
               {imagePreview ? (
                 <div className={styles.imagePreviewWrap}>

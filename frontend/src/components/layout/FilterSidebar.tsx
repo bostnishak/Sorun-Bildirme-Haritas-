@@ -7,13 +7,9 @@ import {
   IconAlertCircle, IconClock, IconCheckCircle,
 } from '@/components/ui/Icon';
 import styles from './FilterSidebar.module.css';
+import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
 
-const TR_CITIES = [
-  'Adana', 'Ankara', 'Antalya', 'Bursa', 'Diyarbakır',
-  'Erzurum', 'Eskişehir', 'Gaziantep', 'İstanbul', 'İzmir',
-  'Kahramanmaraş', 'Kayseri', 'Kocaeli', 'Konya', 'Malatya',
-  'Mersin', 'Rize', 'Sakarya', 'Samsun', 'Trabzon', 'Van',
-];
+const TR_CITIES = Object.keys(TR_CITIES_DISTRICTS);
 
 // Temel ve Genel Sorun Türleri (7 ana kategori - spesifik alt detaylar yerine genel filtreleme)
 const MAIN_CATEGORIES = [

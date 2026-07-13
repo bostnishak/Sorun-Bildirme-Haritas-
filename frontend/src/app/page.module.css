@@ -566,3 +566,15 @@
 }
 
 .footerBottomLinks a:hover { color: white; }
+
+@media (max-width: 768px) {
+  .heroSection {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+}

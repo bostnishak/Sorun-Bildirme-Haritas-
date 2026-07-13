@@ -114,6 +114,12 @@ export default function RegisterPage() {
     email: '', password: '', firstName: '', lastName: '',
     tcKimlik: '', phone: '', birthDay: '1', birthMonth: '1', birthYear: '1995',
   });
+  const [consents, setConsents] = useState({
+    kvkk: false,
+    aiProcessing: false,
+    biometrics: false,
+  });
+  const allConsentsGiven = consents.kvkk && consents.aiProcessing && consents.biometrics;
   const [verifyCodes, setVerifyCodes] = useState({ emailCode: '', smsCode: '' });
   const [verifyMethod, setVerifyMethod] = useState<'email' | 'sms'>('email');
 
@@ -178,6 +184,12 @@ export default function RegisterPage() {
 
     if (!isPasswordValid) {
       setError('Lütfen şifre kurallarının tamamını karşılayan bir şifre belirleyin.');
+      setLoading(false);
+      return;
+    }
+
+    if (!allConsentsGiven) {
+      setError('Devam edebilmek için KVKK, yapay zeka denetimi ve biyometrik veri işleme açık rıza beyanlarını onaylamanız zorunludur.');
       setLoading(false);
       return;
     }
@@ -422,9 +434,48 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Yasal Açık Rıza ve Onay Kutuları (KVKK, AI ve Biyometrik Veri) */}
+            <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+                <input
+                  type="checkbox"
+                  checked={consents.kvkk}
+                  onChange={(e) => setConsents(p => ({ ...p, kvkk: e.target.checked }))}
+                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span>
+                  <Link href="/kvkk" target="_blank" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-kosullari" target="_blank" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>Kullanım Koşulları</Link>&apos;nı okudum, kabul ediyorum. *
+                </span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+                <input
+                  type="checkbox"
+                  checked={consents.aiProcessing}
+                  onChange={(e) => setConsents(p => ({ ...p, aiProcessing: e.target.checked }))}
+                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span>
+                  Bildirim metinlerimin ve güvenlik denetimi verilerimin nefret söylemi ve sahtecilik kontrolü amacıyla <strong>OpenAI</strong> servislerinde işlenmesine ve bu kapsamda yurt dışına aktarılmasına açık rıza veriyorum. *
+                </span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+                <input
+                  type="checkbox"
+                  checked={consents.biometrics}
+                  onChange={(e) => setConsents(p => ({ ...p, biometrics: e.target.checked }))}
+                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span>
+                  Yükleyeceğim fotoğraflardaki üçüncü kişi gizliliği için otomatik <strong>yüz ve plaka bulanıklaştırma (biyometrik maskeleme)</strong> işleminin yapılmasını kabul ediyorum. *
+                </span>
+              </label>
+            </div>
+
             <button id="btn-register-submit" type="submit"
               className={`btn btn-primary btn-lg ${styles.submitBtn}`}
-              disabled={loading || !isPasswordValid}>
+              disabled={loading || !isPasswordValid || !allConsentsGiven}>
               {loading ? (
                 <>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
