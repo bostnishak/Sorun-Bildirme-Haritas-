@@ -23,16 +23,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TURKEY_CENTER = {
-  latitude: 38.9637,
-  longitude: 35.2433,
-  zoom: 5.5,
-  pitch: 0, // pitch: 45,
-  bearing: 0 // bearing: -17.6
+  latitude: 39.0,
+  longitude: 34.85, // Tam denge noktası (ortalanmış)
+  zoom: 5.7,        // Boşluğun tam yarısı kadar olması için zoom bir tık artırıldı
+  pitch: 0,
+  bearing: 0
 };
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [25.0, 35.5], // Güneybatı — Ege açıkları dahil biraz daha geniş
-  [45.5, 43.0]  // Kuzeydoğu — Artvin/Kars/Iğdır ötesi dahil
+  [24.5, 35.5], // Güneybatı (Ege'ye biraz daha boşluk)
+  [45.5, 42.5]  // Kuzeydoğu
 ];
+
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
   İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10, pitch: 0, bearing: 0 },
@@ -47,13 +48,13 @@ const getCategorySvg = (category: string) => {
   const color = 'white';
   switch (category) {
     case 'WATER_SANITATION':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>;
+      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>;
     case 'TRANSPORTATION':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M5 11l2-5h10l2 5"/></svg>;
+      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M5 11l2-5h10l2 5" /></svg>;
     case 'ENVIRONMENT':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>;
+      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>;
     default:
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
   }
 };
 
@@ -83,6 +84,15 @@ export function MapView() {
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
 
   useEffect(() => {
+    // Sayfa açılır açılmaz veriyi getir (Mapbox motorunun yüklenmesini beklemeden, paralel olarak)
+    fetchClusters({
+      minLng: TURKEY_BOUNDS[0][0],
+      minLat: TURKEY_BOUNDS[0][1],
+      maxLng: TURKEY_BOUNDS[1][0],
+      maxLat: TURKEY_BOUNDS[1][1],
+      zoom: Math.floor(TURKEY_CENTER.zoom),
+    });
+
     const socket = initSocket();
     const handleIssueUpdate = (data: any) => {
       if (mapRef.current) {
@@ -107,14 +117,133 @@ export function MapView() {
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
     try {
+      const TRANSLATIONS: Record<string, string> = {
+        "Georgia": "Gürcistan",
+        "Syria": "Suriye",
+        "Iraq": "Irak",
+        "Iran": "İran",
+        "Bulgaria": "Bulgaristan",
+        "Greece": "Yunanistan",
+        "Armenia": "Ermenistan",
+        "Cyprus": "Kıbrıs",
+        "Mosul": "Musul",
+        "Aleppo": "Halep",
+        "Erbil": "Erbil",
+        "Damascus": "Şam",
+        "Batumi": "Batum",
+        "Tbilisi": "Tiflis",
+        "Thessaloniki": "Selanik",
+        "Athens": "Atina",
+        "Sofia": "Sofya",
+        "Nicosia": "Lefkoşa",
+        "Tehran": "Tahran",
+        "Tabriz": "Tebriz",
+        "Baku": "Bakü",
+        "Azerbaijan": "Azerbaycan",
+        "Lebanon": "Lübnan",
+        "Beirut": "Beyrut",
+        "Amman": "Amman",
+        "Jordan": "Ürdün",
+        "Israel": "İsrail",
+        "Palestine": "Filistin",
+        "Jerusalem": "Kudüs",
+        "Cairo": "Kahire",
+        "Egypt": "Mısır",
+        "Black Sea": "Karadeniz",
+        "Mediterranean Sea": "Akdeniz",
+        "Aegean Sea": "Ege Denizi",
+        "Sea of Marmara": "Marmara Denizi",
+        "Al-Hasaka": "Haseke",
+        "Al-Raqqa": "Rakka",
+        "Sinjar": "Sincar",
+        "Al Baaj": "Baac",
+        "Tal Afar": "Telafer",
+        "Zakho": "Zaho",
+        "Shekh Mama": "Şeyh Mama",
+        "Akhalkalaki": "Ahılkelek",
+        "Gyumri": "Gümrü",
+        "Yerevan": "Erivan",
+        "Plovdiv": "Filibe",
+        "Haskovo": "Hasköy",
+        "Kardzhali": "Kırcaali",
+        "Komotini": "Gümülcine",
+        "Xanthi": "İskeçe",
+        "Smolyan": "Paşmaklı",
+        "Stara Zagora": "Eski Zağra",
+        "Sliven": "İslimye",
+        "Burgas": "Burgaz",
+        "Varna": "Varna",
+        "Aleksandroupoli": "Dedeağaç",
+        "Kavala": "Kavala",
+        "Ruse": "Rusçuk"
+      };
+
+      const fallbackName = ['coalesce', ['get', 'name_en'], ['get', 'name']];
+      const matchExpr: any[] = ['match', fallbackName];
+      Object.entries(TRANSLATIONS).forEach(([en, tr]) => {
+        matchExpr.push(en, tr);
+      });
+      matchExpr.push(fallbackName);
+
+      const baseTextField = ['coalesce', ['get', 'name_tr'], matchExpr];
+      const finalTextField = [
+        'match',
+        baseTextField,
+        'Kahramanmaraş', 'K.Maraş',
+        'Gaziantep', 'G.Antep',
+        'Şanlıurfa', 'Ş.Urfa',
+        baseTextField
+      ];
+
       const currentStyle = map.getStyle();
       if (currentStyle && currentStyle.layers) {
         currentStyle.layers.forEach((layer: any) => {
+          // 'Türkiye' yazısını (ve diğer ülke isimlerini) gizle
+          if (layer.id === 'country-label') {
+            map.setLayoutProperty(layer.id, 'visibility', 'none');
+          }
+
           if (layer.type === 'symbol' && layer.id.includes('label')) {
+            // Dil ayarı (Türkçe) ve Kısaltmalar
             if (layer.layout && layer.layout['text-field']) {
               const currentTextField = JSON.stringify(layer.layout['text-field']);
-              if (!currentTextField.includes('name_tr')) {
-                map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name_tr'], ['get', 'name_en'], ['get', 'name']]);
+              if (!currentTextField.includes('name_tr') || !currentTextField.includes('K.Maraş')) {
+                map.setLayoutProperty(layer.id, 'text-field', finalTextField);
+              }
+            }
+
+            // Şehir isimlerinin (Mardin gibi) daha sık ve daha görünür olmasını sağlayan performans/çarpışma ayarı
+            if (layer.id.includes('settlement-major-label') || layer.id.includes('settlement-minor-label') || layer.id === 'place-city-label') {
+              try {
+                // Yazı etrafındaki görünmez çarpışma kutusunu sıfırla ki daha çok şehir sığsın
+                map.setLayoutProperty(layer.id, 'text-padding', 0);
+
+                // Büyükşehirlerin her koşulda (diğer yazılarla hafif üst üste gelse bile) görünmesini zorunlu kıl
+                if (layer.id.includes('major') || layer.id.includes('city')) {
+                  map.setLayoutProperty(layer.id, 'text-allow-overlap', true);
+                  map.setLayoutProperty(layer.id, 'text-ignore-placement', false);
+                }
+
+                // Punto Ayarı: İstanbul, Ankara, İzmir mega kalsın, diğer hepsi Adana (standart) boyutunda olsun
+                map.setLayoutProperty(layer.id, 'text-size', [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  4, [
+                    'match',
+                    ['get', 'name_en'],
+                    ['Istanbul', 'Ankara', 'Izmir', 'İstanbul', 'İzmir'], 15.5, // Uzaktan mega kentler
+                    12.5 // Uzaktan diğer şehirler (Adana boyutu)
+                  ],
+                  10, [
+                    'match',
+                    ['get', 'name_en'],
+                    ['Istanbul', 'Ankara', 'Izmir', 'İstanbul', 'İzmir'], 24, // Yakından mega kentler
+                    17 // Yakından diğer şehirler
+                  ]
+                ]);
+              } catch (e) {
+                // Bazı stillerde bu özellikler olmayabilir, sessizce geç
               }
             }
           }
@@ -123,24 +252,20 @@ export function MapView() {
     } catch (error) {
       console.warn("Language override error:", error);
     }
+
     try {
-      map.fitBounds(TURKEY_BOUNDS, {
-        padding: { top: 30, bottom: 50, left: 30, right: 30 },
-        duration: 0
-      });
       setInitialZoom(map.getZoom());
     } catch (error) {
-      console.warn("fitBounds failed:", error);
+      console.warn("zoom check failed:", error);
     }
     try {
       const b = map.getBounds();
-      if (b) setMapBounds(b.toArray().flat() as [number,number,number,number]);
-    } catch (_) {}
+      if (b) setMapBounds(b.toArray().flat() as [number, number, number, number]);
+    } catch (_) { }
     try {
       map.addSource('mapbox-satellite', {
         type: 'raster',
-        url: 'mapbox://mapbox.satellite',
-        tileSize: 512
+        url: 'mapbox://mapbox.satellite'
       });
       const layers = map.getStyle().layers as any[];
       const firstRoadLayer = layers.find(
@@ -150,6 +275,7 @@ export function MapView() {
         id: 'satellite-raster',
         type: 'raster',
         source: 'mapbox-satellite',
+        minzoom: 11, // HAYATİ PERFORMANS DOKUNUŞU: Başlangıçta görünmeyen uydu haritası boş yere indirilmez!
         paint: {
           'raster-opacity': [
             'interpolate', ['exponential', 1.8], ['zoom'],
@@ -176,10 +302,80 @@ export function MapView() {
     } catch (err) {
       console.warn('Sky layer error:', err);
     }
+
+    // 3D Binalar — uydu görüntüsünün üstüne hafif 3D derinlik katmanı
+    try {
+      if (map.getLayer('building')) {
+        map.removeLayer('building');
+      }
+
+      map.addLayer({
+        id: '3d-buildings',
+        source: 'composite',
+        'source-layer': 'building',
+        type: 'fill-extrusion',
+        minzoom: 14,
+        paint: {
+          // Çok açık/neredeyse şeffaf renk — uydu dokusu alttan görünsün
+          'fill-extrusion-color': '#f0ece6',
+          // Bina yüksekliği
+          'fill-extrusion-height': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0,
+            14.5, ['case', ['has', 'height'], ['get', 'height'], 8]
+          ],
+          // Taban yüksekliği
+          'fill-extrusion-base': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0,
+            14.5, ['case', ['has', 'min_height'], ['get', 'min_height'], 0]
+          ],
+          // Düşük opasite — uydu dokusu %60 görünsün, 3D şekil %40 katkı sağlasın
+          'fill-extrusion-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0,
+            14.5, 0.35,
+            15, 0.45,
+            16, 0.5,
+            18, 0.55
+          ],
+          // Yan yüzey gölgelendirmesi — gerçek 3D derinlik hissi için kritik
+          'fill-extrusion-vertical-gradient': true
+        }
+      });
+    } catch (err) {
+      console.warn('3D buildings layer error:', err);
+    }
   }, []);
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
+
+    // Harita tamamen uzaklaştırıldığında (minZoom sınırında) otomatik ve yumuşak bir şekilde merkeze dön
+    if (zoom <= TURKEY_CENTER.zoom + 0.05) {
+      const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.05 &&
+        Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.05;
+      if (!isCentered) {
+        // 1. Önce React state'ini kullanıcının fareyi bıraktığı son noktayla senkronize ediyoruz (titremeyi/atlamayı önler)
+        setViewState({
+          ...e.viewState,
+          pitch: calculatePitch(zoom),
+          bearing: 0
+        });
+
+        // 2. React state güncellendikten hemen sonra (10ms) Mapbox'ın yumuşak kaydırma animasyonunu başlatıyoruz
+        setTimeout(() => {
+          mapRef.current?.easeTo({
+            center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+            duration: 1200, // Yağ gibi kayması için 1.2 saniye
+            essential: true
+          });
+        }, 10);
+
+        return; // İşlemi burada kesiyoruz ki alttaki normal setViewState animasyonu bozmasın
+      }
+    }
+
     setViewState({
       ...e.viewState,
       pitch: calculatePitch(zoom),
@@ -187,7 +383,7 @@ export function MapView() {
     });
     const b = mapRef.current?.getBounds();
     if (b) {
-      setMapBounds(b.toArray().flat() as [number,number,number,number]);
+      setMapBounds(b.toArray().flat() as [number, number, number, number]);
       fetchClusters({
         minLng: b.getWest(),
         minLat: b.getSouth(),
@@ -254,9 +450,79 @@ export function MapView() {
   const { clusters: superClusters, supercluster } = useSupercluster({
     points,
     bounds: mapBounds,
-    zoom: viewState.zoom,
+    zoom: Math.round(viewState.zoom), // Sadece tam sayılarda (zoom level değiştiğinde) cluster hesapla, performansı katlar
     options: { radius: 75, maxZoom: 16 }
   });
+
+  // Marker'ları hafızada tutarak her karede (60fps) yeniden render edilmesini (kasıntıyı) önlüyoruz
+  const renderedMarkers = useMemo(() => {
+    return superClusters.map((cluster: any) => {
+      const [longitude, latitude] = cluster.geometry.coordinates;
+      const { cluster: isCluster, point_count: pointCount, issueId, status, category } = cluster.properties;
+      if (isCluster) {
+        const size = Math.min(58, Math.max(38, 32 + Math.log(pointCount) * 8));
+        return (
+          <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
+            <div
+              className="cluster-marker"
+              style={{
+                width: `${size}px`, height: `${size}px`, background: STATUS_COLORS.OPEN,
+                border: '3.5px solid white', borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: 'white',
+                fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.28)'
+              }}
+              onClick={() => {
+                const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20);
+                mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
+              }}
+            >
+              {pointCount}
+            </div>
+          </Marker>
+        );
+      }
+      const statusColor = STATUS_COLORS[status || 'OPEN'] || '#3b82f6';
+      return (
+        <Marker
+          key={`issue-${issueId}`}
+          latitude={latitude}
+          longitude={longitude}
+          anchor="bottom"
+          onClick={async (e) => {
+            e.originalEvent.stopPropagation();
+            await selectIssue(issueId);
+            mapRef.current?.flyTo({
+              center: [longitude, latitude],
+              zoom: Math.max(mapRef.current.getZoom(), 16),
+              duration: 800,
+              pitch: 65,
+              essential: true
+            });
+          }}
+        >
+          <div style={{ position: 'relative', width: '36px', height: '36px', cursor: 'pointer' }}>
+            {/* Arka Plan Damla */}
+            <svg viewBox="0 0 24 24" fill={statusColor} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+            </svg>
+            {/* İkon */}
+            <span style={{
+              position: 'absolute',
+              top: '5px',
+              left: 0,
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2
+            }}>
+              {getCategorySvg(category)}
+            </span>
+          </div>
+        </Marker>
+      );
+    });
+  }, [superClusters, supercluster, selectIssue]);
 
   return (
     <div className={styles.mapWrapper}>
@@ -270,105 +536,25 @@ export function MapView() {
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={TURKEY_BOUNDS}
-        {...({ maxBoundsViscosity: 1.0 } as any)}
-        minZoom={5.2}
-        dragPan={true}
+        {...({ maxBoundsViscosity: 1.0 } as any)} // Harita sınıra yapışır, kayma hissi biter
+        minZoom={TURKEY_CENTER.zoom} // Çok fazla uzaklaşmayı engeller (Sınırımız başlangıç zoom seviyesi)
+        dragPan={initialZoom !== null ? viewState.zoom >= initialZoom + 1.0 : false}
         dragRotate={false}
         pitchWithRotate={false}
-        touchPitch={false}
+        touchZoomRotate={false}
+        reuseMaps={true}
+        localIdeographFontFamily="sans-serif" // CJK font indirmelerini iptal eder, açılış hızını inanılmaz artırır
+        optimizeForTerrain={false} // Gereksiz arazi (mesh) hesaplamalarını kapatır
       >
         <NavigationControl position="bottom-right" />
-        {superClusters.map((cluster: any) => {
-          const [longitude, latitude] = cluster.geometry.coordinates;
-          const { cluster: isCluster, point_count: pointCount, issueId, status, category } = cluster.properties;
-          if (isCluster) {
-            const size = Math.min(58, Math.max(38, 32 + Math.log(pointCount) * 8));
-            return (
-              <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
-                <div
-                  className="cluster-marker"
-                  style={{
-                    width: `${size}px`, height: `${size}px`, background: STATUS_COLORS.OPEN,
-                    border: '3.5px solid white', borderRadius: '50%', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', color: 'white',
-                    fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.28)'
-                  }}
-                  onClick={() => {
-                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20);
-                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
-                  }}
-                >
-                  {pointCount}
-                </div>
-              </Marker>
-            );
-          }
-          const statusColor = STATUS_COLORS[status || 'OPEN'] || '#3b82f6';
-          return (
-            <Marker
-              key={`issue-${issueId}`}
-              latitude={latitude}
-              longitude={longitude}
-              anchor="bottom"
-              onClick={async (e) => {
-                e.originalEvent.stopPropagation();
-                try {
-                  const { api } = await import('@/lib/api');
-                  const response: any = await api.get(`/issues/${issueId}`);
-                  selectIssue(response.data || response);
-                } catch {
-                  const fallback = MOCK_ISSUES.find(m => String(m.id) === String(issueId));
-                  if (fallback) selectIssue(fallback as any);
-                }
-              }}
-            >
-              <div
-                className="individual-marker-container"
-                style={{
-                  position: 'relative',
-                  width: '36px',
-                  height: '44px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}
-              >
-                {/* Teardrop Pin */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    width: '36px',
-                    height: '36px',
-                    background: statusColor,
-                    border: '2.5px solid white',
-                    borderRadius: '50% 50% 50% 0',
-                    transform: 'rotate(-45deg)',
-                    boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
-                  }}
-                />
-                {/* Icon */}
-                <span style={{ 
-                  position: 'absolute', 
-                  top: 0,
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  zIndex: 2
-                }}>
-                  {getCategorySvg(category)}
-                </span>
-              </div>
-            </Marker>
-          );
-        })}
+        {renderedMarkers}
       </Map>
 
-      {selectedIssue && (
-        <IssuePopup issue={selectedIssue} onClose={() => selectIssue(null)} />
-      )}
-    </div>
+      {
+        selectedIssue && (
+          <IssuePopup issue={selectedIssue} onClose={() => selectIssue(null)} />
+        )
+      }
+    </div >
   );
 }
