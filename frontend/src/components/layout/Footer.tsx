@@ -40,6 +40,7 @@ export function Footer() {
               <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
               <li><Link href="/kullanim-kosullari">Kullanım Koşulları</Link></li>
               <li><Link href="/cerez-politikasi">Çerez Politikası</Link></li>
+              <li><Link href="/iletisim" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>🚨 İletişim & 5651 Uyar-Kaldır</Link></li>
             </ul>
           </div>
         </div>

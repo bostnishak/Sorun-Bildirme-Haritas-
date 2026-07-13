@@ -154,9 +154,22 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
               </svg>
               <span>{(issue as any).upvotes || (issue as any).upvoteCount || 0} kişi destekledi</span>
             </div>
-          )}
-        </div>
+          </div>
 
+          {/* ── 5651 Uyar-Kaldır Şikayet Bildirimi ── */}
+          <div style={{ padding: '10px 16px 14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border)' }}>
+            <a
+              href={`/iletisim?url=${encodeURIComponent('/issues/' + issue.id)}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: '12px', color: 'var(--color-text-muted)', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              <span>🚨</span>
+              <span>Bu İçeriği Şikâyet Et (5651 Uyar-Kaldır)</span>
+            </a>
+          </div>
+
+        </div>
       </div>
     </div>
   );
