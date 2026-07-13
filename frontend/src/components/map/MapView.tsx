@@ -24,8 +24,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const TURKEY_CENTER = {
   latitude: 39.0,
-  longitude: 34.85, // Tam denge noktası (ortalanmış)
-  zoom: 5.7,        // Boşluğun tam yarısı kadar olması için zoom bir tık artırıldı
+  longitude: 35.2, // Doğuyu kapsamak için sadece kaydırma yapıldı
+  zoom: 5.7,       // Zoom eski orijinal haline getirildi
   pitch: 0,
   bearing: 0
 };
@@ -340,10 +340,10 @@ export function MapView() {
     if (b) {
       setMapBounds(b.toArray().flat() as [number, number, number, number]);
       fetchClusters({
-        minLng: b.getWest(),
-        minLat: b.getSouth(),
-        maxLng: b.getEast(),
-        maxLat: b.getNorth(),
+        minLng: TURKEY_BOUNDS[0][0],
+        minLat: TURKEY_BOUNDS[0][1],
+        maxLng: TURKEY_BOUNDS[1][0],
+        maxLat: TURKEY_BOUNDS[1][1],
         zoom: Math.floor(zoom),
       });
     }
@@ -404,7 +404,7 @@ export function MapView() {
 
   const { clusters: superClusters, supercluster } = useSupercluster({
     points,
-    bounds: mapBounds,
+    bounds: [-180, -85, 180, 85], // Always render all clusters to fix panning pop-in delay
     zoom: Math.round(clusterZoom),
     options: { radius: 75, maxZoom: 16 }
   });
@@ -421,7 +421,7 @@ export function MapView() {
       } = cluster.properties;
 
       if (isCluster) {
-        const size = Math.min(45 + (pointCount / points.length) * 40, 80);
+        const size = Math.min(30 + (pointCount / points.length) * 20, 50);
         return (
           <Marker
             key={`cluster-${cluster.id}`}
@@ -454,7 +454,7 @@ export function MapView() {
                 width: `${size}px`,
                 height: `${size}px`,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(37, 99, 235, 0.95)',
+                backgroundColor: 'rgba(239, 68, 68, 0.95)',
                 border: '3px solid white',
                 color: 'white',
                 display: 'flex',
@@ -462,7 +462,7 @@ export function MapView() {
                 justifyContent: 'center',
                 fontSize: `${Math.max(12, size / 3)}px`,
                 fontWeight: 'bold',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.4)',
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 backdropFilter: 'blur(4px)'
@@ -547,6 +547,20 @@ export function MapView() {
         localIdeographFontFamily="sans-serif"
         optimizeForTerrain={false}
       >
+        <Source id="provinces" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
+          <Layer
+            id="provinces-layer"
+            type="line"
+            source="provinces"
+            source-layer="admin"
+            filter={['all', ['==', 'admin_level', 1], ['!=', 'maritime', 'true']]}
+            paint={{
+              'line-color': 'rgba(0, 0, 0, 0.15)',
+              'line-width': 1,
+              'line-dasharray': [3, 3]
+            }}
+          />
+        </Source>
         {renderedMarkers}
       </Map>
 

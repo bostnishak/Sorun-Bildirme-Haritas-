@@ -170,7 +170,7 @@
   border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 0.4s linear infinite;
 }
 
 @keyframes spin {

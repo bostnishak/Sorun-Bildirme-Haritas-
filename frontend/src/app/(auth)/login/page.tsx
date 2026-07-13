@@ -199,7 +199,7 @@ export default function LoginPage() {
           >
             {loading ? (
               <>
-                <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.4s linear infinite', display: 'inline-block' }} />
                 Giriş yapılıyor...
               </>
             ) : (

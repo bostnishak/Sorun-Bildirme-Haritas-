@@ -43,7 +43,7 @@ services:
     # redis-stack-server passes requirepass differently, but command works for redis-server
     # For redis-stack, it's better to use REDIS_ARGS environment variable or pass command
     environment:
-      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD} --appendonly yes"
+      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD:-change_this_redis_password} --appendonly yes"
     volumes:
       - redis-data:/data
     networks:
