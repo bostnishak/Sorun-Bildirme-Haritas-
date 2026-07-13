@@ -61,6 +61,7 @@ const getCategorySvg = (category: string) => {
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
+  const [clusterZoom, setClusterZoom] = useState(TURKEY_CENTER.zoom);
   const [initialZoom, setInitialZoom] = useState<number | null>(null);
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
 
@@ -303,76 +304,29 @@ export function MapView() {
       console.warn('Sky layer error:', err);
     }
 
-    // 3D Binalar — uydu görüntüsünün üstüne hafif 3D derinlik katmanı
-    try {
-      if (map.getLayer('building')) {
-        map.removeLayer('building');
-      }
 
-      map.addLayer({
-        id: '3d-buildings',
-        source: 'composite',
-        'source-layer': 'building',
-        type: 'fill-extrusion',
-        minzoom: 14,
-        paint: {
-          // Çok açık/neredeyse şeffaf renk — uydu dokusu alttan görünsün
-          'fill-extrusion-color': '#f0ece6',
-          // Bina yüksekliği
-          'fill-extrusion-height': [
-            'interpolate', ['linear'], ['zoom'],
-            14, 0,
-            14.5, ['case', ['has', 'height'], ['get', 'height'], 8]
-          ],
-          // Taban yüksekliği
-          'fill-extrusion-base': [
-            'interpolate', ['linear'], ['zoom'],
-            14, 0,
-            14.5, ['case', ['has', 'min_height'], ['get', 'min_height'], 0]
-          ],
-          // Düşük opasite — uydu dokusu %60 görünsün, 3D şekil %40 katkı sağlasın
-          'fill-extrusion-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            14, 0,
-            14.5, 0.35,
-            15, 0.45,
-            16, 0.5,
-            18, 0.55
-          ],
-          // Yan yüzey gölgelendirmesi — gerçek 3D derinlik hissi için kritik
-          'fill-extrusion-vertical-gradient': true
-        }
-      });
-    } catch (err) {
-      console.warn('3D buildings layer error:', err);
-    }
   }, []);
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
 
-    // Harita tamamen uzaklaştırıldığında (minZoom sınırında) otomatik ve yumuşak bir şekilde merkeze dön
     if (zoom <= TURKEY_CENTER.zoom + 0.05) {
       const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.05 &&
         Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.05;
       if (!isCentered) {
-        // 1. Önce React state'ini kullanıcının fareyi bıraktığı son noktayla senkronize ediyoruz (titremeyi/atlamayı önler)
         setViewState({
           ...e.viewState,
           pitch: calculatePitch(zoom),
           bearing: 0
         });
-
-        // 2. React state güncellendikten hemen sonra (10ms) Mapbox'ın yumuşak kaydırma animasyonunu başlatıyoruz
         setTimeout(() => {
           mapRef.current?.easeTo({
             center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-            duration: 1200, // Yağ gibi kayması için 1.2 saniye
+            duration: 1200,
             essential: true
           });
         }, 10);
-
-        return; // İşlemi burada kesiyoruz ki alttaki normal setViewState animasyonu bozmasın
+        return; 
       }
     }
 
@@ -381,6 +335,7 @@ export function MapView() {
       pitch: calculatePitch(zoom),
       bearing: 0
     });
+    setClusterZoom(zoom);
     const b = mapRef.current?.getBounds();
     if (b) {
       setMapBounds(b.toArray().flat() as [number, number, number, number]);
@@ -389,7 +344,7 @@ export function MapView() {
         minLat: b.getSouth(),
         maxLng: b.getEast(),
         maxLat: b.getNorth(),
-        zoom: Math.floor(e.viewState.zoom),
+        zoom: Math.floor(zoom),
       });
     }
   }, [fetchClusters]);
@@ -450,30 +405,67 @@ export function MapView() {
   const { clusters: superClusters, supercluster } = useSupercluster({
     points,
     bounds: mapBounds,
-    zoom: Math.round(viewState.zoom), // Sadece tam sayılarda (zoom level değiştiğinde) cluster hesapla, performansı katlar
+    zoom: Math.round(clusterZoom),
     options: { radius: 75, maxZoom: 16 }
   });
 
-  // Marker'ları hafızada tutarak her karede (60fps) yeniden render edilmesini (kasıntıyı) önlüyoruz
   const renderedMarkers = useMemo(() => {
     return superClusters.map((cluster: any) => {
       const [longitude, latitude] = cluster.geometry.coordinates;
-      const { cluster: isCluster, point_count: pointCount, issueId, status, category } = cluster.properties;
+      const {
+        cluster: isCluster,
+        point_count: pointCount,
+        category,
+        status,
+        issueId,
+      } = cluster.properties;
+
       if (isCluster) {
-        const size = Math.min(58, Math.max(38, 32 + Math.log(pointCount) * 8));
+        const size = Math.min(45 + (pointCount / points.length) * 40, 80);
         return (
-          <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
+          <Marker
+            key={`cluster-${cluster.id}`}
+            longitude={longitude}
+            latitude={latitude}
+            anchor="center"
+            onClick={(e) => {
+              e.originalEvent.stopPropagation();
+              const expansionZoom = Math.min(
+                supercluster.getClusterExpansionZoom(cluster.id),
+                20
+              );
+              setViewState(prev => ({
+                ...prev,
+                longitude,
+                latitude,
+                zoom: expansionZoom,
+                transitionDuration: 500
+              }));
+              mapRef.current?.flyTo({
+                center: [longitude, latitude],
+                zoom: expansionZoom,
+                duration: 500
+              });
+            }}
+          >
             <div
-              className="cluster-marker"
+              className="custom-leaflet-cluster"
               style={{
-                width: `${size}px`, height: `${size}px`, background: STATUS_COLORS.OPEN,
-                border: '3.5px solid white', borderRadius: '50%', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', color: 'white',
-                fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.28)'
-              }}
-              onClick={() => {
-                const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20);
-                mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
+                width: `${size}px`,
+                height: `${size}px`,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(37, 99, 235, 0.95)',
+                border: '3px solid white',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: `${Math.max(12, size / 3)}px`,
+                fontWeight: 'bold',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.4)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                backdropFilter: 'blur(4px)'
               }}
             >
               {pointCount}
@@ -481,36 +473,44 @@ export function MapView() {
           </Marker>
         );
       }
-      const statusColor = STATUS_COLORS[status || 'OPEN'] || '#3b82f6';
+
+      const statusColor = STATUS_COLORS[status] || STATUS_COLORS.OPEN;
+
       return (
         <Marker
           key={`issue-${issueId}`}
-          latitude={latitude}
           longitude={longitude}
+          latitude={latitude}
           anchor="bottom"
-          onClick={async (e) => {
+          onClick={(e) => {
             e.originalEvent.stopPropagation();
-            await selectIssue(issueId);
-            mapRef.current?.flyTo({
-              center: [longitude, latitude],
-              zoom: Math.max(mapRef.current.getZoom(), 16),
-              duration: 800,
-              pitch: 65,
-              essential: true
-            });
+            selectIssue(cluster.properties);
           }}
         >
-          <div style={{ position: 'relative', width: '36px', height: '36px', cursor: 'pointer' }}>
-            {/* Arka Plan Damla */}
+          <div
+            className="custom-individual-marker"
+            style={{
+              width: '32px',
+              height: '40px',
+              position: 'relative',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transformOrigin: 'bottom center',
+              zIndex: 1
+            }}
+          >
             <svg viewBox="0 0 24 24" fill={statusColor} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
             </svg>
-            {/* İkon */}
+            
             <span style={{
               position: 'absolute',
-              top: '5px',
-              left: 0,
-              width: '100%',
+              top: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -536,17 +536,17 @@ export function MapView() {
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={TURKEY_BOUNDS}
-        {...({ maxBoundsViscosity: 1.0 } as any)} // Harita sınıra yapışır, kayma hissi biter
-        minZoom={TURKEY_CENTER.zoom} // Çok fazla uzaklaşmayı engeller (Sınırımız başlangıç zoom seviyesi)
+        {...({ maxBoundsViscosity: 1.0 } as any)}
+        minZoom={TURKEY_CENTER.zoom}
+        maxZoom={17}
         dragPan={initialZoom !== null ? viewState.zoom >= initialZoom + 1.0 : false}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
         reuseMaps={true}
-        localIdeographFontFamily="sans-serif" // CJK font indirmelerini iptal eder, açılış hızını inanılmaz artırır
-        optimizeForTerrain={false} // Gereksiz arazi (mesh) hesaplamalarını kapatır
+        localIdeographFontFamily="sans-serif"
+        optimizeForTerrain={false}
       >
-        <NavigationControl position="bottom-right" />
         {renderedMarkers}
       </Map>
 
@@ -555,6 +555,6 @@ export function MapView() {
           <IssuePopup issue={selectedIssue} onClose={() => selectIssue(null)} />
         )
       }
-    </div >
+    </div>
   );
 }
