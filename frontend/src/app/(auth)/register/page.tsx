@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 import toast from 'react-hot-toast';
-import styles from '../login/page.module.css';
+import styles from './Register.module.css';
 
 const MONTH_NAMES = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -48,8 +48,8 @@ function ScrollSelect({ value, onChange, options, name }: {
           alignItems: 'center',
           justifyContent: 'space-between',
           fontSize: '14px',
-          fontWeight: 600,
-          color: 'var(--color-text-primary)',
+          fontWeight: 500,
+          color: '#334155',
           transition: 'all 0.2s ease',
           boxShadow: open ? '0 0 0 3px rgba(37,99,235,0.15)' : 'none',
         }}
@@ -82,9 +82,9 @@ function ScrollSelect({ value, onChange, options, name }: {
                   ref={(el) => { if (el && isSelected) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }}
                   onClick={() => { onChange(name, String(opt.value)); setOpen(false); }}
                   style={{
-                    padding: '8px 10px', fontSize: '13px',
-                    fontWeight: isSelected ? 700 : 500,
-                    color: isSelected ? 'white' : 'var(--color-text-primary)',
+                    padding: '8px 10px', fontSize: '14px',
+                    fontWeight: isSelected ? 500 : 400,
+                    color: isSelected ? 'white' : '#334155',
                     background: isSelected ? 'var(--color-primary)' : 'transparent',
                     borderRadius: 'var(--radius-sm)', cursor: 'pointer',
                     transition: 'background 0.15s ease', display: 'flex',
@@ -319,7 +319,7 @@ export default function RegisterPage() {
       {/* Right form panel */}
       <div className={styles.rightPanel}>
         {step === 'register' ? (
-          <form className={styles.formWrap} onSubmit={handleRegisterSubmit}>
+          <form className={styles.form} onSubmit={handleRegisterSubmit}>
             <Link href="/" className={styles.backBtn}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               Ana Sayfaya Dön
@@ -334,171 +334,177 @@ export default function RegisterPage() {
 
             {error && (
               <div className={styles.errorAlert}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span>{error}</span>
+                <svg className={styles.errorAlertIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{error.includes('Çok fazla') ? 'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.' : error}</span>
               </div>
             )}
 
-            {/* Ad Soyad */}
-            <div className={styles.grid2}>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="reg-first-name">Ad *</label>
-                <input id="reg-first-name" name="firstName" className="input" placeholder="Adınız"
-                  value={form.firstName} onChange={handleChange} required autoComplete="given-name" />
+            {/* Kişisel Bilgiler Bölümü */}
+            <div className={styles.formSection}>
+              <h3 className={styles.sectionTitle}>Kişisel Bilgiler</h3>
+              
+              <div className={styles.grid2}>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="reg-first-name">Ad *</label>
+                  <input id="reg-first-name" name="firstName" className={styles.input} placeholder="Adınız"
+                    value={form.firstName} onChange={handleChange} required autoComplete="given-name" />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="reg-last-name">Soyad *</label>
+                  <input id="reg-last-name" name="lastName" className={styles.input} placeholder="Soyadınız"
+                    value={form.lastName} onChange={handleChange} required autoComplete="family-name" />
+                </div>
               </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="reg-last-name">Soyad *</label>
-                <input id="reg-last-name" name="lastName" className="input" placeholder="Soyadınız"
-                  value={form.lastName} onChange={handleChange} required autoComplete="family-name" />
-              </div>
-            </div>
 
-            {/* TC Kimlik */}
-            <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="reg-tc">T.C. Kimlik No *</label>
-              <div className={styles.inputWrap}>
-                <svg className={styles.inputIcon} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                </svg>
-                <input id="reg-tc" name="tcKimlik" className={`input ${styles.inputWithIcon}`}
-                  placeholder="11 haneli T.C. Kimlik numaranız" value={form.tcKimlik}
-                  onChange={handleChange} maxLength={11} pattern="[0-9]{11}" inputMode="numeric" required />
-              </div>
-            </div>
-
-            {/* Doğum Tarihi */}
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>Doğum Tarihi *</label>
-              <div className={styles.grid3}>
-                <ScrollSelect name="birthDay" value={form.birthDay} onChange={handleCustomChange}
-                  options={days.map(d => ({ value: d, label: d < 10 ? `0${d}` : `${d}` }))} />
-                <ScrollSelect name="birthMonth" value={form.birthMonth} onChange={handleCustomChange}
-                  options={MONTH_NAMES.map((m, i) => ({ value: i + 1, label: m }))} />
-                <ScrollSelect name="birthYear" value={form.birthYear} onChange={handleCustomChange}
-                  options={years.map(y => ({ value: y, label: `${y}` }))} />
-              </div>
-            </div>
-
-            {/* E-posta ve Telefon */}
-            <div className={styles.grid2}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="reg-email">E-posta *</label>
-                <input id="reg-email" name="email" type="email" className="input" placeholder="ornek@mail.com"
-                  value={form.email} onChange={handleChange} required autoComplete="email" />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="reg-phone">Telefon Numarası *</label>
+                <label className={styles.fieldLabel} htmlFor="reg-tc">T.C. Kimlik No *</label>
                 <div className={styles.inputWrap}>
-                  <svg className={styles.inputIcon} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  <svg className={styles.inputIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                   </svg>
-                  <input id="reg-phone" name="phone" type="tel" className={`input ${styles.inputWithIcon}`}
-                    placeholder="5xxxxxxxxx (10 hane)" value={form.phone} onChange={handleChange} maxLength={10} required />
+                  <input id="reg-tc" name="tcKimlik" className={`${styles.input} ${styles.inputWithIcon}`}
+                    placeholder="11 haneli T.C. Kimlik numaranız" value={form.tcKimlik}
+                    onChange={handleChange} maxLength={11} pattern="[0-9]{11}" inputMode="numeric" required />
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Doğum Tarihi *</label>
+                <div className={styles.grid3}>
+                  <ScrollSelect name="birthDay" value={form.birthDay} onChange={handleCustomChange}
+                    options={days.map(d => ({ value: d, label: d < 10 ? `0${d}` : `${d}` }))} />
+                  <ScrollSelect name="birthMonth" value={form.birthMonth} onChange={handleCustomChange}
+                    options={MONTH_NAMES.map((m, i) => ({ value: i + 1, label: m }))} />
+                  <ScrollSelect name="birthYear" value={form.birthYear} onChange={handleCustomChange}
+                    options={years.map(y => ({ value: y, label: `${y}` }))} />
                 </div>
               </div>
             </div>
 
-            {/* Şifre */}
-            <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="reg-password">Şifre *</label>
-              <div className={styles.inputWrap}>
-                <svg className={styles.inputIcon} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                <input id="reg-password" name="password" type={showPassword ? 'text' : 'password'}
-                  className={`input ${styles.inputWithIcon}`} placeholder="En az 8 - 12 karakter"
-                  value={form.password} onChange={handleChange} maxLength={12} required
-                  autoComplete="new-password" style={{ paddingRight: '42px' }} />
-                <button type="button" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px', display: 'flex', alignItems: 'center' }}
-                  onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
-                  {showPassword ? (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  ) : (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  )}
-                </button>
+            {/* İletişim Bilgileri Bölümü */}
+            <div className={styles.formSection}>
+              <h3 className={styles.sectionTitle}>İletişim Bilgileri</h3>
+              
+              <div className={styles.grid2}>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="reg-email">E-posta *</label>
+                  <input id="reg-email" name="email" type="email" className={styles.input} placeholder="ornek@mail.com"
+                    value={form.email} onChange={handleChange} required autoComplete="email" />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="reg-phone">Telefon Numarası *</label>
+                  <div className={styles.inputWrap}>
+                    <svg className={styles.inputIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    <input id="reg-phone" name="phone" type="tel" className={`${styles.input} ${styles.inputWithIcon}`}
+                      placeholder="5xxxxxxxxx (10 hane)" value={form.phone} onChange={handleChange} maxLength={10} required />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Güvenlik Bölümü */}
+            <div className={styles.formSection}>
+              <h3 className={styles.sectionTitle}>Güvenlik</h3>
+              
+              <div className={styles.field}>
+                <label className={styles.fieldLabel} htmlFor="reg-password">Şifre *</label>
+                <div className={styles.inputWrap}>
+                  <svg className={styles.inputIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  <input id="reg-password" name="password" type={showPassword ? 'text' : 'password'}
+                    className={`${styles.input} ${styles.inputWithIcon}`} placeholder="Güçlü bir şifre belirleyin"
+                    value={form.password} onChange={handleChange} maxLength={12} required
+                    autoComplete="new-password" style={{ paddingRight: '44px' }} />
+                  <button type="button" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+                    onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                    {showPassword ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Live Password Rules */}
               <div className={styles.passwordRules}>
+                <div className={styles.rulesTitle}>Şifre gereksinimleri</div>
                 <div className={`${styles.ruleItem} ${rules.length ? styles.ruleItemValid : ''}`}>
                   <span className={`${styles.ruleIcon} ${rules.length ? styles.ruleIconValid : ''}`}>{rules.length ? '✓' : '•'}</span>
-                  En az 8, en fazla 12 karakter olmalıdır
+                  En az 8 karakter olmalıdır
                 </div>
                 <div className={`${styles.ruleItem} ${rules.upper ? styles.ruleItemValid : ''}`}>
                   <span className={`${styles.ruleIcon} ${rules.upper ? styles.ruleIconValid : ''}`}>{rules.upper ? '✓' : '•'}</span>
-                  En az 1 büyük harf (A-Z) içermelidir
+                  En az 1 büyük harf içermelidir
                 </div>
                 <div className={`${styles.ruleItem} ${rules.lower ? styles.ruleItemValid : ''}`}>
                   <span className={`${styles.ruleIcon} ${rules.lower ? styles.ruleIconValid : ''}`}>{rules.lower ? '✓' : '•'}</span>
-                  En az 1 küçük harf (a-z) içermelidir
+                  En az 1 küçük harf içermelidir
                 </div>
                 <div className={`${styles.ruleItem} ${rules.special ? styles.ruleItemValid : ''}`}>
                   <span className={`${styles.ruleIcon} ${rules.special ? styles.ruleIconValid : ''}`}>{rules.special ? '✓' : '•'}</span>
-                  En az 1 özel karakter (!@#$%^&* vb.) içermelidir
+                  En az 1 özel karakter içermelidir
                 </div>
               </div>
             </div>
 
-            {/* Yasal Açık Rıza ve Onay Kutuları (KVKK, AI ve Biyometrik Veri) */}
-            <div style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+            {/* Onaylar Bölümü */}
+            <div className={styles.formSection}>
+              <h3 className={styles.sectionTitle}>Onaylar</h3>
+              
+              <label className={styles.consentRow}>
                 <input
                   type="checkbox"
+                  className={styles.consentCheckbox}
                   checked={consents.kvkk}
                   onChange={(e) => setConsents(p => ({ ...p, kvkk: e.target.checked }))}
-                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <span>
-                  <Link href="/kvkk" target="_blank" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-kosullari" target="_blank" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'underline' }}>Kullanım Koşulları</Link>&apos;nı okudum, kabul ediyorum. *
+                <span className={styles.consentText}>
+                  <Link href="/kvkk" target="_blank">KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</Link>&apos;nı okudum, kabul ediyorum. *
                 </span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+              <label className={styles.consentRow}>
                 <input
                   type="checkbox"
+                  className={styles.consentCheckbox}
                   checked={consents.aiProcessing}
                   onChange={(e) => setConsents(p => ({ ...p, aiProcessing: e.target.checked }))}
-                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <span>
-                  Bildirim metinlerimin ve güvenlik denetimi verilerimin nefret söylemi ve sahtecilik kontrolü amacıyla <strong>OpenAI</strong> servislerinde işlenmesine ve bu kapsamda yurt dışına aktarılmasına açık rıza veriyorum. *
+                <span className={styles.consentText}>
+                  Güvenlik denetimi verilerimin nefret söylemi kontrolü için <strong>OpenAI</strong> servislerinde işlenmesine açık rıza veriyorum. *
                 </span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: 'var(--color-text-secondary)', cursor: 'pointer', userSelect: 'none', lineHeight: '1.4' }}>
+              <label className={styles.consentRow}>
                 <input
                   type="checkbox"
+                  className={styles.consentCheckbox}
                   checked={consents.biometrics}
                   onChange={(e) => setConsents(p => ({ ...p, biometrics: e.target.checked }))}
-                  style={{ marginTop: '2px', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <span>
-                  Yükleyeceğim fotoğraflardaki üçüncü kişi gizliliği için otomatik <strong>yüz ve plaka bulanıklaştırma (biyometrik maskeleme)</strong> işleminin yapılmasını kabul ediyorum. *
+                <span className={styles.consentText}>
+                  Yüklediğim fotoğraflardaki üçüncü kişi gizliliği için otomatik <strong>yüz ve plaka bulanıklaştırma</strong> yapılmasını kabul ediyorum. *
                 </span>
               </label>
             </div>
 
-            <button id="btn-register-submit" type="submit"
-              className={`btn btn-primary btn-lg ${styles.submitBtn}`}
-              disabled={loading || !isPasswordValid || !allConsentsGiven}>
+            <button type="submit" className={styles.submitBtn} disabled={loading || !isPasswordValid || !allConsentsGiven}>
               {loading ? (
                 <>
-                  <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
-                  Kaydediliyor & Doğrulama Kodları Gönderiliyor...
+                  <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', marginRight: '8px' }} />
+                  Kaydediliyor...
                 </>
               ) : (
-                <>
-                  Kayıt Ol ve Devam Et
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </>
+                'Hesap Oluştur'
               )}
             </button>
 
-            <div className={styles.divider}>veya</div>
-
             <p className={styles.footer}>
-              Zaten hesabınız var mı?{' '}
+              Zaten hesabınız var mı?
               <Link href="/login" className={styles.link}>Giriş Yapın</Link>
             </p>
           </form>

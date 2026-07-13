@@ -125,6 +125,8 @@ interface AppStore {
   updateFilter: (key: keyof AppStore['filters'], value?: string) => void;
   setFilter: (key: keyof AppStore['filters'], value?: string) => void;
   clearFilters: () => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 const defaultFilters = { city: '', district: '', category: '', status: '', search: '' };
@@ -145,6 +147,7 @@ export const useAppStore = create<AppStore>()(
       isSidebarOpen: true,
       activeView: 'map',
       filters: defaultFilters,
+      _hasHydrated: false,
 
       // Auth actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
@@ -244,6 +247,7 @@ export const useAppStore = create<AppStore>()(
         })),
 
       clearFilters: () => set({ filters: defaultFilters }),
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'etiya-project-store',
@@ -253,6 +257,9 @@ export const useAppStore = create<AppStore>()(
         isAuthenticated: state.isAuthenticated,
         activeView: state.activeView,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

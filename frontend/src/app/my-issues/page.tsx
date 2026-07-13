@@ -30,22 +30,28 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function MyIssuesPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAppStore();
+  const { isAuthenticated, user, _hasHydrated } = useAppStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (_hasHydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, _hasHydrated, router]);
 
-  const { data: issues = [], isLoading } = useQuery({
+  const { data: issues = [], isLoading: isQueryLoading } = useQuery({
     queryKey: ['my-issues'],
     queryFn: async () => {
       const res: any = await api.get('/issues/my/list');
       return res.data || [];
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && _hasHydrated,
   });
+
+  if (!_hasHydrated) {
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#64748b' }}>Yükleniyor...</div>
+    </div>;
+  }
 
   if (!isAuthenticated) return null;
 
@@ -65,7 +71,7 @@ export default function MyIssuesPage() {
           </Link>
         </div>
 
-        {isLoading ? (
+        {isQueryLoading ? (
           <div className={styles.loading}>Bildirimleriniz yükleniyor...</div>
         ) : issues.length === 0 ? (
           <div className={styles.emptyState}>

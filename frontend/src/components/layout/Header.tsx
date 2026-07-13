@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import {
   IconMapPin, IconMap, IconTable, IconPlus,
-  IconLogin, IconUserPlus,
+  IconLogin, IconUserPlus, IconUser, IconFileText, IconBell, IconLogOut
 } from '@/components/ui/Icon';
 import styles from './Header.module.css';
 
@@ -93,30 +93,56 @@ export function Header() {
                 </Link>
               )}
 
-              <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }} title="Profil sayfama git">
-                <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
-                  {user?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={user.avatarUrl}
-                      alt="Profil fotoğrafı"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                    />
-                  ) : (
-                    <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
-                  )}
+              <div className={styles.userMenuWrapper}>
+                <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }}>
+                  <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
+                    {user?.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={user.avatarUrl}
+                        alt="Profil fotoğrafı"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                    ) : (
+                      <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                    )}
+                  </div>
+                  <div className={styles.userInfo}>
+                    <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
+                    <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </Link>
+
+                <div className={styles.userDropdown}>
+                  <div className={styles.dropdownHeader}>
+                    <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
+                    <span className={styles.dropdownRole}>{getRoleLabel(user?.role)}</span>
+                  </div>
+                  
+                  <Link href="/profile?tab=info" className={styles.dropdownItem}>
+                    <IconUser size={17} strokeWidth={1.8} />
+                    Profil Sayfam
+                  </Link>
+                  <Link href="/profile?tab=reports" className={styles.dropdownItem}>
+                    <IconFileText size={17} strokeWidth={1.8} />
+                    Bildirimlerim
+                  </Link>
+                  <Link href="/profile?tab=notifications" className={styles.dropdownItem}>
+                    <IconBell size={17} strokeWidth={1.8} />
+                    Bildirim Ayarları
+                  </Link>
+                  
+                  <div className={styles.dropdownSeparator}></div>
+                  
+                  <button className={`${styles.dropdownItem} ${styles.dropdownItemLogout}`} onClick={logout}>
+                    <IconLogOut size={17} strokeWidth={1.8} />
+                    Çıkış Yap
+                  </button>
                 </div>
-                <div className={styles.userInfo}>
-                  <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
-                  <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </Link>
-                <button className={`btn btn-ghost btn-sm ${styles.logoutBtn}`} onClick={logout} title="Çıkış Yap">
-                  Çıkış
-                </button>
+              </div>
           </>
         ) : (
           <Link href="/login" className="btn btn-primary" id="btn-login" title="Giriş Yap">
