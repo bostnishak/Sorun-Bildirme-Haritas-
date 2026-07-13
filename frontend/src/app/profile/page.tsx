@@ -8,7 +8,6 @@ import { ProfileSidebar } from '@/components/profile/ProfileSidebar';
 import { AccountInfoForm } from '@/components/profile/AccountInfoForm';
 import { ChangePasswordForm } from '@/components/profile/ChangePasswordForm';
 import { MyReports } from '@/components/profile/MyReports';
-import { NotificationPreferences } from '@/components/profile/NotificationPreferences';
 import styles from './Profile.module.css';
 
 function ProfilePageContent() {
@@ -55,8 +54,6 @@ function ProfilePageContent() {
         return <ChangePasswordForm />;
       case 'reports':
         return <MyReports />;
-      case 'notifications':
-        return <NotificationPreferences />;
       default:
         return <AccountInfoForm />;
     }

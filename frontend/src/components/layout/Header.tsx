@@ -130,10 +130,6 @@ export function Header() {
                     <IconFileText size={17} strokeWidth={1.8} />
                     Bildirimlerim
                   </Link>
-                  <Link href="/profile?tab=notifications" className={styles.dropdownItem}>
-                    <IconBell size={17} strokeWidth={1.8} />
-                    Bildirim Ayarları
-                  </Link>
                   
                   <div className={styles.dropdownSeparator}></div>
                   
