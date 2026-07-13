@@ -19,14 +19,15 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  WATER_SANITATION: '💧 Su ve Kanalizasyon',
-  TRANSPORTATION:   '🚗 Yol / Ulaşım',
-  ENVIRONMENT:      '🌿 Çevre ve Temizlik',
-  INFRASTRUCTURE:   '🏗️ Altyapı',
-  SECURITY:         '🔒 Güvenlik',
-  LIGHTING:         '💡 Aydınlatma',
-  PARKS:            '🌳 Park ve Yeşil Alan',
+  WATER_SANITATION: 'Su ve Kanalizasyon',
+  TRANSPORTATION:   'Yol / Ulaşım',
+  ENVIRONMENT:      'Çevre ve Temizlik',
+  INFRASTRUCTURE:   'Altyapı',
+  SECURITY:         'Güvenlik',
+  LIGHTING:         'Aydınlatma',
+  PARKS:            'Park ve Yeşil Alan',
 };
+
 
 function getRoleLabel(role?: string) {
   const labels: Record<string, string> = {

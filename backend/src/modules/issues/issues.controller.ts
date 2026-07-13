@@ -73,6 +73,18 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
   
   const llmGuardPassed = true; // enforceDynamicModeration throws if it strictly fails, otherwise we accept it.
 
+  // 3b. SECURITY kategorisi — Yalnızca kimlik doğrulanmış kullanıcılar bildirim yapabilir
+  // Yasal Dayanak: KVKK Md.4 (doğru veri), 5651 sk. (hesap verebilirlik)
+  if (data.category === 'SECURITY') {
+    const user = req.user as any;
+    if (!user?.isVerified) {
+      throw new BadRequestError(
+        'GÜVENLİK kategorisinde ihbar yapabilmek için kimlik doğrulaması (NVİ/T.C. Kimlik) zorunludur. ' +
+        'Profilinizden kimlik bilgilerinizi doğrulayın. Acil durumlar için 155 (Polis) veya 112 (Acil) numaralarını arayın.'
+      );
+    }
+  }
+
   // 4. EXIF doğrulama (fotoğraf varsa)
   let exifResult = null;
   if (req.file) {

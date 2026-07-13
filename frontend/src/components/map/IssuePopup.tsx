@@ -22,10 +22,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  OPEN:      { label: 'Açık',       color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   icon: '🔴' },
-  IN_REVIEW: { label: 'İnceleniyor',color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  icon: '🟡' },
-  RESOLVED:  { label: 'Çözüldü',   color: '#10b981', bg: 'rgba(16,185,129,0.12)',  icon: '🟢' },
-  REJECTED:  { label: 'Reddedildi',color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: '⚫' },
+  OPEN:      { label: 'Açık',       color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   icon: '●' },
+  IN_REVIEW: { label: 'İnceleniyor',color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  icon: '●' },
+  RESOLVED:  { label: 'Çözüldü',   color: '#10b981', bg: 'rgba(16,185,129,0.12)',  icon: '●' },
+  REJECTED:  { label: 'Reddedildi',color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: '●' },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -164,7 +164,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
               rel="noreferrer"
               style={{ fontSize: '12px', color: 'var(--color-text-muted)', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '5px' }}
             >
-              <span>🚨</span>
+              <span>[!]</span>
               <span>Bu İçeriği Şikâyet Et (5651 Uyar-Kaldır)</span>
             </a>
           </div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { api } from '@/lib/api';
 import styles from './page.module.css';
 
 export default function IletisimPage() {
@@ -17,13 +18,30 @@ export default function IletisimPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [referenceNo, setReferenceNo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Referans numarası oluştur (5651 kayıtlı başvuru no)
-    const randomRef = 'TR-' + Math.floor(100000 + Math.random() * 900000);
-    setReferenceNo(randomRef);
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+    try {
+      const response: any = await api.post('/legal/contact', {
+        subjectType: form.subjectType,
+        fullName: form.fullName,
+        email: form.email,
+        tcOrVergiNo: form.tcOrVergiNo || undefined,
+        targetUrl: form.targetUrl || undefined,
+        description: form.description,
+      });
+      const refNo = response?.data?.referenceNo || response?.referenceNo || ('TR-' + Math.floor(100000 + Math.random() * 900000));
+      setReferenceNo(refNo);
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.error?.message || err?.message || 'Başvuru gönderilemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,10 +92,10 @@ export default function IletisimPage() {
                     onChange={(e) => setForm({ ...form, subjectType: e.target.value })}
                     required
                   >
-                    <option value="5651_TAKEDOWN">🚨 5651 Sayılı Kanun - İçerik Kaldırma Talebi (Uyar-Kaldır)</option>
-                    <option value="KVKK_ERASURE">🗑️ KVKK Madde 11 - Kişisel Veri Silme & Unutulma Hakkı</option>
-                    <option value="AI_OBJECTION">🤖 Yapay Zeka (AI) Moderasyon / Maskeleme Kararına İtiraz</option>
-                    <option value="GENERAL_SUPPORT">💬 Genel Destek & Öneri Bildirimi</option>
+                    <option value="5651_TAKEDOWN">5651 Sayılı Kanun - İçerik Kaldırma Talebi (Uyar-Kaldır)</option>
+                    <option value="KVKK_ERASURE">KVKK Madde 11 - Kişisel Veri Silme & Unutulma Hakkı</option>
+                    <option value="AI_OBJECTION">Yapay Zeka (AI) Moderasyon / Maskeleme Kararına İtiraz</option>
+                    <option value="GENERAL_SUPPORT">Genel Destek & Öneri Bildirimi</option>
                   </select>
                 </div>
 
@@ -156,9 +174,24 @@ export default function IletisimPage() {
                   </span>
                 </label>
 
-                <button type="submit" className={styles.submitBtn} disabled={!form.declaration}>
-                  <span>Resmi Talebi Gönder</span>
-                  <span>→</span>
+                {error && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', padding: '12px 14px', fontSize: '13.5px', color: '#dc2626' }}>
+                    ! {error}
+                  </div>
+                )}
+
+                <button type="submit" className={styles.submitBtn} disabled={!form.declaration || loading}>
+                  {loading ? (
+                    <>
+                      <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                      <span>Gönderiliyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Resmi Talebi Gönder</span>
+                      <span>→</span>
+                    </>
+                  )}
                 </button>
               </form>
             </>

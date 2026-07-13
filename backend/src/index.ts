@@ -15,6 +15,7 @@ import { ensureBucketExists } from './services/storage.service';
 import { authRouter } from './modules/auth/auth.router';
 import { issuesRouter } from './modules/issues/issues.router';
 import { adminRouter } from './modules/admin/admin.router';
+import { legalRouter } from './modules/legal/legal.router';
 
 import { initSentry } from './utils/sentry';
 import { metricsMiddleware, getMetrics } from './utils/metrics';
@@ -135,6 +136,7 @@ setupSwagger(app);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/issues', issuesRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/legal', legalRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────
 app.use('*', (req: Request, res: Response) => {

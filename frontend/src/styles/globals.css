@@ -339,12 +339,18 @@ label {
 
 .mapboxgl-popup-tip, .maplibregl-popup-tip { display: none !important; }
 
-/* Hide Mapbox logo and attribution */
-.mapboxgl-ctrl-logo, 
+/* Mapbox Attribution — ToS Uyumu (Gizlenmez)
+   Mapbox Terms of Service Bölüm 2.2 uyarınca logo ve attribution
+   görünür kalmalıdır. display:none ile gizlemek lisans ihlaline yol açar. */
+.mapboxgl-ctrl-logo,
+.maplibregl-ctrl-logo {
+  opacity: 0.8 !important;
+}
 .mapboxgl-ctrl-attrib,
-.maplibregl-ctrl-logo,
+.maplibregl-ctrl-attrib-inner,
 .maplibregl-ctrl-attrib {
-  display: none !important;
+  font-size: 10px !important;
+  opacity: 0.8 !important;
 }
 
 /* Harita Zoom Kontrollerini Yukarı Kaldır (AI İhbar Asistanı ile Çakışmaması İçin) */

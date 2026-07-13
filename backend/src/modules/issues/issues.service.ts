@@ -108,8 +108,10 @@ export const issuesService = {
       ...issue,
       reportedBy: {
         id: issue.reportedBy.id,
-        firstName: issue.reportedBy.firstName,
-        lastName: issue.reportedBy.lastName,
+        // KVKK Md.4 — Veri Minimizasyonu: Ad/Soyad yalnızca profil sayfasında
+        // ve yetkilendirilmiş istekler için gösterilir, listelemede gizlenir
+        firstName: '***',
+        lastName: '***',
         isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
       },
     };
@@ -163,8 +165,9 @@ export const issuesService = {
     const mappedIssues = rawIssues.map(issue => ({
       ...issue,
       reportedBy: {
-        firstName: issue.reportedBy.firstName,
-        lastName: issue.reportedBy.lastName,
+        // KVKK Md.4 — Veri Minimizasyonu: Liste görünümünde isim gizlenir
+        firstName: '***',
+        lastName: '***',
         isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
       },
     }));

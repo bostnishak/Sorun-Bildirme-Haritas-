@@ -69,7 +69,7 @@ export default function MyIssuesPage() {
           <div className={styles.loading}>Bildirimleriniz yükleniyor...</div>
         ) : issues.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>📍</div>
+            <div className={styles.emptyIcon}>◆</div>
             <h3>Henüz bir bildirimde bulunmadınız</h3>
             <p style={{ color: '#64748b', marginBottom: '20px' }}>
               Yaşadığınız çevredeki sorunları harita üzerinden bildirerek çözüm sürecine katkıda bulunun.
@@ -115,7 +115,7 @@ export default function MyIssuesPage() {
 
                   <div className={styles.cardMeta}>
                     <span>
-                      📍 {issue.city} / {issue.district}
+                      ◆ {issue.city} / {issue.district}
                     </span>
                     <span>
                       {format(new Date(issue.createdAt || issue.created_at), 'dd MMM yyyy', {

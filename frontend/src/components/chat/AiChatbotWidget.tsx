@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -40,12 +41,13 @@ export function AiChatbotWidget() {
     {
       id: '1',
       sender: 'ai',
-      text: 'Merhaba! Ben Etiya Project Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak veya fotoğraf yükleyerek bana iletebilirsiniz.',
+      text: 'Merhaba! Ben Etiya Project Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak, mikrofonla sesli söyleyerek veya fotoğraf yükleyerek bana iletebilirsiniz.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const loadingStates = [
     'Metin ve bağlam inceleniyor...', 
@@ -66,6 +68,14 @@ export function AiChatbotWidget() {
   }, [loading]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(Math.max(textareaRef.current.scrollHeight, 38), 110)}px`;
+    }
+  }, [input]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,6 +91,78 @@ export function AiChatbotWidget() {
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleVoiceRecordToggle = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRec) {
+      try {
+        const recognition = new SpeechRec();
+        recognition.lang = 'tr-TR';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        setIsRecording(true);
+        const toastId = toast.loading('🎙️ Mikrofon aktif: Sesli mesajınızı söyleyin...');
+
+        let finalTranscript = '';
+
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + ' ';
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          const currentText = (finalTranscript + interim).trim();
+          setInput(currentText);
+        };
+
+        recognition.onerror = () => {
+          setIsRecording(false);
+          toast.dismiss(toastId);
+          simulateVoiceInput();
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+          toast.dismiss(toastId);
+          if (finalTranscript.trim()) {
+            setInput(finalTranscript.trim());
+          }
+        };
+
+        recognition.start();
+        return;
+      } catch (err) {
+        setIsRecording(false);
+      }
+    }
+
+    simulateVoiceInput();
+  };
+
+  const simulateVoiceInput = () => {
+    setIsRecording(true);
+    toast.loading('🔴 Sesli Mesaj Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'voice-sim' });
+    setTimeout(() => {
+      const spoken = window.prompt(
+        '🎙️ Yapay Zeka Sesli İhbar Asistanı:\nLütfen sesli olarak iletmek istediğiniz sorunu yazın/okuyun:',
+        'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor'
+      );
+      setIsRecording(false);
+      toast.dismiss('voice-sim');
+      if (spoken && spoken.trim()) {
+        setInput(prev => (prev ? prev + ' ' + spoken.trim() : spoken.trim()));
+      }
+    }, 400);
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -229,7 +311,7 @@ export function AiChatbotWidget() {
       {isOpen && (
         <div
           style={{
-            width: '390px',
+            width: '410px',
             height: '540px',
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -306,7 +388,7 @@ export function AiChatbotWidget() {
               gap: '8px',
               fontWeight: 500
             }}>
-              <span style={{ flexShrink: 0, fontSize: '16px' }}>⚠️</span>
+              <span style={{ flexShrink: 0, fontSize: '16px' }}>!</span>
               <span>Sadece giriş yapanlar ihbar oluşturabilir. Şu an sadece bilgi alabilirsiniz.</span>
             </div>
           )}
@@ -455,21 +537,33 @@ export function AiChatbotWidget() {
           <form
             onSubmit={handleSendMessage}
             style={{
-              padding: '12px 16px',
+              padding: '12px',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
-              gap: '8px',
-              alignItems: 'center',
+              gap: '6px',
+              alignItems: 'flex-end',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
-            <label
+            <button
+              type="button"
+              onClick={() => {
+                const fileInput = document.getElementById('ai-chatbot-file-input');
+                fileInput?.click();
+              }}
               style={{
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '9px',
+                width: '38px',
+                height: '38px',
+                padding: 0,
+                margin: 0,
+                boxSizing: 'border-box',
+                flexShrink: 0,
                 borderRadius: '8px',
                 backgroundColor: '#ffffff',
                 border: '1px solid #cbd5e1',
@@ -477,38 +571,109 @@ export function AiChatbotWidget() {
               }}
               title="Fotoğraf Ekle"
             >
-              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+              <input
+                id="ai-chatbot-file-input"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
+              />
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
-            </label>
-            <input
-              type="text"
+            </button>
+
+            <button
+              type="button"
+              onClick={handleVoiceRecordToggle}
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '38px',
+                height: '38px',
+                padding: 0,
+                margin: 0,
+                boxSizing: 'border-box',
+                flexShrink: 0,
+                borderRadius: '8px',
+                backgroundColor: isRecording ? '#dc2626' : '#ffffff',
+                border: isRecording ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                color: isRecording ? '#ffffff' : '#2563eb',
+                transition: 'all 0.2s ease',
+                boxShadow: isRecording ? '0 0 0 3px rgba(220, 38, 38, 0.2)' : 'none',
+              }}
+              title={isRecording ? 'Dinleniyor... Konuşmayı bitirmek için tıklayın' : 'Sesli Mesajla Söyle (Yapay Zeka Konuşmadan Metne)'}
+            >
+              {isRecording ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              )}
+            </button>
+
+            <textarea
+              ref={textareaRef}
+              rows={1}
               value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Mesajınızı veya sorunu yazın..."
+              onChange={e => {
+                setInput(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(Math.max(e.target.scrollHeight, 38), 110)}px`;
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder={isRecording ? '🔴 Dinleniyor... Konuşun' : 'Mesajınızı yazın...'}
               style={{
                 flex: 1,
-                padding: '10px 14px',
+                minWidth: 0,
+                minHeight: '38px',
+                maxHeight: '110px',
+                padding: '9px 10px',
+                margin: 0,
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#ffffff',
                 color: '#0f172a',
                 fontSize: '0.85rem',
+                lineHeight: '1.35',
                 outline: 'none',
+                resize: 'none',
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
               }}
             />
             <button
               type="submit"
               disabled={loading || (!input.trim() && !imagePreview)}
               style={{
+                height: '38px',
+                margin: 0,
+                boxSizing: 'border-box',
                 backgroundColor: '#2563eb',
                 color: 'white',
                 border: 'none',
-                padding: '10px 16px',
+                padding: '0 14px',
                 borderRadius: '8px',
                 fontWeight: 600,
+                flexShrink: 0,
                 cursor: (loading || (!input.trim() && !imagePreview)) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               Gönder

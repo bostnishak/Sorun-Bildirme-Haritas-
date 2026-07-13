@@ -230,8 +230,8 @@ model IssueComment {
 
 model AuditLog {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  actorId    String   @map("actor_id") @db.Uuid
-  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  actorId    String?  @map("actor_id") @db.Uuid
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
   action     String   @db.VarChar(100)
   targetId   String?  @map("target_id") @db.Uuid
   targetType String?  @map("target_type") @db.VarChar(50)

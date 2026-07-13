@@ -6,7 +6,7 @@ export const auditService = {
    * Log an admin action to the AuditLog table
    */
   async logAction(
-    actorId: string,
+    actorId: string | null | undefined,
     action: string,
     targetId?: string,
     targetType?: string,
@@ -15,7 +15,7 @@ export const auditService = {
     try {
       await prisma.auditLog.create({
         data: {
-          actorId,
+          actorId: actorId || null,
           action,
           targetId,
           targetType,

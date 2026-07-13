@@ -153,13 +153,13 @@ export default function IssueDetailPage() {
           <h1 className={styles.title}>{issue.title}</h1>
 
           <div className={styles.meta}>
-            <span>📍 {issue.city} / {issue.district}</span>
+            <span>◆ {issue.city} / {issue.district}</span>
             {issue.address && <span>{issue.address}</span>}
             <span>
-              🕒 {format(new Date(issue.createdAt || issue.created_at), 'dd MMMM yyyy HH:mm', { locale: tr })}
+              {format(new Date(issue.createdAt || issue.created_at), 'dd MMMM yyyy HH:mm', { locale: tr })}
             </span>
             {issue.reportedBy && (
-              <span>👤 {issue.reportedBy.firstName} {issue.reportedBy.lastName}</span>
+              <span>{issue.reportedBy.firstName} {issue.reportedBy.lastName}</span>
             )}
           </div>
 
@@ -225,7 +225,7 @@ export default function IssueDetailPage() {
                         {comment.author?.firstName} {comment.author?.lastName}
                       </span>
                       {comment.isOfficial && (
-                        <span className={styles.officialBadge}>🏛️ RESMİ BELEDİYE AÇIKLAMASI</span>
+                        <span className={styles.officialBadge}>RESMİ BELEDİYE AÇIKLAMASI</span>
                       )}
                     </div>
                     <span className={styles.commentDate}>

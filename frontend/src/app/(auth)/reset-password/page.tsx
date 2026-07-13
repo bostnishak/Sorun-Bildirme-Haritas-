@@ -74,7 +74,7 @@ function ResetPasswordForm() {
 
           {!token && (
             <div className={styles.errorAlert} style={{ marginBottom: 16 }}>
-              ⚠️ Uyarı: URL üzerinde geçerli bir sıfırlama tokeni bulunamadı. Lütfen e-postanıza gelen bağlantıya tıkladığınızdan emin olun.
+              Uyarı: URL üzerinde geçerli bir sıfırlama tokeni bulunamadı. Lütfen e-postanıza gelen bağlantıya tıkladığınızdan emin olun.
             </div>
           )}
 

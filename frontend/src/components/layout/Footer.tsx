@@ -9,45 +9,56 @@ export function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
-        {/* Üst Kısım: Marka ve Açıklama */}
+        {/* Üst Kısım: 4 Sütunlu Koyu Tema Grid */}
         <div className={styles.topRow}>
+          {/* Sütun 1: Marka & Künye */}
           <div className={styles.brandCol}>
             <div className={styles.logoWrap}>
-              <span className={styles.logoIcon}>🗺️</span>
-              <span className={styles.brandTitle}>Türkiye Sorun Bildirim Haritası</span>
+              <div className={styles.logoIcon}>◆</div>
+              <span className={styles.brandTitle}>Sorun Haritası</span>
             </div>
             <p className={styles.brandDesc}>
-              Vatandaşların kentsel altyapı ve çevre sorunlarını harita üzerinden şeffafça bildirmesi, kurumların ise çözüm süreçlerini etkin takip etmesi için geliştirilmiş açık ve bağımsız platform.
+              Türkiye genelinde altyapı ve çevre sorunlarının vatandaşlar tarafından bildirilebildiği, kurumların çözüm süreçlerinin şeffafça takip edildiği açık platform.
             </p>
           </div>
 
-          {/* Orta Kısım: Hızlı Linkler */}
-          <div className={styles.linksCol}>
+          {/* Sütun 2: Platform */}
+          <div>
             <h4 className={styles.colHeader}>Platform</h4>
             <ul className={styles.linkList}>
               <li><Link href="/">Harita Görünümü</Link></li>
-              <li><Link href="/">Tablo Görünümü</Link></li>
+              <li><Link href="/my-issues">Bildirimlerim</Link></li>
               <li><Link href="/register">Kayıt Ol</Link></li>
               <li><Link href="/login">Giriş Yap</Link></li>
             </ul>
           </div>
 
-          {/* Sağ Kısım: Yasal ve Mevzuat Linkleri */}
-          <div className={styles.linksCol}>
+          {/* Sütun 3: Kurumsal */}
+          <div>
+            <h4 className={styles.colHeader}>Kurumsal</h4>
+            <ul className={styles.linkList}>
+              <li><Link href="/iletisim">İletişim</Link></li>
+              <li><Link href="/iletisim">Basın</Link></li>
+              <li><Link href="/">Nasıl Çalışır?</Link></li>
+            </ul>
+          </div>
+
+          {/* Sütun 4: Yasal & Mevzuat */}
+          <div>
             <h4 className={styles.colHeader}>Yasal & Mevzuat</h4>
             <ul className={styles.linkList}>
               <li><Link href="/kvkk">KVKK Aydınlatma Metni</Link></li>
               <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
               <li><Link href="/kullanim-kosullari">Kullanım Koşulları</Link></li>
               <li><Link href="/cerez-politikasi">Çerez Politikası</Link></li>
-              <li><Link href="/iletisim" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>🚨 İletişim & 5651 Uyar-Kaldır</Link></li>
+              <li><Link href="/iletisim" style={{ color: '#f87171', fontWeight: 600 }}>• İletişim & 5651 Uyar-Kaldır</Link></li>
             </ul>
           </div>
         </div>
 
         {/* Acil Durum Hatırlatması */}
         <div className={styles.emergencyBox}>
-          <span className={styles.emergencyIcon}>⚠️</span>
+          <span className={styles.emergencyIcon}>!</span>
           <span>
             <strong>Önemli Hatırlatma:</strong> Bu platform acil durum çağrı hattı değildir. Yangın, sağlık, güvenlik ve kurtarma gibi acil müdahale gerektiren durumlarda lütfen derhal <strong>112 Acil Çağrı Merkezi</strong>&apos;ni arayınız.
           </span>

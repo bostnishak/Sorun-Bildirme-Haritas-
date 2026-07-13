@@ -127,6 +127,7 @@ export default function RegisterPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [nviBypass, setNviBypass] = useState(false);
 
   const rules = {
     length: form.password.length >= 8 && form.password.length <= 12,
@@ -207,7 +208,12 @@ export default function RegisterPage() {
         birthDay: parseInt(form.birthDay, 10),
       });
 
-      toast.success(response?.message || 'Kayıt başarılı! Lütfen doğrulama kodunu girin. 🎉');
+      const message = response?.message || response?.data?.message || 'Kayıt başarılı! Lütfen doğrulama kodunu girin. 🎉';
+      const nviVerified = response?.data?.nviVerified ?? response?.nviVerified ?? true;
+      if (!nviVerified) {
+        setNviBypass(true);
+      }
+      toast.success(message);
       setStep('verify');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.');
@@ -505,7 +511,7 @@ export default function RegisterPage() {
             </button>
 
             <div className={styles.formHeader}>
-              <h1 className={styles.formTitle}>Doğrulama Yöntemi Seçin 🛡️</h1>
+              <h1 className={styles.formTitle}>Doğrulama Yöntemi Seçin</h1>
               <p className={styles.formSubtitle}>
                 Hesabınızı aktifleştirmek için e-posta veya SMS doğrulama seçeneklerinden birini tercih edin.
               </p>
@@ -514,6 +520,24 @@ export default function RegisterPage() {
             {error && (
               <div className={styles.errorAlert}>
                 <span>{error}</span>
+              </div>
+            )}
+
+            {nviBypass && (
+              <div style={{
+                background: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.4)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                fontSize: '12.5px',
+                color: 'var(--color-text-primary)',
+                lineHeight: '1.5',
+                marginBottom: 8,
+              }}>
+                <strong>! Kimlik Doğrulama Eksik (NVİ Bağlantısı Kurulamadı)</strong>
+                <p style={{ margin: '6px 0 0' }}>
+                  T.C. Kimlik doğrulaması şu an tamamlanamadı. Hesabınız oluşturuldu; ancak <strong>GÜVENLİK</strong> kategorisinde ihbar yapabilmek için profilinizden kimlik doğrulamanızı tamamlamanız gerekir.
+                </p>
               </div>
             )}
 
