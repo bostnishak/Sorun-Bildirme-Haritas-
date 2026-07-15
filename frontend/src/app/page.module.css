@@ -569,12 +569,60 @@
 
 @media (max-width: 768px) {
   .heroSection {
+    padding-top: 56px;   /* slightly smaller header on mobile */
     padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .scrollHint {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    font-size: 10px;
+    padding: 5px 10px 5px 9px;
+  }
+
+  .section {
+    padding: 28px 0;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+  }
+
+  .sectionDesc {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .statsShowcase {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .statsShowcaseText .sectionTitle,
+  .statsShowcaseText .sectionDesc {
+    text-align: center !important;
+  }
+
+  .statsBtn {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+  }
+
+  .bigStatValue {
+    font-size: 20px;
   }
 }
 
 @media (max-width: 640px) {
   .container {
     padding: 0 16px;
+  }
+
+  .featureCard {
+    padding: 14px;
+  }
+
+  .stepCard {
+    padding: 16px 14px;
   }
 }

@@ -24,16 +24,15 @@ const STATUS_COLORS: Record<string, string> = {
 
 const TURKEY_CENTER = {
   latitude: 39.0,
-  longitude: 35.2, // Doğuyu kapsamak için sadece kaydırma yapıldı
-  zoom: 5.7,       // Zoom eski orijinal haline getirildi
+  longitude: 35.5, // Daha fazla doğuyu (Van vb.) kapsamak için kaydırıldı
+  zoom: 5.6,       // Kullanıcı isteği üzerine 5.6 olarak güncellendi
   pitch: 0,
   bearing: 0
 };
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [24.5, 35.5], // Güneybatı (Ege'ye biraz daha boşluk)
-  [45.5, 42.5]  // Kuzeydoğu
+  [23.0, 34.0], // Güneybatı (Görseldeki tam sınırlar)
+  [46.0, 43.0]  // Kuzeydoğu (Görseldeki tam sınırlar)
 ];
-
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
   İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10, pitch: 0, bearing: 0 },
@@ -62,8 +61,40 @@ export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
   const [clusterZoom, setClusterZoom] = useState(TURKEY_CENTER.zoom);
-  const [initialZoom, setInitialZoom] = useState<number | null>(null);
+  const [minZoom, setMinZoom] = useState(TURKEY_CENTER.zoom); // PC için 5.6 olarak başlatıyoruz
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
+
+  const [activeBounds, setActiveBounds] = useState<[[number, number], [number, number]]>(TURKEY_BOUNDS);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isTouchDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
+                            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+      
+      const isMobileWidth = window.innerWidth <= 768;
+      const isRealMobileOrTablet = isTouchDevice || isMobileWidth;
+      
+      const initialZ = isRealMobileOrTablet ? 4.05 : TURKEY_CENTER.zoom;
+      
+      // PC'de minZoom 5.6 olacak, böylece başlangıçta zoom out yapılamayacak ve pan yapılamayacak.
+      setMinZoom(isRealMobileOrTablet ? 4.05 : TURKEY_CENTER.zoom);
+      
+      setViewState(prev => ({ ...prev, zoom: initialZ }));
+      setClusterZoom(initialZ);
+      
+      if (isRealMobileOrTablet) {
+        // Tablet ve Mobil için %10 daha esnek sınırlar
+        setActiveBounds([
+          [20.7, 33.0], // SW (PC'ye göre ~10% daha geniş)
+          [48.3, 44.0]  // NE (PC'ye göre ~10% daha geniş)
+        ]);
+      } else {
+        // PC için görseldeki sabit Türkiye sınırları
+        setActiveBounds(TURKEY_BOUNDS);
+      }
+    }
+  }, []);
 
   const calculatePitch = (zoom: number): number => {
     if (zoom < 15) return 0;
@@ -254,11 +285,7 @@ export function MapView() {
       console.warn("Language override error:", error);
     }
 
-    try {
-      setInitialZoom(map.getZoom());
-    } catch (error) {
-      console.warn("zoom check failed:", error);
-    }
+
     try {
       const b = map.getBounds();
       if (b) setMapBounds(b.toArray().flat() as [number, number, number, number]);
@@ -310,7 +337,7 @@ export function MapView() {
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
 
-    if (zoom <= TURKEY_CENTER.zoom + 0.05) {
+    if (zoom <= minZoom + 0.05) {
       const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.05 &&
         Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.05;
       if (!isCentered) {
@@ -347,7 +374,7 @@ export function MapView() {
         zoom: Math.floor(zoom),
       });
     }
-  }, [fetchClusters]);
+  }, [fetchClusters, minZoom]);
 
   useEffect(() => {
     if (filters.city && CITY_COORDS[filters.city]) {
@@ -360,7 +387,7 @@ export function MapView() {
     } else if (!filters.city) {
       mapRef.current?.flyTo({
         center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-        zoom: TURKEY_CENTER.zoom,
+        zoom: minZoom,
         duration: 1200
       });
     }
@@ -535,11 +562,11 @@ export function MapView() {
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
-        maxBounds={TURKEY_BOUNDS}
+        maxBounds={activeBounds}
         {...({ maxBoundsViscosity: 1.0 } as any)}
-        minZoom={TURKEY_CENTER.zoom}
-        maxZoom={17}
-        dragPan={initialZoom !== null ? viewState.zoom >= initialZoom + 1.0 : false}
+        minZoom={minZoom}
+        maxZoom={16.5}
+        dragPan={true}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
@@ -548,6 +575,19 @@ export function MapView() {
         optimizeForTerrain={false}
       >
         <Source id="provinces" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
+          {/* Ülke sınırları (admin_level 0) - Sınırların belirgin olması için eklendi */}
+          <Layer
+            id="country-borders-layer"
+            type="line"
+            source="provinces"
+            source-layer="admin"
+            filter={['all', ['==', 'admin_level', 0], ['!=', 'maritime', 'true']]}
+            paint={{
+              'line-color': 'rgba(220, 38, 38, 0.55)', // Şeffaflık 0.55 olarak güncellendi
+              'line-width': 2.1,                       // Çizgi kalınlığı 2.1 olarak güncellendi
+              'line-blur': 1.5                         // Keskinliği almak için bulanıklık efekti
+            }}
+          />
           <Layer
             id="provinces-layer"
             type="line"

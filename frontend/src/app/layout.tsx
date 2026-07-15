@@ -31,6 +31,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: '#2563eb',
+  viewportFit: 'cover',
 };
 
 import { AiChatbotWidget } from '@/components/chat/AiChatbotWidget';

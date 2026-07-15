@@ -53,6 +53,41 @@
   right: 16px !important;
 }
 
+/* ─── Mobile Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .mapWrapper {
+    /* iOS notch / bottom bar safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Zoom kontrolleri mobilden daha yukarıya taşı (filter toggle butonuyla çakışmasın) */
+  .mapWrapper :global(.mapboxgl-ctrl-bottom-right),
+  .mapWrapper :global(.maplibregl-ctrl-bottom-right),
+  .mapWrapper :global(.leaflet-bottom.leaflet-right) {
+    bottom: 84px !important;
+    right: 10px !important;
+  }
+
+  /* Zoom butonları daha büyük (parmak dostu) */
+  .mapWrapper :global(.mapboxgl-ctrl-group button),
+  .mapWrapper :global(.maplibregl-ctrl-group button) {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .mapWrapper :global(.leaflet-control-zoom a) {
+    width: 42px !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    font-size: 18px !important;
+  }
+
+  /* Cluster markerlar mobilden biraz küçük */
+  .mapWrapper :global(.custom-leaflet-cluster) {
+    transform: scale(0.9);
+  }
+}
+
 .mapWrapper :global(.leaflet-control-zoom) {
   border: none !important;
   box-shadow: var(--shadow-md) !important;
