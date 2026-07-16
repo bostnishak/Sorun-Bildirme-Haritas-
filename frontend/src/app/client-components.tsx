@@ -21,7 +21,7 @@ const MapView = dynamic(() => import('@/components/map/MapView').then(m => ({ de
   loading: () => <div className={styles.mapPlaceholder}><div className={styles.mapSpinner} /></div>,
 });
 
-export function MapAreaClient() {
+function MapAreaClientInner() {
   const { activeView, setActiveView } = useAppStore();
   const searchParams = useSearchParams();
 
@@ -41,6 +41,14 @@ export function MapAreaClient() {
         {activeView === 'map' ? <MapView /> : <TableView />}
       </main>
     </div>
+  );
+}
+
+export function MapAreaClient() {
+  return (
+    <React.Suspense fallback={<div className={styles.appLayout} />}>
+      <MapAreaClientInner />
+    </React.Suspense>
   );
 }
 
