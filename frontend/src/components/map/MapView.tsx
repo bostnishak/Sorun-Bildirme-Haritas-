@@ -362,23 +362,13 @@ export function MapView() {
                   map.setLayoutProperty(layer.id, 'text-ignore-placement', false);
                 }
 
-                // Punto Ayarı: İstanbul, Ankara, İzmir mega kalsın, diğer hepsi Adana (standart) boyutunda olsun
+                // Punto Ayarı: Tüm şehirler aynı standart boyutta olsun
                 map.setLayoutProperty(layer.id, 'text-size', [
                   'interpolate',
                   ['linear'],
                   ['zoom'],
-                  4, [
-                    'match',
-                    ['get', 'name_en'],
-                    ['Istanbul', 'Ankara', 'Izmir', 'İstanbul', 'İzmir'], 15.5, // Uzaktan mega kentler
-                    12.5 // Uzaktan diğer şehirler (Adana boyutu)
-                  ],
-                  10, [
-                    'match',
-                    ['get', 'name_en'],
-                    ['Istanbul', 'Ankara', 'Izmir', 'İstanbul', 'İzmir'], 24, // Yakından mega kentler
-                    17 // Yakından diğer şehirler
-                  ]
+                  4, 12.5, // Uzaktan boyut
+                  10, 17   // Yakından boyut
                 ]);
               } catch (e) {
                 // Bazı stillerde bu özellikler olmayabilir, sessizce geç
