@@ -202,9 +202,18 @@ export const issuesService = {
         ST_Y(ST_Centroid(ST_Collect(location)))::float  AS lat,
         COUNT(*)::int                                    AS point_count,
         ARRAY_AGG(id::text)                             AS ids,
+        (ARRAY_AGG(id::text))[1]                        AS id,
         MODE() WITHIN GROUP (ORDER BY category::text)   AS dominant_category,
         MODE() WITHIN GROUP (ORDER BY status::text)     AS dominant_status,
-        MODE() WITHIN GROUP (ORDER BY priority::text)   AS dominant_priority
+        MODE() WITHIN GROUP (ORDER BY priority::text)   AS dominant_priority,
+        MODE() WITHIN GROUP (ORDER BY title::text)      AS title,
+        MODE() WITHIN GROUP (ORDER BY description::text) AS description,
+        MODE() WITHIN GROUP (ORDER BY city::text)       AS city,
+        MODE() WITHIN GROUP (ORDER BY district::text)   AS district,
+        MODE() WITHIN GROUP (ORDER BY address::text)    AS address,
+        MODE() WITHIN GROUP (ORDER BY created_at::text) AS created_at,
+        MODE() WITHIN GROUP (ORDER BY image_url::text)  AS image_url,
+        MODE() WITHIN GROUP (ORDER BY upvote_count::int) AS upvote_count
       FROM issues
       WHERE
         location && ST_MakeEnvelope(

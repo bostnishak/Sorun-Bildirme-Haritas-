@@ -104,72 +104,131 @@ export function AiChatbotWidget() {
       return;
     }
 
-    if (file.size > 1.5 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 1.5 MB\'ı geçemez.');
+    if (file.size > 30 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 30 MB\'ı geçemez.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result as string);
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 1600;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setImagePreview(optimizedDataUrl);
+        } else {
+          setImagePreview(dataUrl);
+        }
+      };
+      img.onerror = () => {
+        setImagePreview(dataUrl);
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
 
-  const handleVoiceRecordToggle = () => {
+  const handleVoiceRecordToggle = async () => {
     if (isRecording) {
       setIsRecording(false);
       return;
     }
 
     const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRec) {
-      try {
-        const recognition = new SpeechRec();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = false;
-        recognition.interimResults = true;
+    if (!SpeechRec) {
+      toast.error('Tarayıcınız canlı ses tanımayı (Speech to Text) desteklemiyor. Lütfen Google Chrome veya Microsoft Edge kullanın.');
+      return;
+    }
 
-        setIsRecording(true);
-        const toastId = toast.loading('[Sesli] Mikrofon aktif: Sesli mesajınızı söyleyin...');
-
-        let finalTranscript = '';
-
-        recognition.onresult = (event: any) => {
-          let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript + ' ';
-            } else {
-              interim += event.results[i][0].transcript;
-            }
-          }
-          const currentText = (finalTranscript + interim).trim();
-          setInput(currentText);
-        };
-
-        recognition.onerror = () => {
-          setIsRecording(false);
-          toast.dismiss(toastId);
-          setShowVoiceModal(true);
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-          toast.dismiss(toastId);
-          if (finalTranscript.trim()) {
-            setInput(finalTranscript.trim());
-          }
-        };
-
-        recognition.start();
+    let micStream: MediaStream | null = null;
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+    } catch (err: any) {
+      const errName = err?.name || '';
+      if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        toast.error('⚠️ Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
         return;
-      } catch (err) {
-        setIsRecording(false);
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        toast.error('⚠️ Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
+        return;
+      } else {
+        toast.error('⚠️ Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
+        return;
       }
     }
 
-    setShowVoiceModal(true);
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = 'tr-TR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      setIsRecording(true);
+      const toastId = toast.loading('🎙️ Dinliyorum... Konuşun (Speech to Text)');
+
+      let finalTranscript = '';
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        const currentText = (finalTranscript + interim).trim();
+        setInput(currentText);
+      };
+
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        toast.dismiss(toastId);
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
+        if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+          toast.error('⚠️ Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" seçin.');
+        } else if (e.error === 'no-speech') {
+          // Konuşma algılanmadı, sessizce kapan
+        } else {
+          toast.error(`⚠️ Ses tanıma hatası (${e.error}).`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        toast.dismiss(toastId);
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
+        if (finalTranscript.trim()) {
+          setInput(finalTranscript.trim());
+        }
+      };
+
+      recognition.start();
+    } catch (err) {
+      setIsRecording(false);
+      if (micStream) micStream.getTracks().forEach(track => track.stop());
+      toast.error('Mikrofon başlatılamadı.');
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -608,67 +667,6 @@ export function AiChatbotWidget() {
               >
                 Kaldır
               </button>
-            </div>
-          )}
-
-          {showVoiceModal && (
-            <div style={{
-              padding: '14px',
-              backgroundColor: '#eff6ff',
-              borderTop: '1px solid #bfdbfe',
-              borderBottom: '1px solid #bfdbfe',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              maxHeight: '230px',
-              overflowY: 'auto',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  🎙️ Yapay Zeka Akıllı Ses & İhbar Paneli
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowVoiceModal(false)}
-                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 700 }}
-                >
-                  ×
-                </button>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
-                Tarayıcı mikrofon izni veya HTTP kısıtlaması durumunda ya da hızlı ihbar aktarmak istediğinizde aşağıdan örnek ses kalıplarına basıp veya konuşmanızı buraya yazıp aktarabilirsiniz:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {[
-                  'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor',
-                  'Beşiktaş meydanda rögar kapağı kırıldı yoldan geçen arabalar için tehlikeli acil onarım olmalı',
-                  'Üsküdar Çengelköy sokak lambaları yanmıyor sokak çok karanlık güvenlik riski var',
-                  'Şişli Mecidiyeköy asfalt çöktü derin çukur oluştu araçlar zarar görüyor',
-                  'Kadıköy Yoğurtçu Parkı fırtınadan ağaç devrildi yaya yolunu kapattı'
-                ].map((template, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setInput(template);
-                      setShowVoiceModal(false);
-                    }}
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid #93c5fd',
-                      backgroundColor: '#ffffff',
-                      color: '#1d4ed8',
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    🗣️ "{template}"
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 

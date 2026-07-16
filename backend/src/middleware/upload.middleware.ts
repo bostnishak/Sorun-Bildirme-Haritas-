@@ -12,7 +12,7 @@ const ALLOWED_MIME_TYPES = [
   'image/heif',
 ];
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (Phase 2 FinOps and Security requirement)
+const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB (Fotoğraf yükleme limiti artırıldı)
 
 /**
  * Bellek tabanlı upload — EXIF okuma ve Vision AI işlemi için

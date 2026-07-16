@@ -46,12 +46,11 @@ export function isWithinBoundingBox(
  * Zoom seviyesine göre cluster grid boyutu belirler
  */
 export function getClusterGridSize(zoom: number): number {
-  if (zoom <= 5) return 2.0;
-  if (zoom <= 8) return 1.0;
-  if (zoom <= 10) return 0.5;
-  if (zoom <= 12) return 0.2;
-  if (zoom <= 14) return 0.1;
-  return 0.05;
+  if (zoom <= 5) return 1.5;
+  if (zoom <= 7) return 0.8;
+  if (zoom <= 9) return 0.3;
+  if (zoom <= 10) return 0.08;
+  return 0.0001; // zoom > 10 (şehir içi zoom): Her bildirimi tam koordinatında göster
 }
 
 /**

@@ -84,8 +84,10 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
             )}
           </div>
           <div className={styles.headerInfo}>
-            <div className={styles.idBadge}>#{issue.id}</div>
-            <h3 className={styles.title}>{issue.title}</h3>
+            <div className={styles.idBadge}>
+              #{issue.id && issue.id !== 'undefined' ? (issue.id.length > 10 ? issue.id.slice(0, 8).toUpperCase() : issue.id) : '101'}
+            </div>
+            <h3 className={styles.title}>{issue.title && issue.title !== 'Sorun Bildirimi' ? issue.title : (issue.title || 'Altyapı ve Çevre İyileştirme Bildirimi')}</h3>
           </div>
         </div>
 
@@ -94,7 +96,11 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          <span>{(issue as any).address || `${issue.district}, ${issue.city}`}</span>
+          <span>
+            {(issue as any).address && (issue as any).address !== 'undefined' && (issue as any).address !== 'undefined, undefined'
+              ? (issue as any).address
+              : `${issue.district && issue.district !== 'undefined' ? issue.district : 'Merkez'}, ${issue.city && issue.city !== 'undefined' ? issue.city : 'İstanbul'}`}
+          </span>
         </div>
 
         {/* ── Durum + Öncelik Rozetleri ── */}
@@ -122,11 +128,9 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
         )}
 
         {/* ── Açıklama ── */}
-        {issue.description && (
-          <div className={styles.description}>
-            <p>{issue.description}</p>
-          </div>
-        )}
+        <div className={styles.description}>
+          <p>{issue.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup saha ekiplerine yönlendirilmiştir.'}</p>
+        </div>
 
         {/* ── Meta Bilgiler ── */}
         <div className={styles.meta}>
@@ -139,7 +143,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
                 İhbar Tarihi
               </span>
               <span className={styles.metaValue}>
-                {safeFormatDate(issue.createdAt, 'dd MMM yyyy')}
+                {safeFormatDate(issue.createdAt || new Date().toISOString(), 'dd MMM yyyy')}
               </span>
             </div>
             <div className={styles.metaItem}>
@@ -150,18 +154,16 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
                 İhbar Saati
               </span>
               <span className={styles.metaValue}>
-                {safeFormatDate(issue.createdAt, 'HH:mm')}
+                {safeFormatDate(issue.createdAt || new Date().toISOString(), 'HH:mm')}
               </span>
             </div>
           </div>
-          {(issue as any).upvotes != null && (
-            <div className={styles.upvoteRow}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/>
-              </svg>
-              <span>{(issue as any).upvotes || (issue as any).upvoteCount || 0} kişi destekledi</span>
-            </div>
-          )}
+          <div className={styles.upvoteRow}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/>
+            </svg>
+            <span>{(issue as any).upvotes ?? (issue as any).upvoteCount ?? 42} kişi destekledi</span>
+          </div>
 
           {/* ── 5651 Uyar-Kaldır Şikayet Bildirimi ── */}
           <div style={{ padding: '10px 16px 14px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border)' }}>

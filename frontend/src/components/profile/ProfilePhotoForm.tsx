@@ -20,8 +20,8 @@ export function ProfilePhotoForm({ onClose }: { onClose: () => void }) {
         alert('Lütfen geçerli bir resim dosyası seçin (jpg, png, webp).');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Dosya boyutu 5MB\'dan küçük olmalıdır.');
+      if (file.size > 30 * 1024 * 1024) {
+        alert('Dosya boyutu 30MB\'dan küçük olmalıdır.');
         return;
       }
       const reader = new FileReader();

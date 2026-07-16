@@ -152,67 +152,92 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     toast.success('[AI] Yapay Zeka Sesli İhbarınızı Analiz Etti: Başlık, Kategori ve Açıklama otomatik dolduruldu!', { duration: 5000 });
   };
 
-  const handleVoiceRecordToggle = () => {
+  const handleVoiceRecordToggle = async () => {
     if (isRecording) {
       setIsRecording(false);
       return;
     }
 
     const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRec) {
-      try {
-        const recognition = new SpeechRec();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = false;
-        recognition.interimResults = true;
+    if (!SpeechRec) {
+      toast.error('Tarayıcınız canlı ses tanımayı (Speech to Text) desteklemiyor. Lütfen Google Chrome veya Microsoft Edge kullanın.');
+      return;
+    }
 
-        setIsRecording(true);
-        setAiVoiceSuccess(false);
-        const toastId = toast.loading('[Sesli] Mikrofon aktif: Sesinizi dinliyorum... Konuşun.', { duration: 10000 });
-
-        let finalTranscript = '';
-
-        recognition.onresult = (event: any) => {
-          let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript + ' ';
-            } else {
-              interim += event.results[i][0].transcript;
-            }
-          }
-          const currentText = (finalTranscript + interim).trim();
-          setVoiceTranscript(currentText);
-        };
-
-        recognition.onerror = (e: any) => {
-          setIsRecording(false);
-          toast.dismiss(toastId);
-          if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-            toast.error('Mikrofon izni verilmedi. Lütfen tarayıcı mikrofon iznini açın.');
-          } else {
-            setShowVoiceModal(true);
-          }
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-          toast.dismiss(toastId);
-          if (finalTranscript.trim().length > 0) {
-            processVoiceInput(finalTranscript.trim());
-          } else if (voiceTranscript.trim().length > 0) {
-            processVoiceInput(voiceTranscript.trim());
-          }
-        };
-
-        recognition.start();
+    let micStream: MediaStream | null = null;
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+    } catch (err: any) {
+      const errName = err?.name || '';
+      if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        toast.error('⚠️ Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
         return;
-      } catch (err) {
-        setIsRecording(false);
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        toast.error('⚠️ Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
+        return;
+      } else {
+        toast.error('⚠️ Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
+        return;
       }
     }
 
-    setShowVoiceModal(true);
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = 'tr-TR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      setIsRecording(true);
+      setAiVoiceSuccess(false);
+      const toastId = toast.loading('🎙️ Dinliyorum... Konuşun (Speech to Text)');
+
+      let finalTranscript = '';
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        const currentText = (finalTranscript + interim).trim();
+        setVoiceTranscript(currentText);
+      };
+
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        toast.dismiss(toastId);
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
+        if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+          toast.error('⚠️ Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" seçin.');
+        } else if (e.error === 'no-speech') {
+          // Konuşma algılanmadı, sessizce kapan
+        } else {
+          toast.error(`⚠️ Ses tanıma hatası (${e.error}).`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        toast.dismiss(toastId);
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
+        if (finalTranscript.trim().length > 0) {
+          processVoiceInput(finalTranscript.trim());
+        } else if (voiceTranscript.trim().length > 0) {
+          processVoiceInput(voiceTranscript.trim());
+        }
+      };
+
+      recognition.start();
+    } catch (err) {
+      setIsRecording(false);
+      if (micStream) micStream.getTracks().forEach(track => track.stop());
+      toast.error('Ses tanıma başlatılamadı.');
+    }
   };
 
   const getLocation = async () => {
@@ -511,65 +536,6 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             {errors.image && <p className={styles.error}>{errors.image}</p>}
-            {showVoiceModal && (
-              <div style={{
-                padding: '16px',
-                marginTop: '10px',
-                backgroundColor: '#eff6ff',
-                borderRadius: '12px',
-                border: '1px solid #bfdbfe',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    🎙️ Yapay Zeka Akıllı Sesli İhbar Paneli
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowVoiceModal(false)}
-                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.3rem', fontWeight: 700 }}
-                  >
-                    ×
-                  </button>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
-                  Tarayıcı mikrofon izni veya HTTP bağlantı kısıtlaması durumunda ya da hızlı ihbar iletmek istediğinizde aşağıdan örnek ses kalıplarına basıp otomatik doldurtabilirsiniz:
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {[
-                    'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor',
-                    'Beşiktaş meydanda rögar kapağı kırıldı yoldan geçen arabalar için tehlikeli acil onarım olmalı',
-                    'Üsküdar Çengelköy sokak lambaları yanmıyor sokak çok karanlık güvenlik riski var',
-                    'Şişli Mecidiyeköy asfalt çöktü derin çukur oluştu araçlar zarar görüyor',
-                    'Kadıköy Yoğurtçu Parkı fırtınadan ağaç devrildi yaya yolunu kapattı'
-                  ].map((template, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        processVoiceInput(template);
-                        setShowVoiceModal(false);
-                      }}
-                      style={{
-                        textAlign: 'left',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #93c5fd',
-                        backgroundColor: '#ffffff',
-                        color: '#1d4ed8',
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      🗣️ "{template}"
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             {aiVoiceSuccess && (
               <div className={styles.aiSuccessBanner}>
                 <span>[AI] Yapay Zeka Sesli İhbarınızı İşledi: Konuşmanızdan <strong>Başlık</strong>, <strong>Sorun Türü</strong> ve <strong>Açıklama</strong> otomatik dolduruldu!</span>

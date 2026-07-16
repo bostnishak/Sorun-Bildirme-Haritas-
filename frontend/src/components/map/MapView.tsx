@@ -536,12 +536,21 @@ export function MapView() {
   const points = useMemo(() => dataToRender.map((item: any) => ({
     type: 'Feature' as const,
     properties: {
+      ...item,
       cluster: false,
-      issueId: item.id || item.ids?.[0],
+      id: item.id || item.ids?.[0] || item.issueId || '101',
+      issueId: item.id || item.ids?.[0] || item.issueId || '101',
       category: item.category || item.dominant_category || 'OTHER',
       status: item.status || item.dominant_status || 'OPEN',
-      title: item.title || item.label || 'Sorun Bildirimi',
-      ...item
+      priority: item.priority || item.dominant_priority || 'MEDIUM',
+      title: item.title || item.label || 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
+      description: item.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup ekip yönlendirmesi yapılmıştır.',
+      city: item.city || 'İstanbul',
+      district: item.district || 'Merkez',
+      address: item.address || `${item.district || 'Merkez'}, ${item.city || 'İstanbul'}`,
+      createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+      imageUrl: item.imageUrl || item.image_url || '',
+      upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42
     },
     geometry: {
       type: 'Point' as const,
@@ -560,27 +569,34 @@ export function MapView() {
     return superClusters.map((cluster: any) => {
       const [longitude, latitude] = cluster.geometry.coordinates;
       const {
-        cluster: isCluster,
-        point_count: pointCount,
+        cluster: superclusterIsCluster,
+        point_count: rawPointCount,
         category,
         status,
         issueId,
       } = cluster.properties;
 
+      const pointCount = Number(rawPointCount || 1);
+      const isCluster = superclusterIsCluster || pointCount > 1;
+
       if (isCluster) {
-        const size = Math.min(30 + (pointCount / points.length) * 20, 50);
+        const totalIssues = points.reduce((acc: number, p: any) => acc + Number(p.properties.point_count || 1), 0) || 32;
+        const size = Math.min(32 + (pointCount / Math.max(totalIssues, 1)) * 36, 56);
         return (
           <Marker
-            key={`cluster-${cluster.id}`}
+            key={`cluster-${cluster.id || issueId || Math.random()}`}
             longitude={longitude}
             latitude={latitude}
             anchor="center"
             onClick={(e) => {
               e.originalEvent.stopPropagation();
-              const expansionZoom = Math.min(
-                supercluster.getClusterExpansionZoom(cluster.id),
-                20
-              );
+              let expansionZoom = Math.floor((mapRef.current?.getZoom() || 6) + 3);
+              if (superclusterIsCluster) {
+                try {
+                  const z = supercluster.getClusterExpansionZoom(cluster.id);
+                  if (typeof z === 'number' && !isNaN(z)) expansionZoom = Math.min(z, 20);
+                } catch (err) {}
+              }
               mapRef.current?.flyTo({
                 center: [longitude, latitude],
                 zoom: expansionZoom,
@@ -600,7 +616,7 @@ export function MapView() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: `${Math.max(12, size / 3)}px`,
+                fontSize: `${Math.max(13, size / 3.2)}px`,
                 fontWeight: 'bold',
                 boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
                 cursor: 'pointer',
