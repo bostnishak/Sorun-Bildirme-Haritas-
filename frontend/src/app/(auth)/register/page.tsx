@@ -289,7 +289,7 @@ export default function RegisterPage() {
           </h2>
           <p className={styles.leftDesc}>
             Güvenli kimlik doğrulaması ve çift aşamalı onay sistemi.
-            Şehrinizin sorunlarını bildirin, çözüme katkı sağlayın.
+            Şehrimizin sorunlarını bildirin, çözüme katkı sağlayın.
           </p>
 
           <div className={styles.featureList}>
