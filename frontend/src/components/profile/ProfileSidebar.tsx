@@ -43,15 +43,6 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
     setPopoverOpen(false);
   };
 
-  const getRoleLabel = (role?: string) => {
-    switch (role) {
-      case 'CITIZEN': return 'Vatandaş';
-      case 'INSTITUTION_OFFICER': return 'Kurum Yetkilisi';
-      case 'SUPER_ADMIN': return 'Sistem Yöneticisi';
-      default: return role || '';
-    }
-  };
-
   return (
     <>
       <aside className={styles.sidebar}>
@@ -94,7 +85,6 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
             )}
           </div>
           <h2 className={styles.sidebarName}>{user?.firstName} {user?.lastName}</h2>
-          <span className={styles.roleBadge}>{getRoleLabel(user?.role)}</span>
         </div>
 
         <nav className={styles.sidebarNav}>

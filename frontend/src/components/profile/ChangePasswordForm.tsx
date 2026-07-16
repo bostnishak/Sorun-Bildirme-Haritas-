@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { IconCheckCircle } from '@/components/ui/Icon';
 import styles from '@/app/profile/Profile.module.css';
 
 export function ChangePasswordForm() {
@@ -20,11 +21,19 @@ export function ChangePasswordForm() {
     <div className={styles.mainContent}>
       <div className={styles.contentCard}>
         <h3 className={styles.cardTitle}>Şifre Değiştir</h3>
-        <p className={styles.cardSubtitle}>
-          Güvenliğiniz için şifreniz en az 8 karakter olmalı.
-        </p>
 
         <form onSubmit={handleSubmit} className={styles.formGrid}>
+              <div className={styles.formGroupFull}>
+                <div className={styles.passwordRulesBox}>
+                  <h4 className={styles.passwordRulesTitle}>Şifre Kuralları</h4>
+                  <ul className={styles.passwordRulesList}>
+                    <li><IconCheckCircle size={14} /> En az 8 karakter</li>
+                    <li><IconCheckCircle size={14} /> Büyük ve küçük harf içermeli</li>
+                    <li><IconCheckCircle size={14} /> En az 1 özel karakter içermeli</li>
+                  </ul>
+                </div>
+              </div>
+
               <div className={styles.formGroupFull}>
                 <label className={styles.formLabel}>Mevcut Şifre</label>
                 <input

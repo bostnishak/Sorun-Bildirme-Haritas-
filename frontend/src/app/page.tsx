@@ -174,80 +174,63 @@ export default function HomePage() {
       {/* ── BASIN / İLETİŞİM ─────────────────────────────────────────────── */}
       <section id="iletisim" className={styles.section}>
         <div className={styles.container}>
-          <div className={styles.contactGrid}>
-            {/* Basın */}
-            <div className={styles.contactBox}>
-              <div className={styles.contactBoxHeader}>
-                <div className={styles.contactBoxIcon} style={{ color: '#1d4ed8', background: 'rgba(29,78,216,0.1)' }}>
-                  <IconBuilding size={20} />
-                </div>
-                <h3 className={styles.contactBoxTitle}>Basın ve İletişim</h3>
-              </div>
-              <p className={styles.contactBoxDesc}>
-                Basın mensupları ve medya kuruluşları için iletişim bilgileri.
-                Görsel ve bilgi talepleriniz için aşağıdaki kanalları kullanabilirsiniz.
+          <div className={styles.contactSingleCard}>
+            <div className={styles.contactSingleHeader}>
+              <h3 className={styles.contactSingleTitle}>İletişim Kanalları</h3>
+              <p className={styles.contactSingleDesc}>
+                Basın, kurumsal işbirliği ve teknik destek talepleriniz için bize ulaşabilirsiniz.
               </p>
-              <div className={styles.contactList}>
-                <div className={styles.contactItem}>
-                  <IconMail size={16} />
-                  <span>basin@sorunharitasi.gov.tr</span>
+            </div>
+            
+            <div className={styles.contactSingleColumns}>
+              <div className={styles.contactSingleCol}>
+                <div className={styles.contactSingleIcon} style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+                  <IconBuilding size={16} />
                 </div>
-                <div className={styles.contactItem}>
-                  <IconPhone size={16} />
-                  <span>+90 (312) 000 00 00</span>
+                <div className={styles.contactSingleContent}>
+                  <h4 className={styles.contactSingleColTitle}>Basın ve İletişim</h4>
+                  <p className={styles.contactSingleColDesc}>Medya talepleri</p>
+                  <div className={styles.contactSingleColEmail}>
+                    basin@sorunharitasi.gov.tr
+                  </div>
                 </div>
-                <div className={styles.contactItem}>
-                  <IconGlobe size={16} />
-                  <span>sorunharitasi.gov.tr/basin</span>
+              </div>
+
+              <div className={styles.contactSingleCol}>
+                <div className={styles.contactSingleIcon} style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                  <IconUsers size={16} />
+                </div>
+                <div className={styles.contactSingleContent}>
+                  <h4 className={styles.contactSingleColTitle}>Kurumsal İşbirliği</h4>
+                  <p className={styles.contactSingleColDesc}>Kurum/STK işbirlikleri</p>
+                  <div className={styles.contactSingleColEmail}>
+                    kurum@sorunharitasi.gov.tr
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.contactSingleCol}>
+                <div className={styles.contactSingleIcon} style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <IconZap size={16} />
+                </div>
+                <div className={styles.contactSingleContent}>
+                  <h4 className={styles.contactSingleColTitle}>Teknik Destek</h4>
+                  <p className={styles.contactSingleColDesc}>Platform destek talepleri</p>
+                  <div className={styles.contactSingleColEmail}>
+                    destek@sorunharitasi.gov.tr
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Kurumsal */}
-            <div className={styles.contactBox}>
-              <div className={styles.contactBoxHeader}>
-                <div className={styles.contactBoxIcon} style={{ color: '#16a34a', background: 'rgba(22,163,74,0.1)' }}>
-                  <IconUsers size={20} />
-                </div>
-                <h3 className={styles.contactBoxTitle}>Kurumsal İşbirliği</h3>
+            <div className={styles.contactSingleFooter}>
+              <div className={styles.contactSingleFooterItem}>
+                <IconPhone size={14} />
+                <span>+90 (312) 000 00 00</span>
               </div>
-              <p className={styles.contactBoxDesc}>
-                Belediyeler, kamu kurumları ve STK'lar için entegrasyon ve
-                kurumsal üyelik talepleri.
-              </p>
-              <div className={styles.contactList}>
-                <div className={styles.contactItem}>
-                  <IconMail size={16} />
-                  <span>kurum@sorunharitasi.gov.tr</span>
-                </div>
-                <div className={styles.contactItem}>
-                  <IconPhone size={16} />
-                  <span>+90 (312) 000 00 01</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Teknik */}
-            <div className={styles.contactBox}>
-              <div className={styles.contactBoxHeader}>
-                <div className={styles.contactBoxIcon} style={{ color: '#7c3aed', background: 'rgba(124,58,237,0.1)' }}>
-                  <IconZap size={20} />
-                </div>
-                <h3 className={styles.contactBoxTitle}>Teknik Destek</h3>
-              </div>
-              <p className={styles.contactBoxDesc}>
-                Platform kullanımı, teknik sorunlar ve API entegrasyonu
-                konularında destek alın.
-              </p>
-              <div className={styles.contactList}>
-                <div className={styles.contactItem}>
-                  <IconMail size={16} />
-                  <span>destek@sorunharitasi.gov.tr</span>
-                </div>
-                <div className={styles.contactItem}>
-                  <IconPhone size={16} />
-                  <span>+90 (312) 000 00 02</span>
-                </div>
+              <div className={styles.contactSingleFooterItem}>
+                <IconGlobe size={14} />
+                <span>sorunharitasi.gov.tr</span>
               </div>
             </div>
           </div>

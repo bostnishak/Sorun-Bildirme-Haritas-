@@ -124,13 +124,13 @@ export function Header() {
           <>
             <button
               id="btn-report-issue"
-              className="btn btn-primary"
+              className={`btn btn-primary ${styles.reportBtn}`}
               onClick={() => setReportModalOpen(true)}
               title="Sorun Bildir"
               aria-label="Sorun Bildir"
             >
               <IconPlus size={14} />
-              <span>Sorun Bildir</span>
+              <span className={styles.reportBtnText}>Sorun Bildir</span>
             </button>
 
             {/* Notification Bell */}
@@ -216,9 +216,8 @@ export function Header() {
                   </div>
                   <div className={styles.userInfo}>
                     <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
-                    <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
+                  <svg className={styles.headerProfileChevron} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </Link>
@@ -226,7 +225,6 @@ export function Header() {
                 <div className={styles.userDropdown}>
                   <div className={styles.dropdownHeader}>
                     <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
-                    <span className={styles.dropdownRole}>{getRoleLabel(user?.role)}</span>
                   </div>
                   
                   <Link href="/profile?tab=info" className={styles.dropdownItem}>
@@ -237,15 +235,16 @@ export function Header() {
                     <IconFileText size={17} strokeWidth={1.8} />
                     İhbarlarım
                   </Link>
-                  
-                  <div className={styles.dropdownSeparator}></div>
-                  
-                  <button className={`${styles.dropdownItem} ${styles.dropdownItemLogout}`} onClick={logout}>
-                    <IconLogOut size={17} strokeWidth={1.8} />
-                    Çıkış Yap
-                  </button>
                 </div>
               </div>
+
+              <button 
+                className={styles.headerLogoutBtn} 
+                onClick={logout}
+                aria-label="Çıkış Yap"
+              >
+                <IconLogOut size={18} />
+              </button>
           </>
         ) : (
           <Link href="/login" className="btn btn-primary" id="btn-login" title="Giriş Yap">
@@ -258,11 +257,3 @@ export function Header() {
   );
 }
 
-function getRoleLabel(role?: string): string {
-  const labels: Record<string, string> = {
-    CITIZEN: 'Vatandaş',
-    INSTITUTION_OFFICER: 'Kurum Yetkilisi',
-    SUPER_ADMIN: 'Sistem Yöneticisi',
-  };
-  return role ? (labels[role] || role) : '';
-}

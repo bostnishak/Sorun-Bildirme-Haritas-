@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconFileText, IconAlertCircle, IconClock, IconCheckCircle } from '@/components/ui/Icon';
 import styles from '@/app/profile/Profile.module.css';
 
 const sampleReports = [
@@ -46,28 +47,36 @@ export function MyReports() {
       {/* Stat Cards */}
       <div className={styles.statsGrid} style={{ marginBottom: '24px' }}>
         <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconPrimary}`}>📋</div>
+          <div className={`${styles.statIcon} ${styles.statIconPrimary}`}>
+            <IconFileText size={24} />
+          </div>
           <div>
             <div className={styles.statValue}>2</div>
             <div className={styles.statLabel}>Toplam İhbar</div>
           </div>
         </div>
         <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconDanger}`}>🚨</div>
+          <div className={`${styles.statIcon} ${styles.statIconDanger}`}>
+            <IconAlertCircle size={24} />
+          </div>
           <div>
             <div className={styles.statValue}>1</div>
             <div className={styles.statLabel}>Açık</div>
           </div>
         </div>
         <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconWarning}`}>⏳</div>
+          <div className={`${styles.statIcon} ${styles.statIconWarning}`}>
+            <IconClock size={24} />
+          </div>
           <div>
             <div className={styles.statValue}>1</div>
             <div className={styles.statLabel}>İnceleniyor</div>
           </div>
         </div>
         <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconSuccess}`}>✅</div>
+          <div className={`${styles.statIcon} ${styles.statIconSuccess}`}>
+            <IconCheckCircle size={24} />
+          </div>
           <div>
             <div className={styles.statValue}>0</div>
             <div className={styles.statLabel}>Çözüldü</div>
