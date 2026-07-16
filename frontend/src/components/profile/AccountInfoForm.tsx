@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
-import { IconUser, IconMail, IconClock, IconCheckCircle, IconLock, IconArrowRight } from '@/components/ui/Icon';
 import styles from '@/app/profile/Profile.module.css';
 
 export function AccountInfoForm() {
-  const router = useRouter();
   const { user } = useAppStore();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -31,59 +28,15 @@ export function AccountInfoForm() {
     // TODO: implement API call here
   };
 
-  const getRoleLabel = (role?: string) => {
-    switch (role) {
-      case 'CITIZEN': return 'Vatandaş';
-      case 'INSTITUTION_OFFICER': return 'Kurum Yetkilisi';
-      case 'SUPER_ADMIN': return 'Sistem Yöneticisi';
-      default: return role || 'Vatandaş';
-    }
-  };
-
   return (
     <div className={styles.mainContent}>
-      {/* Stat Cards */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconPrimary}`}>📋</div>
-          <div>
-            <div className={styles.statValue}>2</div>
-            <div className={styles.statLabel}>Toplam Bildirim</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconDanger}`}>🚨</div>
-          <div>
-            <div className={styles.statValue}>1</div>
-            <div className={styles.statLabel}>Açık</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconWarning}`}>⏳</div>
-          <div>
-            <div className={styles.statValue}>1</div>
-            <div className={styles.statLabel}>İnceleniyor</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.statIconSuccess}`}>✅</div>
-          <div>
-            <div className={styles.statValue}>0</div>
-            <div className={styles.statLabel}>Çözüldü</div>
-          </div>
-        </div>
-      </div>
+      <div className={styles.contentCard}>
+        <h3 className={styles.cardTitle}>Hesap Bilgileri</h3>
+        <p className={styles.cardSubtitle}>
+          Kişisel bilgilerinizi buradan görüntüleyebilir ve güncelleyebilirsiniz.
+        </p>
 
-      <div className={styles.dashboardLayout}>
-        {/* Left Column: Form */}
-        <div className={styles.dashboardMain}>
-          <div className={styles.contentCard}>
-            <h3 className={styles.cardTitle}>Hesap Bilgileri</h3>
-            <p className={styles.cardSubtitle}>
-              Kişisel bilgilerinizi buradan görüntüleyebilir ve güncelleyebilirsiniz.
-            </p>
-
-            <form onSubmit={handleSubmit} className={styles.formGrid}>
+        <form onSubmit={handleSubmit} className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Ad</label>
                 <input
@@ -147,71 +100,6 @@ export function AccountInfoForm() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-
-        {/* Right Column: Summaries */}
-        <div className={styles.dashboardSidebar}>
-          <div className={styles.contentCard} style={{ padding: '24px' }}>
-            <h3 className={styles.cardTitle}>Hesap Özeti</h3>
-            <p className={styles.cardSubtitle} style={{ marginBottom: '16px' }}>Genel durumunuz.</p>
-            
-            <div className={styles.infoList}>
-              <div className={styles.infoRow}>
-                <div className={styles.infoIcon}><IconUser size={18} /></div>
-                <div className={styles.infoText}>
-                  <span className={styles.infoLabel}>Kullanıcı Türü</span>
-                  <span className={styles.infoValue}>{getRoleLabel(user?.role)}</span>
-                </div>
-              </div>
-              <div className={styles.infoRow}>
-                <div className={styles.infoIcon}><IconMail size={18} /></div>
-                <div className={styles.infoText}>
-                  <span className={styles.infoLabel}>E-posta Durumu</span>
-                  <span className={styles.infoValue} style={{ color: '#16a34a' }}>Doğrulanmış</span>
-                </div>
-              </div>
-              <div className={styles.infoRow}>
-                <div className={styles.infoIcon}><IconClock size={18} /></div>
-                <div className={styles.infoText}>
-                  <span className={styles.infoLabel}>Son Giriş</span>
-                  <span className={styles.infoValue}>Bugün</span>
-                </div>
-              </div>
-              <div className={styles.infoRow}>
-                <div className={styles.infoIcon}><IconCheckCircle size={18} /></div>
-                <div className={styles.infoText}>
-                  <span className={styles.infoLabel}>Kayıt Durumu</span>
-                  <span className={styles.infoValue}>Aktif</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.contentCard} style={{ padding: '24px', background: 'linear-gradient(145deg, #eff6ff 0%, #ffffff 100%)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ padding: '8px', background: '#3b82f6', color: 'white', borderRadius: '10px' }}>
-                <IconLock size={16} />
-              </div>
-              <h3 className={styles.cardTitle} style={{ margin: 0 }}>Güvenlik</h3>
-            </div>
-            <p className={styles.cardSubtitle} style={{ marginBottom: '16px', color: '#475569' }}>
-              Şifrenizi düzenli aralıklarla güncellemeniz önerilir.
-            </p>
-            <button 
-              type="button"
-              className={styles.btnSecondary} 
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              onClick={(e) => {
-                e.preventDefault();
-                router.push('/profile?tab=password');
-              }}
-            >
-              Şifreyi Değiştir
-              <IconArrowRight size={16} />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

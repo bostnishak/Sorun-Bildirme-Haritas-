@@ -119,7 +119,7 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
             onClick={() => onTabChange('reports')}
           >
             <IconFileText className={styles.navIcon} size={18} />
-            Bildirimlerim
+            İhbarlarım
           </button>
 
           <button

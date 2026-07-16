@@ -43,10 +43,42 @@ const getPriorityBadgeClass = (priority: string) => {
 export function MyReports() {
   return (
     <div className={styles.mainContent}>
+      {/* Stat Cards */}
+      <div className={styles.statsGrid} style={{ marginBottom: '24px' }}>
+        <div className={styles.statCard}>
+          <div className={`${styles.statIcon} ${styles.statIconPrimary}`}>📋</div>
+          <div>
+            <div className={styles.statValue}>2</div>
+            <div className={styles.statLabel}>Toplam İhbar</div>
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={`${styles.statIcon} ${styles.statIconDanger}`}>🚨</div>
+          <div>
+            <div className={styles.statValue}>1</div>
+            <div className={styles.statLabel}>Açık</div>
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={`${styles.statIcon} ${styles.statIconWarning}`}>⏳</div>
+          <div>
+            <div className={styles.statValue}>1</div>
+            <div className={styles.statLabel}>İnceleniyor</div>
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={`${styles.statIcon} ${styles.statIconSuccess}`}>✅</div>
+          <div>
+            <div className={styles.statValue}>0</div>
+            <div className={styles.statLabel}>Çözüldü</div>
+          </div>
+        </div>
+      </div>
+
       <div className={styles.contentCard}>
-        <h3 className={styles.cardTitle}>Bildirimlerim</h3>
+        <h3 className={styles.cardTitle}>Son İhbarlarım</h3>
         <p className={styles.cardSubtitle}>
-          Oluşturduğunuz sorun bildirimlerinin güncel durumlarını buradan takip edebilirsiniz.
+          Oluşturduğunuz ihbarların güncel durumlarını buradan takip edebilirsiniz.
         </p>
 
         <div className={styles.tableContainer}>

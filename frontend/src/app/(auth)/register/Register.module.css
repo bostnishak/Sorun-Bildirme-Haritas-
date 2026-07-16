@@ -220,8 +220,8 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .fieldLabel {
@@ -245,12 +245,12 @@
 
 .input {
   width: 100%;
-  height: 48px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 14px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  font-size: 15px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: #0f172a;
   transition: all 0.2s;
@@ -276,7 +276,7 @@
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 @media (max-width: 480px) {
@@ -286,7 +286,7 @@
 .grid3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .errorAlert {
@@ -360,13 +360,13 @@
 
 /* Password Rules Checklist */
 .passwordRules {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  padding: 16px;
-  border-radius: 12px;
+  padding: 12px;
+  border-radius: 10px;
   margin-top: 4px;
 }
 
@@ -380,8 +380,8 @@
 .ruleItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   color: #64748b;
   transition: all 0.2s ease;
 }
@@ -411,12 +411,12 @@
 .consentRow {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
+  margin: 0;
   background: #f8fafc;
   border: 1px solid #f1f5f9;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -427,11 +427,11 @@
 
 .consentCheckbox {
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 2px solid #cbd5e1;
-  border-radius: 6px;
-  margin-top: 2px;
+  border-radius: 5px;
+  margin-top: 1px;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
@@ -457,9 +457,9 @@
 }
 
 .consentText {
-  font-size: 13px;
+  font-size: 12px;
   color: #475569;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .consentText a {
