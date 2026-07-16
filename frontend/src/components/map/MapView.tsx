@@ -75,19 +75,20 @@ export function MapView() {
       const isMobileWidth = window.innerWidth <= 768;
       const isRealMobileOrTablet = isTouchDevice || isMobileWidth;
       
-      const initialZ = isRealMobileOrTablet ? 4.05 : TURKEY_CENTER.zoom;
+      // Mobilde 5.0 zoom ile başla — üstten/alttan kesilerek sadece Türkiye görünsün
+      const initialZ = isRealMobileOrTablet ? 5.0 : TURKEY_CENTER.zoom;
       
-      // PC'de minZoom 5.6 olacak, böylece başlangıçta zoom out yapılamayacak ve pan yapılamayacak.
-      setMinZoom(isRealMobileOrTablet ? 4.05 : TURKEY_CENTER.zoom);
+      // PC'de minZoom 5.6, mobilde 5.0 olacak
+      setMinZoom(isRealMobileOrTablet ? 5.0 : TURKEY_CENTER.zoom);
       
       setViewState(prev => ({ ...prev, zoom: initialZ }));
       setClusterZoom(initialZ);
       
       if (isRealMobileOrTablet) {
-        // Tablet ve Mobil için harita sınırları (Mapbox kilitlenmemesi için genişletildi)
+        // Mobil için daraltılmış sınırlar — Türkiye'ye odaklı
         setActiveBounds([
-          [10.0, 25.0], // SW
-          [60.0, 55.0]  // NE
+          [22.0, 34.0], // SW
+          [48.0, 44.0]  // NE
         ]);
       } else {
         // PC için görseldeki sabit Türkiye sınırları
