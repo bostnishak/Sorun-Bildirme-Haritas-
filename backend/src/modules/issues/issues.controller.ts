@@ -262,6 +262,18 @@ export async function getSummaryStats(_req: Request, res: Response): Promise<voi
 }
 
 /**
+ * GET /api/v1/issues/stats — Detaylı bildirim istatistikleri (StatsBar için)
+ */
+export async function getDetailedStats(_req: Request, res: Response): Promise<void> {
+  const stats = await issuesService.getDetailedStats();
+  res.status(200).json({
+    success: true,
+    data: stats,
+    ...stats,
+  });
+}
+
+/**
  * GET /api/v1/issues/:id/comments — Yorumları getir
  */
 export async function getComments(req: Request, res: Response): Promise<void> {

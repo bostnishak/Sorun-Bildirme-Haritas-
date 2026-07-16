@@ -22,6 +22,9 @@ router.get('/', issuesController.listIssues);
 // GET /api/v1/issues/summary-stats — Public (özet istatistikler)
 router.get('/summary-stats', issuesController.getSummaryStats);
 
+// GET /api/v1/issues/stats — Public (detaylı istatistikler - StatsBar için)
+router.get('/stats', issuesController.getDetailedStats);
+
 // GET /api/v1/issues/my/list — Oturum açmış kullanıcının bildirimleri
 router.get('/my/list', isAuthenticated, issuesController.getMyIssues);
 
