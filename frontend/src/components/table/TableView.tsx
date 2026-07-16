@@ -89,8 +89,8 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
     }
 
     try {
-      // Dynamic import — Next.js SSR güvenli
-      const XLSX = (await import('xlsx')).default;
+      const xlsxModule = await import('xlsx');
+      const XLSX = xlsxModule.default || xlsxModule;
 
       // ── SAYFA 1: Ana Tablo ──────────────────────────────────────────────
       const tableData = dataToExport.map(issue => ({
@@ -110,63 +110,11 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(tableData);
 
-      // Sütun genişlikleri
       ws['!cols'] = [
-        { wch: 14 }, { wch: 45 }, { wch: 20 }, { wch: 14 },
-        { wch: 16 }, { wch: 35 }, { wch: 14 }, { wch: 12 },
+        { wch: 14 }, { wch: 45 }, { wch: 22 }, { wch: 15 },
+        { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 },
         { wch: 16 }, { wch: 14 }, { wch: 18 },
       ];
-
-      // Başlık satırı stili
-      const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-        const cellAddr = XLSX.utils.encode_cell({ r: 0, c: col });
-        if (!ws[cellAddr]) continue;
-        ws[cellAddr].s = {
-          fill: { fgColor: { rgb: '1D4ED8' } },
-          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-          border: {
-            bottom: { style: 'medium', color: { rgb: '1E40AF' } },
-          },
-        };
-      }
-
-      // Veri satırları stili (zebra + durum rengi)
-      const STATUS_BG: Record<string, string> = {
-        'Açık': 'FEE2E2',
-        'İnceleniyor': 'FEF3C7',
-        'Çözüldü': 'DCFCE7',
-        'Reddedildi': 'F1F5F9',
-      };
-      const PRIORITY_BG: Record<string, string> = {
-        'Kritik': 'FEE2E2',
-        'Yüksek': 'FEF3C7',
-        'Orta': 'EFF6FF',
-        'Düşük': 'F0FDF4',
-      };
-
-      for (let row = 1; row <= dataToExport.length; row++) {
-        const isEven = row % 2 === 0;
-        for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-          const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
-          if (!ws[cellAddr]) continue;
-          const colHeader = tableData[0] ? Object.keys(tableData[0])[col] : '';
-          const cellVal = String(ws[cellAddr].v || '');
-          let bgColor = isEven ? 'EFF6FF' : 'FFFFFF';
-          if (colHeader === 'Durum' && STATUS_BG[cellVal]) bgColor = STATUS_BG[cellVal];
-          if (colHeader === 'Öncelik' && PRIORITY_BG[cellVal]) bgColor = PRIORITY_BG[cellVal];
-          ws[cellAddr].s = {
-            fill: { fgColor: { rgb: bgColor } },
-            font: { sz: 10 },
-            alignment: { vertical: 'center', wrapText: false },
-            border: {
-              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-              right: { style: 'thin', color: { rgb: 'E2E8F0' } },
-            },
-          };
-        }
-      }
 
       XLSX.utils.book_append_sheet(wb, ws, 'Sorun Bildirimleri');
 
@@ -225,13 +173,8 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
 
       const wsAnalytics = XLSX.utils.aoa_to_sheet(analyticsRows);
       wsAnalytics['!cols'] = [
-        { wch: 30 }, { wch: 16 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+        { wch: 32 }, { wch: 16 }, { wch: 30 }, { wch: 16 }, { wch: 18 }, { wch: 16 },
       ];
-      // Başlık stilleri
-      if (wsAnalytics['A1']) wsAnalytics['A1'].s = {
-        font: { bold: true, sz: 14, color: { rgb: '1D4ED8' } },
-        fill: { fgColor: { rgb: 'EFF6FF' } },
-      };
       XLSX.utils.book_append_sheet(wb, wsAnalytics, 'Analiz & Grafikler');
 
       // ── SAYFA 3: Özet ───────────────────────────────────────────────────
@@ -249,22 +192,33 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         ['Platform', 'Türkiye Sorun Bildirim Haritası'],
       ];
       const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-      wsSummary['!cols'] = [{ wch: 28 }, { wch: 20 }];
-      if (wsSummary['A1']) wsSummary['A1'].s = {
-        font: { bold: true, sz: 13, color: { rgb: '1D4ED8' } },
-        fill: { fgColor: { rgb: 'EFF6FF' } },
-      };
+      wsSummary['!cols'] = [{ wch: 30 }, { wch: 24 }];
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Özet');
 
-      // Dışa aktar
-      XLSX.writeFile(wb, `Sorun_Bildirimleri_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
+      // Dışa aktar - Güvenli Yazma / Blob Fallback
+      const fileName = `Sorun_Bildirimleri_${format(new Date(), 'dd_MM_yyyy')}.xlsx`;
+      try {
+        XLSX.writeFile(wb, fileName);
+      } catch (writeErr) {
+        // Tarayıcı kısıtlaması veya SheetJS versiyon farkı varsa güvenli Blob indirici
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error('Excel oluşturma hatası:', err);
-      alert('Excel dosyası oluşturulurken bir hata oluştu.');
+      alert('Excel dosyası oluşturulurken bir hata oluştu. Lütfen tekrar deneyiniz.');
     }
   }, [filtered, issues]);
 
-  // ─── 1C: Premium PDF ──────────────────────────────────────────────────────
+  // ─── 1C: Premium PDF (.pdf) - UTF-8 / Türkçe Karakter Destekli ───────────
   const handleDownloadPDF = useCallback(async () => {
     const dataToExport = filtered.length > 0 ? filtered : issues;
     if (dataToExport.length === 0) {
@@ -281,22 +235,51 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       const pageH = doc.internal.pageSize.getHeight();
       const now = new Date();
 
+      // Türkçe karakter destekleyen Roboto fontunu yüklemeyi dene
+      let fontName = 'helvetica';
+      try {
+        const [regRes, boldRes] = await Promise.all([
+          fetch('/fonts/Roboto-Regular.ttf'),
+          fetch('/fonts/Roboto-Bold.ttf')
+        ]);
+        if (regRes.ok && boldRes.ok) {
+          const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+          };
+          const regBuffer = await regRes.arrayBuffer();
+          const boldBuffer = await boldRes.arrayBuffer();
+          const regBase64 = arrayBufferToBase64(regBuffer);
+          const boldBase64 = arrayBufferToBase64(boldBuffer);
+
+          doc.addFileToVFS('Roboto-Regular.ttf', regBase64);
+          doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+          doc.addFileToVFS('Roboto-Bold.ttf', boldBase64);
+          doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+          fontName = 'Roboto';
+        }
+      } catch (fontErr) {
+        console.warn('Roboto font yüklenemedi, varsayılan fonta geçildi:', fontErr);
+      }
+
       // ── BAŞLIK BÖLÜMÜ ───────────────────────────────────────────────────
-      // Gradient arka plan (gradient yok, solid kullan)
       doc.setFillColor(29, 78, 216);
       doc.rect(0, 0, pageW, 28, 'F');
 
-      // Platform adı
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TÜRKIYE SORUN BİLDİRİM HARİTASI', 14, 11);
+      doc.setFont(fontName, 'bold');
+      doc.text('TÜRKİYE SORUN BİLDİRİM HARİTASI', 14, 11);
 
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(fontName, 'normal');
       doc.text('Resmi Veri Raporu — Tüm hakları saklıdır', 14, 17);
 
-      // Sağ üst: tarih
       doc.setFontSize(8);
       doc.text(`Rapor Tarihi: ${format(now, 'dd MMMM yyyy HH:mm', { locale: tr })}`, pageW - 14, 11, { align: 'right' });
       doc.text(`Toplam Kayıt: ${dataToExport.length}`, pageW - 14, 17, { align: 'right' });
@@ -316,10 +299,10 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         doc.roundedRect(x, statY, cardW, 18, 2, 2, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(fontName, 'bold');
         doc.text(String(s.value), x + cardW / 2, statY + 10, { align: 'center' });
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setFont(fontName, 'normal');
         doc.text(s.label, x + cardW / 2, statY + 15, { align: 'center' });
       });
 
@@ -333,10 +316,9 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         { label: 'Reddedildi', count: dataToExport.filter(i => i.status === 'REJECTED').length, color: [107, 114, 128] as [number, number, number] },
       ].filter(d => d.count > 0);
 
-      // Pasta Grafik Başlığı
       doc.setTextColor(15, 23, 42);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setFont(fontName, 'bold');
       doc.text('Durum Dağılımı', 14, chartY);
 
       const pieR = 18;
@@ -351,15 +333,10 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
           const midAngle = startAngle + angle / 2;
 
           doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
-          // jsPDF arc workaround: approximate with lines
           const steps = Math.max(8, Math.floor(angle / (Math.PI / 12)));
-          const points: number[] = [pieCx, pieCy];
           for (let s = 0; s <= steps; s++) {
             const a = startAngle + (angle * s) / steps;
-            points.push(pieCx + pieR * Math.cos(a));
-            points.push(pieCy + pieR * Math.sin(a));
           }
-          // Draw filled pie slice
           (doc as any).setFillColor(seg.color[0], seg.color[1], seg.color[2]);
           doc.triangle(
             pieCx, pieCy,
@@ -378,14 +355,13 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         });
       }
 
-      // Legend (pasta grafik açıklaması)
       let legendY = chartY + 4;
       pieData.forEach(seg => {
         doc.setFillColor(seg.color[0], seg.color[1], seg.color[2]);
         doc.rect(pieCx + pieR + 4, legendY, 4, 3, 'F');
         doc.setTextColor(30, 41, 59);
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setFont(fontName, 'normal');
         const pct = total > 0 ? Math.round(seg.count / total * 100) : 0;
         doc.text(`${seg.label}: ${seg.count} (%${pct})`, pieCx + pieR + 10, legendY + 2.5);
         legendY += 6;
@@ -395,12 +371,12 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       const barStartX = pageW / 2 - 10;
       const barChartW = pageW - barStartX - 14;
       doc.setTextColor(15, 23, 42);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setFont(fontName, 'bold');
       doc.text('Kategori Dağılımı', barStartX, chartY);
 
       const catEntries = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
-        label: label.length > 12 ? label.substring(0, 12) + '.' : label,
+        label: label.length > 14 ? label.substring(0, 14) + '...' : label,
         count: dataToExport.filter(i => i.category === key).length,
       })).filter(e => e.count > 0).sort((a, b) => b.count - a.count);
 
@@ -418,13 +394,12 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         const col = barColors[idx % barColors.length];
         doc.setFillColor(col[0], col[1], col[2]);
         doc.rect(bx, by, barBW - 1, bH, 'F');
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(30, 41, 59);
         doc.text(String(cat.count), bx + (barBW - 1) / 2, by - 1, { align: 'center' });
-        // Kısaltılmış etiket
-        const shortLabel = cat.label.length > 6 ? cat.label.substring(0, 6) : cat.label;
-        doc.text(shortLabel, bx + (barBW - 1) / 2, chartY + 4 + barH + 3, { align: 'center' });
+        const shortLabel = cat.label.length > 8 ? cat.label.substring(0, 8) : cat.label;
+        doc.text(shortLabel, bx + (barBW - 1) / 2, chartY + 4 + barH + 3.5, { align: 'center' });
       });
 
       // ── ANA TABLO ────────────────────────────────────────────────────────
@@ -435,25 +410,29 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         head: [['ID', 'Başlık', 'Sorun Türü', 'Adres', 'Durum', 'Öncelik', 'Tarih']],
         body: dataToExport.map(issue => [
           shortId(issue),
-          issue.title.length > 40 ? issue.title.substring(0, 40) + '...' : issue.title,
+          issue.title.length > 42 ? issue.title.substring(0, 42) + '...' : issue.title,
           CATEGORY_LABELS[issue.category] || issue.category,
-          (issue.address || `${issue.district}, ${issue.city}`).length > 35
-            ? (issue.address || `${issue.district}, ${issue.city}`).substring(0, 35) + '...'
+          (issue.address || `${issue.district}, ${issue.city}`).length > 38
+            ? (issue.address || `${issue.district}, ${issue.city}`).substring(0, 38) + '...'
             : (issue.address || `${issue.district}, ${issue.city}`),
           STATUS_LABELS[issue.status] || issue.status,
           PRIORITY_LABELS[issue.priority] || issue.priority,
           format(new Date(issue.createdAt || Date.now()), 'dd.MM.yy HH:mm'),
         ]),
+        styles: {
+          font: fontName,
+          fontSize: 8,
+          cellPadding: 2.5,
+        },
         headStyles: {
           fillColor: [29, 78, 216],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 8.5,
           cellPadding: 3,
         },
         bodyStyles: {
-          fontSize: 7.5,
-          cellPadding: 2.5,
+          fontSize: 8,
         },
         alternateRowStyles: {
           fillColor: [239, 246, 255],
@@ -461,14 +440,13 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         columnStyles: {
           0: { cellWidth: 20 },
           1: { cellWidth: 55 },
-          2: { cellWidth: 28 },
+          2: { cellWidth: 32 },
           3: { cellWidth: 50 },
           4: { cellWidth: 22, halign: 'center' },
           5: { cellWidth: 18, halign: 'center' },
           6: { cellWidth: 28, halign: 'center' },
         },
         didParseCell: (data: any) => {
-          // Durum renklendirme
           if (data.section === 'body' && data.column.index === 4) {
             const val = data.cell.text[0];
             if (val === 'Açık') data.cell.styles.textColor = [220, 38, 38];
@@ -477,7 +455,6 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
             else data.cell.styles.textColor = [107, 114, 128];
             data.cell.styles.fontStyle = 'bold';
           }
-          // Öncelik renklendirme
           if (data.section === 'body' && data.column.index === 5) {
             const val = data.cell.text[0];
             if (val === 'Kritik') data.cell.styles.textColor = [220, 38, 38];
@@ -495,19 +472,18 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       doc.rect(0, 0, pageW, 20, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('GANTl ÇİZELGESİ — İhbar Zaman Çizelgesi', 14, 13);
+      doc.setFont(fontName, 'bold');
+      doc.text('GANTT ÇİZELGESİ — İhbar Zaman Çizelgesi', 14, 13);
 
-      // Zaman aralığı hesapla
       const sorted = [...dataToExport].sort((a, b) =>
         new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
       );
-      const ganttItems = sorted.slice(0, 25); // Max 25 ihbar
+      const ganttItems = sorted.slice(0, 25);
 
       if (ganttItems.length > 0) {
         const minDate = new Date(ganttItems[0].createdAt || Date.now()).getTime();
         const maxDate = new Date(ganttItems[ganttItems.length - 1].createdAt || Date.now()).getTime();
-        const span = Math.max(maxDate - minDate, 86400000); // min 1 gün
+        const span = Math.max(maxDate - minDate, 86400000);
 
         const ganttStartX = 80;
         const ganttEndX = pageW - 14;
@@ -515,10 +491,9 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         const rowH = 6;
         let gy = 28;
 
-        // Zaman ekseni başlık
         doc.setTextColor(100, 116, 139);
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setFont(fontName, 'normal');
         doc.text(format(new Date(minDate), 'dd.MM.yy'), ganttStartX, gy - 2);
         doc.text(format(new Date(maxDate), 'dd.MM.yy'), ganttEndX, gy - 2, { align: 'right' });
 
@@ -537,40 +512,35 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
           const col = STATUS_GANTT_COLOR[issue.status] || [107, 114, 128];
           const isEven = idx % 2 === 0;
 
-          // Arka plan
           doc.setFillColor(isEven ? 248 : 239, isEven ? 250 : 246, isEven ? 252 : 255);
           doc.rect(14, gy, pageW - 28, rowH - 0.5, 'F');
 
-          // İhbar adı (sol)
           doc.setTextColor(15, 23, 42);
-          doc.setFontSize(6);
-          doc.setFont('helvetica', 'normal');
-          const shortTitle = issue.title.length > 30 ? issue.title.substring(0, 30) + '…' : issue.title;
+          doc.setFontSize(6.5);
+          doc.setFont(fontName, 'normal');
+          const shortTitle = issue.title.length > 32 ? issue.title.substring(0, 32) + '…' : issue.title;
           doc.text(`${shortId(issue)} ${shortTitle}`, 15, gy + 3.8);
 
-          // Gantt çubuğu
           doc.setFillColor(col[0], col[1], col[2]);
           doc.roundedRect(barX, gy + 1, barLength, rowH - 2.5, 1, 1, 'F');
 
-          // Tarih etiketi
           doc.setTextColor(col[0], col[1], col[2]);
-          doc.setFontSize(5.5);
+          doc.setFontSize(6);
           doc.text(format(new Date(startMs), 'dd.MM'), barX + barLength + 1, gy + 3.5);
 
           gy += rowH;
         });
 
-        // Legend
         gy += 4;
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(15, 23, 42);
         doc.text('Durum:', 14, gy);
         let lx = 34;
         Object.entries(STATUS_GANTT_COLOR).forEach(([key, col]) => {
           doc.setFillColor(col[0], col[1], col[2]);
           doc.rect(lx, gy - 3, 4, 3, 'F');
-          doc.setFont('helvetica', 'normal');
+          doc.setFont(fontName, 'normal');
           doc.setTextColor(30, 41, 59);
           doc.text(STATUS_LABELS[key] || key, lx + 6, gy);
           lx += 30;
@@ -583,9 +553,9 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
         doc.setPage(i);
         doc.setFillColor(241, 245, 249);
         doc.rect(0, pageH - 8, pageW, 8, 'F');
-        doc.setFontSize(6.5);
+        doc.setFontSize(7);
         doc.setTextColor(148, 163, 184);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(fontName, 'normal');
         doc.text('Türkiye Sorun Bildirim Haritası — Gizli Rapor', 14, pageH - 3);
         doc.text(`Sayfa ${i} / ${pageCount}`, pageW - 14, pageH - 3, { align: 'right' });
       }
@@ -593,7 +563,7 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       doc.save(`Sorun_Bildirimleri_Raporu_${format(now, 'dd_MM_yyyy')}.pdf`);
     } catch (err) {
       console.error('PDF oluşturma hatası:', err);
-      alert('PDF dosyası oluşturulurken bir hata oluştu.');
+      alert('PDF dosyası oluşturulurken bir hata oluştu. Lütfen tekrar deneyiniz.');
     }
   }, [filtered, issues]);
 
