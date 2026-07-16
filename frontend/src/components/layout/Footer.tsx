@@ -63,15 +63,12 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Sütun 4: Yasal & Mevzuat */}
+          {/* Sütun 4: Destek & Yardım */}
           <div>
-            <h4 className={styles.colHeader}>Yasal & Mevzuat</h4>
+            <h4 className={styles.colHeader}>Destek & Yardım</h4>
             <ul className={styles.linkList}>
-              <li><Link href="/kvkk">KVKK Aydınlatma Metni</Link></li>
-              <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
-              <li><Link href="/kullanim-kosullari">Kullanım Koşulları</Link></li>
-              <li><Link href="/cerez-politikasi">Çerez Politikası</Link></li>
-              <li><Link href="/iletisim" style={{ color: '#f87171', fontWeight: 600 }}>• İletişim & 5651 Uyar-Kaldır</Link></li>
+              <li><Link href="/iletisim">İletişim</Link></li>
+              <li><Link href="/#yardim">Yardım</Link></li>
             </ul>
           </div>
         </div>
