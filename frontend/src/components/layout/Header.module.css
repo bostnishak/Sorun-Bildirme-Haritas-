@@ -260,21 +260,28 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 0 12px;
+    padding: 0 10px;
+    height: 56px;
   }
 
   .logoName {
     display: none;
   }
 
+  .viewToggle {
+    padding: 2px;
+    gap: 1px;
+  }
+
   .viewToggle span {
-    font-size: 11px;
-    font-weight: 600;
+    display: none;
   }
 
   .viewBtn {
-    padding: 8px;
+    padding: 8px 10px;
     min-height: 38px;
+    min-width: 38px;
+    justify-content: center;
   }
 
   .viewBtn svg {
@@ -324,5 +331,21 @@
   #btn-login svg {
     width: 16px;
     height: 16px;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .userMenu {
+    padding: 4px 6px;
+  }
+
+  /* Dropdown mobilde daha geniş ve alt kısma yasla */
+  .userDropdown {
+    width: 200px;
+    right: -4px;
   }
 }

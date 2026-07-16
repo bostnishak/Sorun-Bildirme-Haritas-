@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import { IconUser, IconMail, IconClock, IconCheckCircle, IconLock, IconArrowRight } from '@/components/ui/Icon';
 import styles from '@/app/profile/Profile.module.css';
 
 export function AccountInfoForm() {
+  const router = useRouter();
   const { user } = useAppStore();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -197,11 +199,12 @@ export function AccountInfoForm() {
               Şifrenizi düzenli aralıklarla güncellemeniz önerilir.
             </p>
             <button 
+              type="button"
               className={styles.btnSecondary} 
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              onClick={() => {
-                const navBtn = document.querySelector('button:nth-child(2)') as HTMLButtonElement;
-                if (navBtn) navBtn.click();
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/profile?tab=password');
               }}
             >
               Şifreyi Değiştir

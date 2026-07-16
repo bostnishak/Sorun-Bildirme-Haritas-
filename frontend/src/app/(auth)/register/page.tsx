@@ -495,7 +495,7 @@ export default function RegisterPage() {
             <button type="submit" className={styles.submitBtn} disabled={loading || !isPasswordValid || !allConsentsGiven}>
               {loading ? (
                 <>
-                  <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', marginRight: '8px' }} />
+                  <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.4s linear infinite', display: 'inline-block', marginRight: '8px' }} />
                   Kaydediliyor...
                 </>
               ) : (

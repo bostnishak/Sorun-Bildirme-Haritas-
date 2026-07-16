@@ -123,14 +123,6 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
           </button>
 
           <button
-            className={`${styles.navItem} ${activeTab === 'notifications' ? styles.navItemActive : ''}`}
-            onClick={() => onTabChange('notifications')}
-          >
-            <IconBell className={styles.navIcon} size={18} />
-            Bildirim Ayarları
-          </button>
-
-          <button
             className={`${styles.navItem} ${styles.dropdownItemLogout}`}
             style={{ marginTop: 'auto', borderTop: 'none', color: '#ef4444' }}
             onClick={onLogout}

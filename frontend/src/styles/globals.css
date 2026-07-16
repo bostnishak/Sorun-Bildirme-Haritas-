@@ -339,25 +339,44 @@ label {
 
 .mapboxgl-popup-tip, .maplibregl-popup-tip { display: none !important; }
 
-/* Mapbox Attribution — ToS Uyumu (Gizlenmez)
-   Mapbox Terms of Service Bölüm 2.2 uyarınca logo ve attribution
-   görünür kalmalıdır. display:none ile gizlemek lisans ihlaline yol açar. */
+/* Hiding Mapbox/Maplibre Attribution as requested */
 .mapboxgl-ctrl-logo,
 .maplibregl-ctrl-logo {
-  opacity: 0.8 !important;
+  display: none !important;
 }
 .mapboxgl-ctrl-attrib,
 .maplibregl-ctrl-attrib-inner,
 .maplibregl-ctrl-attrib {
-  font-size: 10px !important;
-  opacity: 0.8 !important;
+  display: none !important;
 }
 
 /* Harita Zoom Kontrollerini Yukarı Kaldır (AI İhbar Asistanı ile Çakışmaması İçin) */
 .mapboxgl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-right,
 .leaflet-bottom.leaflet-right {
-  bottom: 142px !important;
+  bottom: 76px !important;
   right: 16px !important;
   z-index: 50 !important;
+}
+
+/* ─── Mobile Global Overrides ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Harita kontrolleri mobilden safe-area uyumlu */
+  .mapboxgl-ctrl-bottom-right,
+  .maplibregl-ctrl-bottom-right {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 10px !important;
+  }
+
+  /* Zoom butonları daha büyük – parmak dostu */
+  .mapboxgl-ctrl-group button,
+  .maplibregl-ctrl-group button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Touch cihazlarda daha iyi scroll davranışı */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
 }
