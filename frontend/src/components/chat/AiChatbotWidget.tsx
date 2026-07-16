@@ -52,6 +52,7 @@ export function AiChatbotWidget() {
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const loadingStates = [
     'Metin ve bağlam inceleniyor...', 
@@ -150,7 +151,7 @@ export function AiChatbotWidget() {
         recognition.onerror = () => {
           setIsRecording(false);
           toast.dismiss(toastId);
-          simulateVoiceInput();
+          setShowVoiceModal(true);
         };
 
         recognition.onend = () => {
@@ -168,23 +169,7 @@ export function AiChatbotWidget() {
       }
     }
 
-    simulateVoiceInput();
-  };
-
-  const simulateVoiceInput = () => {
-    setIsRecording(true);
-    toast.loading('[Kayıt] Sesli Mesaj Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'voice-sim' });
-    setTimeout(() => {
-      const spoken = window.prompt(
-        '[Yapay Zeka Sesli İhbar Asistanı]\nLütfen sesli olarak iletmek istediğiniz sorunu yazın/okuyun:',
-        'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor'
-      );
-      setIsRecording(false);
-      toast.dismiss('voice-sim');
-      if (spoken && spoken.trim()) {
-        setInput(prev => (prev ? prev + ' ' + spoken.trim() : spoken.trim()));
-      }
-    }, 400);
+    setShowVoiceModal(true);
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -623,6 +608,67 @@ export function AiChatbotWidget() {
               >
                 Kaldır
               </button>
+            </div>
+          )}
+
+          {showVoiceModal && (
+            <div style={{
+              padding: '14px',
+              backgroundColor: '#eff6ff',
+              borderTop: '1px solid #bfdbfe',
+              borderBottom: '1px solid #bfdbfe',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              maxHeight: '230px',
+              overflowY: 'auto',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🎙️ Yapay Zeka Akıllı Ses & İhbar Paneli
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowVoiceModal(false)}
+                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 700 }}
+                >
+                  ×
+                </button>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
+                Tarayıcı mikrofon izni veya HTTP kısıtlaması durumunda ya da hızlı ihbar aktarmak istediğinizde aşağıdan örnek ses kalıplarına basıp veya konuşmanızı buraya yazıp aktarabilirsiniz:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor',
+                  'Beşiktaş meydanda rögar kapağı kırıldı yoldan geçen arabalar için tehlikeli acil onarım olmalı',
+                  'Üsküdar Çengelköy sokak lambaları yanmıyor sokak çok karanlık güvenlik riski var',
+                  'Şişli Mecidiyeköy asfalt çöktü derin çukur oluştu araçlar zarar görüyor',
+                  'Kadıköy Yoğurtçu Parkı fırtınadan ağaç devrildi yaya yolunu kapattı'
+                ].map((template, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setInput(template);
+                      setShowVoiceModal(false);
+                    }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #93c5fd',
+                      backgroundColor: '#ffffff',
+                      color: '#1d4ed8',
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    🗣️ "{template}"
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

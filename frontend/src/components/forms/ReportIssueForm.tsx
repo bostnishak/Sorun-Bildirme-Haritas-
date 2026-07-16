@@ -38,6 +38,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const [isRecording, setIsRecording] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [aiVoiceSuccess, setAiVoiceSuccess] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   const districts = formData.city ? (TR_CITIES_DISTRICTS[formData.city] || []) : [];
 
@@ -190,7 +191,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
           if (e.error === 'not-allowed' || e.error === 'permission-denied') {
             toast.error('Mikrofon izni verilmedi. Lütfen tarayıcı mikrofon iznini açın.');
           } else {
-            simulateAiVoiceRecognition();
+            setShowVoiceModal(true);
           }
         };
 
@@ -211,24 +212,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       }
     }
 
-    simulateAiVoiceRecognition();
-  };
-
-  const simulateAiVoiceRecognition = () => {
-    setIsRecording(true);
-    setAiVoiceSuccess(false);
-    toast.loading('[Kayıt] Yapay Zeka Ses Tanıma Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'ai-voice-toast' });
-    setTimeout(() => {
-      const userSpokenPrompt = window.prompt(
-        '[Yapay Zeka Sesli İhbar Modülü]\nLütfen sesli olarak iletmek istediğiniz ihbarı veya konuşmanızı yazın/okuyun (Örn: Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor):',
-        'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor'
-      );
-      setIsRecording(false);
-      toast.dismiss('ai-voice-toast');
-      if (userSpokenPrompt && userSpokenPrompt.trim().length > 0) {
-        processVoiceInput(userSpokenPrompt.trim());
-      }
-    }, 600);
+    setShowVoiceModal(true);
   };
 
   const getLocation = async () => {
@@ -527,6 +511,65 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             {errors.image && <p className={styles.error}>{errors.image}</p>}
+            {showVoiceModal && (
+              <div style={{
+                padding: '16px',
+                marginTop: '10px',
+                backgroundColor: '#eff6ff',
+                borderRadius: '12px',
+                border: '1px solid #bfdbfe',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🎙️ Yapay Zeka Akıllı Sesli İhbar Paneli
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowVoiceModal(false)}
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.3rem', fontWeight: 700 }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.82rem', color: '#334155', margin: 0, lineHeight: 1.4 }}>
+                  Tarayıcı mikrofon izni veya HTTP bağlantı kısıtlaması durumunda ya da hızlı ihbar iletmek istediğinizde aşağıdan örnek ses kalıplarına basıp otomatik doldurtabilirsiniz:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor',
+                    'Beşiktaş meydanda rögar kapağı kırıldı yoldan geçen arabalar için tehlikeli acil onarım olmalı',
+                    'Üsküdar Çengelköy sokak lambaları yanmıyor sokak çok karanlık güvenlik riski var',
+                    'Şişli Mecidiyeköy asfalt çöktü derin çukur oluştu araçlar zarar görüyor',
+                    'Kadıköy Yoğurtçu Parkı fırtınadan ağaç devrildi yaya yolunu kapattı'
+                  ].map((template, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        processVoiceInput(template);
+                        setShowVoiceModal(false);
+                      }}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #93c5fd',
+                        backgroundColor: '#ffffff',
+                        color: '#1d4ed8',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      🗣️ "{template}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {aiVoiceSuccess && (
               <div className={styles.aiSuccessBanner}>
                 <span>[AI] Yapay Zeka Sesli İhbarınızı İşledi: Konuşmanızdan <strong>Başlık</strong>, <strong>Sorun Türü</strong> ve <strong>Açıklama</strong> otomatik dolduruldu!</span>
