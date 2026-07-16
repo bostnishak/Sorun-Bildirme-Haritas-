@@ -30,8 +30,8 @@ const TURKEY_CENTER = {
   bearing: 0
 };
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [20.0, 31.0], // Güneybatı (Mapbox'ın 5.6 zoom'da kilitlenmemesi için viewport kadar genişletildi)
-  [50.0, 47.0]  // Kuzeydoğu
+  [25.4, 35.8], // Güneybatı — tam Türkiye sınırı (Yunanistan/Bulgaristan/Suriye dahil etme)
+  [44.9, 42.4]  // Kuzeydoğu — tam Türkiye sınırı (Gürcistan/Ermenistan/İran dahil etme)
 ];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
@@ -160,16 +160,8 @@ export function MapView() {
       setViewState(prev => ({ ...prev, zoom: initialZ }));
       setClusterZoom(initialZ);
       
-      if (isRealMobileOrTablet) {
-        // Mobil için daraltılmış sınırlar — Türkiye'ye odaklı
-        setActiveBounds([
-          [22.0, 34.0], // SW
-          [48.0, 44.0]  // NE
-        ]);
-      } else {
-        // PC için görseldeki sabit Türkiye sınırları
-        setActiveBounds(TURKEY_BOUNDS);
-      }
+      // Tüm cihazlarda aynı sıkı Türkiye sınırı — çevre ülkelere gidiş engellendi
+      setActiveBounds(TURKEY_BOUNDS);
     }
   }, []);
 
@@ -672,12 +664,6 @@ export function MapView() {
     });
   }, [superClusters, supercluster, selectIssue]);
 
-  const isZoomedIn = viewState.zoom >= (minZoom + 0.8);
-  const strictBounds: [[number, number], [number, number]] = [
-    [25.5, 35.5], // SW (Türkiye Sınırı)
-    [44.8, 42.5]  // NE (Türkiye Sınırı)
-  ];
-
   return (
     <div className={styles.mapWrapper}>
       <Map
@@ -689,11 +675,11 @@ export function MapView() {
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
-        maxBounds={isZoomedIn ? strictBounds : activeBounds}
-        {...({ maxBoundsViscosity: 0.95 } as any)}
+        maxBounds={TURKEY_BOUNDS}
+        {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
         maxZoom={16.5}
-        dragPan={isZoomedIn}
+        dragPan={true}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}

@@ -20,6 +20,7 @@ interface ExtractionData {
   } | null;
   oncelik: string;
   guvenlik_ihlari: boolean;
+  siteDisiKonu?: boolean;
   eksikBilgiSoru: string | null;
   asistanMesaji: string;
   onayBekliyor: boolean;
@@ -37,11 +38,14 @@ interface Message {
 export function AiChatbotWidget() {
   const user = useAppStore(state => state.user);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       sender: 'ai',
-      text: 'Merhaba! Ben Etiya Project Yapay Zeka İhbar Asistanı. Gördüğünüz sorunu (adres, sorun türü ve detay) yazarak, mikrofonla sesli söyleyerek veya fotoğraf yükleyerek bana iletebilirsiniz.',
+      text: user
+        ? 'Merhaba! Ben Türkiye Sorun Bildirim Haritası platformunun yapay zeka asistanıyım. Sorun bildirimi yapmak veya platform hakkında bilgi almak için mesaj yazabilirsiniz.'
+        : 'Merhaba! Sorun Bildirim Haritası platformu hakkında bilgi alabilir veya platform kullanımı konusunda yardım isteyebilirsiniz. Bildirim oluşturmak için giriş yapmanız gerekmektedir.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -69,6 +73,19 @@ export function AiChatbotWidget() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Task 2A+: Auto-scroll — yeni mesaj gelince otomatik aşağı kaydır
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  // Mobil tespiti
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -280,46 +297,85 @@ export function AiChatbotWidget() {
     }
   };
 
+  // Task 2A: Mobil → küçük yuvarlak ikon, Masaüstü → yazılı pill buton
+  const triggerButton = !isOpen && (
+    isMobile ? (
+      // MOBİL: Sadece ikon, metin yok
+      <button
+        onClick={() => setIsOpen(true)}
+        aria-label="AI Asistanı Aç"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '52px',
+          height: '52px',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          boxShadow: '0 8px 20px -4px rgba(37, 99, 235, 0.5)',
+          cursor: 'pointer',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.1)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+    ) : (
+      // MASAÜSTÜ: Mevcut pill buton
+      <button
+        onClick={() => setIsOpen(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: 'white',
+          border: 'none',
+          padding: '14px 22px',
+          borderRadius: '9999px',
+          fontWeight: 600,
+          fontSize: '0.95rem',
+          boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        AI İhbar Asistanı
+      </button>
+    )
+  );
+
   return (
     <div style={{ position: 'fixed', bottom: '86px', right: '16px', zIndex: 9999 }}>
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            color: 'white',
-            border: 'none',
-            padding: '14px 22px',
-            borderRadius: '9999px',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          AI İhbar Asistanı
-        </button>
-      )}
+      {triggerButton}
 
       {isOpen && (
         <div
           style={{
-            width: '410px',
-            height: '540px',
+            // Mobil: tam ekran, Masaüstü: sabit boyut
+            width: isMobile ? '100vw' : '410px',
+            height: isMobile ? '100dvh' : '540px',
+            position: isMobile ? 'fixed' : 'relative',
+            bottom: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
             backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '16px',
+            border: isMobile ? 'none' : '1px solid #e2e8f0',
+            borderRadius: isMobile ? 0 : '16px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            zIndex: isMobile ? 99999 : undefined,
           }}
         >
           <div
@@ -444,6 +500,25 @@ export function AiChatbotWidget() {
                   {msg.text}
                 </div>
 
+                {/* siteDisiKonu: Platform dışı konu — farklı stil */}
+                {msg.extraction?.siteDisiKonu && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}>
+                    <span style={{ fontSize: '14px' }}>ℹ</span>
+                    <span>Yalnızca platform konularında yardımcı olabilirim.</span>
+                  </div>
+                )}
+
                 {msg.extraction && msg.extraction.kategori && !msg.extraction.eksikBilgiSoru && (
                   <div
                     style={{
@@ -498,6 +573,8 @@ export function AiChatbotWidget() {
                 </div>
               </div>
             )}
+            {/* Auto-scroll anchor */}
+            <div ref={messagesEndRef} />
           </div>
 
           {imagePreview && (
