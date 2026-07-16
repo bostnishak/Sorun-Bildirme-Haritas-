@@ -35,11 +35,87 @@ const TURKEY_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
-  İstanbul: { latitude: 41.0082, longitude: 28.9784, zoom: 10, pitch: 0, bearing: 0 },
-  Ankara: { latitude: 39.9334, longitude: 32.8597, zoom: 10, pitch: 0, bearing: 0 },
-  İzmir: { latitude: 38.4237, longitude: 27.1428, zoom: 10, pitch: 0, bearing: 0 },
-  Antalya: { latitude: 36.8969, longitude: 30.7133, zoom: 10, pitch: 0, bearing: 0 },
-  Bursa: { latitude: 40.1828, longitude: 29.0667, zoom: 10, pitch: 0, bearing: 0 },
+  'Adana': { latitude: 37.0000, longitude: 35.3213, zoom: 10, pitch: 0, bearing: 0 },
+  'Adıyaman': { latitude: 37.7648, longitude: 38.2786, zoom: 10, pitch: 0, bearing: 0 },
+  'Afyonkarahisar': { latitude: 38.7507, longitude: 30.5567, zoom: 10, pitch: 0, bearing: 0 },
+  'Ağrı': { latitude: 39.7191, longitude: 43.0503, zoom: 10, pitch: 0, bearing: 0 },
+  'Aksaray': { latitude: 38.3687, longitude: 34.0370, zoom: 10, pitch: 0, bearing: 0 },
+  'Amasya': { latitude: 40.6499, longitude: 35.8353, zoom: 10, pitch: 0, bearing: 0 },
+  'Ankara': { latitude: 39.9334, longitude: 32.8597, zoom: 10, pitch: 0, bearing: 0 },
+  'Antalya': { latitude: 36.8969, longitude: 30.7133, zoom: 10, pitch: 0, bearing: 0 },
+  'Ardahan': { latitude: 41.1105, longitude: 42.7022, zoom: 10, pitch: 0, bearing: 0 },
+  'Artvin': { latitude: 41.1828, longitude: 41.8183, zoom: 10, pitch: 0, bearing: 0 },
+  'Aydın': { latitude: 37.8560, longitude: 27.8416, zoom: 10, pitch: 0, bearing: 0 },
+  'Balıkesir': { latitude: 39.6484, longitude: 27.8826, zoom: 10, pitch: 0, bearing: 0 },
+  'Bartın': { latitude: 41.6344, longitude: 32.3375, zoom: 10, pitch: 0, bearing: 0 },
+  'Batman': { latitude: 37.8812, longitude: 41.1351, zoom: 10, pitch: 0, bearing: 0 },
+  'Bayburt': { latitude: 40.2552, longitude: 40.2249, zoom: 10, pitch: 0, bearing: 0 },
+  'Bilecik': { latitude: 40.0567, longitude: 30.0665, zoom: 10, pitch: 0, bearing: 0 },
+  'Bingöl': { latitude: 38.8855, longitude: 40.4966, zoom: 10, pitch: 0, bearing: 0 },
+  'Bitlis': { latitude: 38.3938, longitude: 42.1232, zoom: 10, pitch: 0, bearing: 0 },
+  'Bolu': { latitude: 40.7350, longitude: 31.6061, zoom: 10, pitch: 0, bearing: 0 },
+  'Burdur': { latitude: 37.7203, longitude: 30.2908, zoom: 10, pitch: 0, bearing: 0 },
+  'Bursa': { latitude: 40.1828, longitude: 29.0667, zoom: 10, pitch: 0, bearing: 0 },
+  'Çanakkale': { latitude: 40.1553, longitude: 26.4142, zoom: 10, pitch: 0, bearing: 0 },
+  'Çankırı': { latitude: 40.6013, longitude: 33.6134, zoom: 10, pitch: 0, bearing: 0 },
+  'Çorum': { latitude: 40.5506, longitude: 34.9556, zoom: 10, pitch: 0, bearing: 0 },
+  'Denizli': { latitude: 37.7765, longitude: 29.0864, zoom: 10, pitch: 0, bearing: 0 },
+  'Diyarbakır': { latitude: 37.9144, longitude: 40.2306, zoom: 10, pitch: 0, bearing: 0 },
+  'Düzce': { latitude: 40.8438, longitude: 31.1565, zoom: 10, pitch: 0, bearing: 0 },
+  'Edirne': { latitude: 41.6818, longitude: 26.5623, zoom: 10, pitch: 0, bearing: 0 },
+  'Elazığ': { latitude: 38.6810, longitude: 39.2264, zoom: 10, pitch: 0, bearing: 0 },
+  'Erzincan': { latitude: 39.7500, longitude: 39.5000, zoom: 10, pitch: 0, bearing: 0 },
+  'Erzurum': { latitude: 39.9000, longitude: 41.2700, zoom: 10, pitch: 0, bearing: 0 },
+  'Eskişehir': { latitude: 39.7767, longitude: 30.5206, zoom: 10, pitch: 0, bearing: 0 },
+  'Gaziantep': { latitude: 37.0662, longitude: 37.3833, zoom: 10, pitch: 0, bearing: 0 },
+  'Giresun': { latitude: 40.9128, longitude: 38.3895, zoom: 10, pitch: 0, bearing: 0 },
+  'Gümüşhane': { latitude: 40.4386, longitude: 39.5086, zoom: 10, pitch: 0, bearing: 0 },
+  'Hakkari': { latitude: 37.5833, longitude: 43.7333, zoom: 10, pitch: 0, bearing: 0 },
+  'Hatay': { latitude: 36.4018, longitude: 36.3498, zoom: 10, pitch: 0, bearing: 0 },
+  'Iğdır': { latitude: 39.9167, longitude: 44.0500, zoom: 10, pitch: 0, bearing: 0 },
+  'Isparta': { latitude: 37.7648, longitude: 30.5566, zoom: 10, pitch: 0, bearing: 0 },
+  'İstanbul': { latitude: 41.0082, longitude: 28.9784, zoom: 10, pitch: 0, bearing: 0 },
+  'İzmir': { latitude: 38.4237, longitude: 27.1428, zoom: 10, pitch: 0, bearing: 0 },
+  'Kahramanmaraş': { latitude: 37.5858, longitude: 36.9371, zoom: 10, pitch: 0, bearing: 0 },
+  'Karabük': { latitude: 41.2061, longitude: 32.6204, zoom: 10, pitch: 0, bearing: 0 },
+  'Karaman': { latitude: 37.1759, longitude: 33.2287, zoom: 10, pitch: 0, bearing: 0 },
+  'Kars': { latitude: 40.6167, longitude: 43.1000, zoom: 10, pitch: 0, bearing: 0 },
+  'Kastamonu': { latitude: 41.3887, longitude: 33.7827, zoom: 10, pitch: 0, bearing: 0 },
+  'Kayseri': { latitude: 38.7312, longitude: 35.4787, zoom: 10, pitch: 0, bearing: 0 },
+  'Kırıkkale': { latitude: 39.8468, longitude: 33.5153, zoom: 10, pitch: 0, bearing: 0 },
+  'Kırklareli': { latitude: 41.7333, longitude: 27.2167, zoom: 10, pitch: 0, bearing: 0 },
+  'Kırşehir': { latitude: 39.1425, longitude: 34.1709, zoom: 10, pitch: 0, bearing: 0 },
+  'Kilis': { latitude: 36.7184, longitude: 37.1212, zoom: 10, pitch: 0, bearing: 0 },
+  'Kocaeli': { latitude: 40.8533, longitude: 29.8815, zoom: 10, pitch: 0, bearing: 0 },
+  'Konya': { latitude: 37.8746, longitude: 32.4932, zoom: 10, pitch: 0, bearing: 0 },
+  'Kütahya': { latitude: 39.4167, longitude: 29.9833, zoom: 10, pitch: 0, bearing: 0 },
+  'Malatya': { latitude: 38.3552, longitude: 38.3095, zoom: 10, pitch: 0, bearing: 0 },
+  'Manisa': { latitude: 38.6191, longitude: 27.4289, zoom: 10, pitch: 0, bearing: 0 },
+  'Mardin': { latitude: 37.3212, longitude: 40.7245, zoom: 10, pitch: 0, bearing: 0 },
+  'Mersin': { latitude: 36.8121, longitude: 34.6415, zoom: 10, pitch: 0, bearing: 0 },
+  'Muğla': { latitude: 37.2153, longitude: 28.3636, zoom: 10, pitch: 0, bearing: 0 },
+  'Muş': { latitude: 38.9462, longitude: 41.7539, zoom: 10, pitch: 0, bearing: 0 },
+  'Nevşehir': { latitude: 38.6939, longitude: 34.6857, zoom: 10, pitch: 0, bearing: 0 },
+  'Niğde': { latitude: 37.9667, longitude: 34.6833, zoom: 10, pitch: 0, bearing: 0 },
+  'Ordu': { latitude: 40.9839, longitude: 37.8764, zoom: 10, pitch: 0, bearing: 0 },
+  'Osmaniye': { latitude: 37.0742, longitude: 36.2464, zoom: 10, pitch: 0, bearing: 0 },
+  'Rize': { latitude: 41.0201, longitude: 40.5234, zoom: 10, pitch: 0, bearing: 0 },
+  'Sakarya': { latitude: 40.6940, longitude: 30.4358, zoom: 10, pitch: 0, bearing: 0 },
+  'Samsun': { latitude: 41.2867, longitude: 36.3300, zoom: 10, pitch: 0, bearing: 0 },
+  'Şanlıurfa': { latitude: 37.1591, longitude: 38.7969, zoom: 10, pitch: 0, bearing: 0 },
+  'Siirt': { latitude: 37.9333, longitude: 41.9500, zoom: 10, pitch: 0, bearing: 0 },
+  'Sinop': { latitude: 42.0231, longitude: 35.1531, zoom: 10, pitch: 0, bearing: 0 },
+  'Şırnak': { latitude: 37.4187, longitude: 42.4918, zoom: 10, pitch: 0, bearing: 0 },
+  'Sivas': { latitude: 39.7477, longitude: 37.0179, zoom: 10, pitch: 0, bearing: 0 },
+  'Tekirdağ': { latitude: 41.0000, longitude: 27.5167, zoom: 10, pitch: 0, bearing: 0 },
+  'Tokat': { latitude: 40.3167, longitude: 36.5500, zoom: 10, pitch: 0, bearing: 0 },
+  'Trabzon': { latitude: 41.0027, longitude: 39.7168, zoom: 10, pitch: 0, bearing: 0 },
+  'Tunceli': { latitude: 39.1079, longitude: 39.5401, zoom: 10, pitch: 0, bearing: 0 },
+  'Uşak': { latitude: 38.6823, longitude: 29.4082, zoom: 10, pitch: 0, bearing: 0 },
+  'Van': { latitude: 38.4891, longitude: 43.4089, zoom: 10, pitch: 0, bearing: 0 },
+  'Yalova': { latitude: 40.6500, longitude: 29.2667, zoom: 10, pitch: 0, bearing: 0 },
+  'Yozgat': { latitude: 39.8181, longitude: 34.8147, zoom: 10, pitch: 0, bearing: 0 },
+  'Zonguldak': { latitude: 41.4564, longitude: 31.7987, zoom: 10, pitch: 0, bearing: 0 },
 };
 
 // SVG Kategori İkon Oluşturucu
@@ -121,7 +197,7 @@ export function MapView() {
   // useEffect ile çift kontrol React re-render sırasında çelişkiye yol açıyordu — kaldırıldı.
 
 
-  const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
+  const { clusters, fetchClusters, selectedIssue, selectIssue, filters, user, isAuthenticated } = useAppStore();
 
   useEffect(() => {
     // Sayfa açılır açılmaz veriyi getir (Mapbox motorunun yüklenmesini beklemeden, paralel olarak)
@@ -361,8 +437,32 @@ export function MapView() {
       console.warn('Sky layer error:', err);
     }
 
+    // ── Mobil/Tablet: Giriş yapan kullanıcının şehrine smooth flyTo ──
+    try {
+      const ua = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua) ||
+                             (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
+                             window.innerWidth <= 768;
 
-  }, []);
+      if (isMobileDevice && isAuthenticated && user?.city) {
+        const cityCoord = CITY_COORDS[user.city];
+        if (cityCoord) {
+          setTimeout(() => {
+            map.flyTo({
+              center: [cityCoord.longitude, cityCoord.latitude],
+              zoom: cityCoord.zoom,
+              duration: 2500,
+              essential: true,
+              curve: 1.42,
+            });
+          }, 1500);
+        }
+      }
+    } catch (err) {
+      console.warn('City flyTo error:', err);
+    }
+
+  }, [isAuthenticated, user?.city]);
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
