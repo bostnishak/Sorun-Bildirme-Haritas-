@@ -3,7 +3,12 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import { hashTCKimlik } from '../src/services/nvi.service';
+import crypto from 'crypto';
+
+function hashTCKimlik(tcKimlik: string): string {
+  const pepper = process.env.TC_KIMLIK_PEPPER || 'etiya-default-pepper-secret-key-2026';
+  return crypto.createHash('sha256').update(tcKimlik + pepper).digest('hex');
+}
 
 // Root dizindeki veya backend dizindeki env dosyasını yükle
 dotenv.config({ path: path.join(__dirname, '../.env') });
