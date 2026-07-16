@@ -34,7 +34,7 @@ legalRouter.post('/contact', async (req: Request, res: Response) => {
   // Platform sorumlusuna bildirim e-postası gönder
   const notifyHtml = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:10px;">
-      <h2 style="color:#dc2626;">⚖️ Yeni Hukuki Başvuru — ${subjectLabel}</h2>
+      <h2 style="color:#dc2626;">[LEGAL] Yeni Hukuki Başvuru — ${subjectLabel}</h2>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <tr><td style="padding:8px;font-weight:bold;background:#f8fafc;border:1px solid #e2e8f0;">Başvuru No</td><td style="padding:8px;border:1px solid #e2e8f0;font-weight:700;color:#2563eb;">${refNo}</td></tr>
         <tr><td style="padding:8px;font-weight:bold;background:#f8fafc;border:1px solid #e2e8f0;">Konu Türü</td><td style="padding:8px;border:1px solid #e2e8f0;">${subjectLabel}</td></tr>
@@ -49,7 +49,7 @@ legalRouter.post('/contact', async (req: Request, res: Response) => {
         <p style="margin:8px 0 0;">${description}</p>
       </div>
       <p style="font-size:12px;color:#94a3b8;margin-top:20px;">
-        ⚠️ 5651 Sayılı Kanun Md.5 uyarınca bu başvuruya <strong>24 saat</strong> içinde yanıt verilmesi zorunludur.
+        [UYARI] 5651 Sayılı Kanun Md.5 uyarınca bu başvuruya <strong>24 saat</strong> içinde yanıt verilmesi zorunludur.
       </p>
     </div>
   `;
@@ -57,7 +57,7 @@ legalRouter.post('/contact', async (req: Request, res: Response) => {
   // Başvurucuya otomatik onay e-postası
   const confirmHtml = `
     <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:10px;">
-      <h2 style="color:#2563eb;">✅ Başvurunuz Alındı — ${refNo}</h2>
+      <h2 style="color:#2563eb;">[TAMAMLANDI] Başvurunuz Alındı — ${refNo}</h2>
       <p>Sayın <strong>${fullName}</strong>,</p>
       <p><strong>${subjectLabel}</strong> konulu başvurunuz platformumuza ulaşmıştır.</p>
       <p>5651 Sayılı Kanun ve KVKK düzenlemeleri gereği talebiniz en geç <strong>24 saat</strong> içinde incelenerek bu e-posta adresine yazılı geri bildirim sağlanacaktır.</p>

@@ -63,7 +63,7 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:');
+  console.error('[ERROR] Invalid environment variables:');
   console.error(parsed.error.flatten().fieldErrors);
   process.exit(1);
 }
@@ -74,7 +74,7 @@ if (parsed.data.NODE_ENV === 'production') {
     parsed.data.WEBHOOK_HMAC_SECRET === 'dev_secret_key_1234' ||
     parsed.data.TC_KIMLIK_PEPPER === 'dev_pepper_key_12345'
   ) {
-    console.error('❌ CRITICAL SECURITY ERROR: Production ortamında varsayılan WEBHOOK_HMAC_SECRET veya TC_KIMLIK_PEPPER kullanılamaz.');
+    console.error('[ERROR] CRITICAL SECURITY ERROR: Production ortamında varsayılan WEBHOOK_HMAC_SECRET veya TC_KIMLIK_PEPPER kullanılamaz.');
     process.exit(1);
   }
 }

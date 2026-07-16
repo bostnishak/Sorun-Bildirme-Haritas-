@@ -216,17 +216,36 @@ export const authService = {
     // 2FA Kontrolü
     if (user.isTwoFactorEnabled && user.twoFactorSecret) {
       if (!twoFactorToken) {
-        throw new UnauthorizedError('2FA kodu gereklidir.');
+        throw new UnauthorizedError('2FA kodu veya kurtarma kodu gereklidir.');
       }
 
-      const isTokenValid = speakeasy.totp.verify({
+      let isTokenValid = speakeasy.totp.verify({
         secret: user.twoFactorSecret,
         encoding: 'base32',
         token: twoFactorToken,
       });
 
+      // TOTP başarısızsa, kurtarma kodlarını (Recovery Codes) kontrol et
+      if (!isTokenValid && user.recoveryCodes && user.recoveryCodes.length > 0) {
+        for (let i = 0; i < user.recoveryCodes.length; i++) {
+          const hashedCode = user.recoveryCodes[i];
+          const matches = await bcrypt.compare(twoFactorToken.trim(), hashedCode);
+          if (matches) {
+            isTokenValid = true;
+            // Kullanılan kurtarma kodunu listeden çıkar (Tek kullanımlık)
+            const updatedCodes = user.recoveryCodes.filter((_, idx) => idx !== i);
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { recoveryCodes: updatedCodes },
+            });
+            logger.info('Kullanıcı 2FA kurtarma kodu ile giriş yaptı', { userId: user.id });
+            break;
+          }
+        }
+      }
+
       if (!isTokenValid) {
-        throw new UnauthorizedError('Geçersiz 2FA kodu.');
+        throw new UnauthorizedError('Geçersiz 2FA veya kurtarma kodu.');
       }
     }
 
@@ -518,12 +537,33 @@ export const authService = {
       throw new BadRequestError('Geçersiz 2FA kodu.');
     }
 
+    // 10 adet tek kullanımlık kurtarma kodu (Recovery Codes) üret
+    const plainRecoveryCodes: string[] = [];
+    const hashedRecoveryCodes: string[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const code = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 karakter hex
+      const formatted = `${code.slice(0, 4)}-${code.slice(4)}`; // XXXX-XXXX
+      plainRecoveryCodes.push(formatted);
+      const hash = await bcrypt.hash(formatted, 10);
+      hashedRecoveryCodes.push(hash);
+    }
+
     await prisma.user.update({
       where: { id: userId },
-      data: { isTwoFactorEnabled: true },
+      data: {
+        isTwoFactorEnabled: true,
+        recoveryCodes: hashedRecoveryCodes,
+      },
     });
 
     logger.info('Kullanıcı 2FA özelliğini aktifleştirdi.', { userId });
+
+    return {
+      success: true,
+      recoveryCodes: plainRecoveryCodes,
+      message: '2FA başarıyla aktifleştirildi. Lütfen kurtarma kodlarınızı güvenli bir yere kaydedin. Bir daha gösterilmeyeceklerdir.',
+    };
   },
 };
 

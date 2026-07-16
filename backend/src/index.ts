@@ -133,10 +133,13 @@ app.get('/health', async (_req: Request, res: Response) => {
 // ─── API Routes & Documentation ───────────────────────────────────────────
 setupSwagger(app);
 
+import { notificationRouter } from './modules/notifications/notification.router';
+
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/issues', issuesRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/legal', legalRouter);
+app.use('/api/v1/notifications', notificationRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────
 app.use('*', (req: Request, res: Response) => {
@@ -192,16 +195,16 @@ async function bootstrap() {
   try {
     await ensureBucketExists();
   } catch (err) {
-    logger.warn('⚠️ MinIO bucket oluşturulamadı, MinIO servisi ayakta olmayabilir.', err);
+    logger.warn('[WARN] MinIO bucket oluşturulamadı, MinIO servisi ayakta olmayabilir.', err);
   }
 
   const httpServer = createServer(app);
   initSocket(httpServer);
 
   const server = httpServer.listen(env.PORT, () => {
-    logger.info(`🚀 Etiya Project API başlatıldı: http://localhost:${env.PORT}`);
-    logger.info(`📍 Ortam: ${env.NODE_ENV}`);
-    logger.info('🔌 Socket.io aktif.');
+    logger.info(`[INFO] Etiya Project API başlatıldı: http://localhost:${env.PORT}`);
+    logger.info(`[ENV] Ortam: ${env.NODE_ENV}`);
+    logger.info('[SOCKET] Socket.io aktif.');
   });
 
   // Graceful shutdown
@@ -210,7 +213,7 @@ async function bootstrap() {
     server.close(async () => {
       const { prisma } = await import('./config/database');
       await prisma.$disconnect();
-      logger.info('✅ Sunucu kapatıldı');
+      logger.info('[OK] Sunucu kapatıldı');
       process.exit(0);
     });
 

@@ -143,12 +143,12 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       ...prev,
       title: autoTitle,
       category: matchedCat || prev.category || 'ENVIRONMENT',
-      description: prev.description ? `${prev.description}\n\n[🎙️ Sesli İhbar Kaydı]: ${cleanSpeech}` : cleanSpeech
+      description: prev.description ? `${prev.description}\n\n[Sesli İhbar Kaydı]: ${cleanSpeech}` : cleanSpeech
     }));
 
     setErrors(prev => ({ ...prev, title: '', category: '', description: '' }));
     setAiVoiceSuccess(true);
-    toast.success('✨ Yapay Zeka Sesli İhbarınızı Analiz Etti: Başlık, Kategori ve Açıklama otomatik dolduruldu!', { duration: 5000 });
+    toast.success('[AI] Yapay Zeka Sesli İhbarınızı Analiz Etti: Başlık, Kategori ve Açıklama otomatik dolduruldu!', { duration: 5000 });
   };
 
   const handleVoiceRecordToggle = () => {
@@ -167,7 +167,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
 
         setIsRecording(true);
         setAiVoiceSuccess(false);
-        const toastId = toast.loading('🎙️ Mikrofon aktif: Sesinizi dinliyorum... Konuşun.', { duration: 10000 });
+        const toastId = toast.loading('[Sesli] Mikrofon aktif: Sesinizi dinliyorum... Konuşun.', { duration: 10000 });
 
         let finalTranscript = '';
 
@@ -217,10 +217,10 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const simulateAiVoiceRecognition = () => {
     setIsRecording(true);
     setAiVoiceSuccess(false);
-    toast.loading('🔴 Yapay Zeka Ses Tanıma Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'ai-voice-toast' });
+    toast.loading('[Kayıt] Yapay Zeka Ses Tanıma Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'ai-voice-toast' });
     setTimeout(() => {
       const userSpokenPrompt = window.prompt(
-        '🎙️ Yapay Zeka Sesli İhbar Modülü:\nLütfen sesli olarak iletmek istediğiniz ihbarı veya konuşmanızı yazın/okuyun (Örn: Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor):',
+        '[Yapay Zeka Sesli İhbar Modülü]\nLütfen sesli olarak iletmek istediğiniz ihbarı veya konuşmanızı yazın/okuyun (Örn: Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor):',
         'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor'
       );
       setIsRecording(false);
@@ -359,7 +359,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
       });
 
       localStorage.setItem('last_issue_submit_time', String(Date.now()));
-      toast.success('Sorun bildirimi başarıyla alındı! 🎉', { id: toastId });
+      toast.success('Sorun bildirimi başarıyla alındı! [✓]', { id: toastId });
       
       const currentBbox = useAppStore.getState().currentBbox;
       if (currentBbox) {
@@ -513,7 +513,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className={styles.voiceTextWrap}>
                   <span className={styles.voiceTitle}>
-                    {isRecording ? '🔴 Dinleniyor... Konuşun' : '🎙️ Sesli Mesajla Bildir'}
+                    {isRecording ? '[Kayıt] Dinleniyor... Konuşun' : '[Sesli] Sesli Mesajla Bildir'}
                   </span>
                   <span className={styles.voiceSubtitle}>
                     {isRecording ? 'Konuşmayı bitirince otomatik işlenir' : 'Yapay Zeka sözlerinizi anlar & doldurur'}
@@ -529,7 +529,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             {errors.image && <p className={styles.error}>{errors.image}</p>}
             {aiVoiceSuccess && (
               <div className={styles.aiSuccessBanner}>
-                <span>✨ Yapay Zeka Sesli İhbarınızı İşledi: Konuşmanızdan <strong>Başlık</strong>, <strong>Sorun Türü</strong> ve <strong>Açıklama</strong> otomatik dolduruldu!</span>
+                <span>[AI] Yapay Zeka Sesli İhbarınızı İşledi: Konuşmanızdan <strong>Başlık</strong>, <strong>Sorun Türü</strong> ve <strong>Açıklama</strong> otomatik dolduruldu!</span>
               </div>
             )}
           </div>

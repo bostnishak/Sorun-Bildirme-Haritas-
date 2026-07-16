@@ -11,10 +11,14 @@ export interface User {
   firstName: string;
   lastName: string;
   city?: string;
+  district?: string;
   phone?: string;
   avatarUrl?: string;
   role: 'CITIZEN' | 'INSTITUTION_OFFICER' | 'SUPER_ADMIN';
   isVerified: boolean;
+  points?: number;
+  trustScore?: number;
+  isTwoFactorEnabled?: boolean;
   institution?: {
     id: string;
     name: string;

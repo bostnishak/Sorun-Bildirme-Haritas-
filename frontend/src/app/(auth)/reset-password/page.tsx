@@ -66,7 +66,7 @@ function ResetPasswordForm() {
       {!success ? (
         <>
           <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Yeni Şifre Belirle 🔒</h1>
+            <h1 className={styles.formTitle}>Yeni Şifre Belirle</h1>
             <p className={styles.formSubtitle}>
               Hesabınız için güvenlik standartlarına uygun yeni bir şifre oluşturun.
             </p>
@@ -112,7 +112,7 @@ function ResetPasswordForm() {
                   onClick={() => setShowPassword(p => !p)}
                   tabIndex={-1}
                 >
-                  {showPassword ? '🐵' : '🙈'}
+                  <span style={{ fontSize: '11px', fontWeight: 600 }}>{showPassword ? 'Gizle' : 'Göster'}</span>
                 </button>
               </div>
             </div>
@@ -172,8 +172,8 @@ function ResetPasswordForm() {
       ) : (
         /* SUCCESS SCREEN */
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ width: 64, height: 64, background: '#dcfce7', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 20px' }}>
-            🎉
+          <div style={{ width: 64, height: 64, background: '#dcfce7', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 'bold', margin: '0 auto 20px' }}>
+            ✓
           </div>
           <h2 className={styles.formTitle}>Şifreniz Yenilendi!</h2>
           <p className={styles.formSubtitle} style={{ maxWidth: 400, margin: '10px auto 24px' }}>

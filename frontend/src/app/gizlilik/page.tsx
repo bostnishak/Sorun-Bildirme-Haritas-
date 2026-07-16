@@ -86,7 +86,7 @@ export default function GizlilikPage() {
           </h2>
           <div className={styles.contactBox}>
             <div className={styles.contactRow}>
-              <span>📧 destek@sorunharitasi.tr</span>
+              <span>[E-posta] destek@sorunharitasi.tr</span>
             </div>
           </div>
         </div>

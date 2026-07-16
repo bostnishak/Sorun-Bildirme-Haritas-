@@ -80,6 +80,12 @@ export const authApi = {
 
   me: () =>
     api.get<ApiResponse<User>, ApiResponse<User>>('/auth/me'),
+
+  generate2fa: () =>
+    api.post<any, any>('/auth/2fa/generate'),
+
+  verify2fa: (token: string) =>
+    api.post<any, any>('/auth/2fa/verify', { token }),
 };
 
 // ─── Issues Endpoints ────────────────────────────────────────────────────────
@@ -157,5 +163,29 @@ export const profileApi = {
 
   getMyIssues: () =>
     api.get<any, any>('/issues/my/list'),
+};
+
+// ─── Notification Endpoints ──────────────────────────────────────────────────
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  type: string;
+  link?: string;
+  createdAt: string;
+}
+
+export const notificationApi = {
+  list: (limit = 20, unreadOnly = false) =>
+    api.get<any, any>('/notifications', { params: { limit, unreadOnly } }),
+
+  markAsRead: (notificationId: string) =>
+    api.patch<any, any>(`/notifications/${notificationId}/read`),
+
+  markAllAsRead: () =>
+    api.patch<any, any>('/notifications/read-all'),
 };
 

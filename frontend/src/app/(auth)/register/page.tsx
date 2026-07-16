@@ -216,7 +216,7 @@ export default function RegisterPage() {
         birthDay: parseInt(form.birthDay, 10),
       });
 
-      const message = response?.message || response?.data?.message || 'Kayıt başarılı! Lütfen doğrulama kodunu girin. 🎉';
+      const message = response?.message || response?.data?.message || 'Kayıt başarılı! Lütfen doğrulama kodunu girin.';
       const nviVerified = response?.data?.nviVerified ?? response?.nviVerified ?? true;
       if (!nviVerified) {
         setNviBypass(true);
@@ -253,7 +253,7 @@ export default function RegisterPage() {
       setTokens(accessToken, refreshToken);
       setUser(user);
 
-      toast.success('Hesabınız doğrulandı ve giriş yapıldı! Hoş geldiniz. 🎉');
+      toast.success('Hesabınız doğrulandı ve giriş yapıldı! Hoş geldiniz.');
       router.push('/');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Doğrulama başarısız. Lütfen girdiğiniz kodu kontrol edin.');
@@ -552,11 +552,11 @@ export default function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '10px 0 16px' }}>
               <button type="button" onClick={() => { setVerifyMethod('email'); setError(''); }}
                 style={{ padding: '12px 10px', background: verifyMethod === 'email' ? 'var(--color-primary)' : 'var(--color-surface)', color: verifyMethod === 'email' ? 'white' : 'var(--color-text-primary)', border: verifyMethod === 'email' ? 'none' : '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: verifyMethod === 'email' ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none' }}>
-                <span>📧</span> E-posta ile Onayla
+                <span>[E-posta]</span> E-posta ile Onayla
               </button>
               <button type="button" onClick={() => { setVerifyMethod('sms'); setError(''); }}
                 style={{ padding: '12px 10px', background: verifyMethod === 'sms' ? 'var(--color-primary)' : 'var(--color-surface)', color: verifyMethod === 'sms' ? 'white' : 'var(--color-text-primary)', border: verifyMethod === 'sms' ? 'none' : '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: verifyMethod === 'sms' ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none' }}>
-                <span>💬</span> SMS ile Onayla
+                <span>[SMS]</span> SMS ile Onayla
               </button>
             </div>
 
@@ -586,13 +586,13 @@ export default function RegisterPage() {
 
             <button type="submit" className={`btn btn-primary btn-lg ${styles.submitBtn}`}
               disabled={loading || (verifyMethod === 'email' ? verifyCodes.emailCode.length !== 6 : verifyCodes.smsCode.length !== 6)}>
-              {loading ? 'Doğrulanıyor...' : (verifyMethod === 'email' ? '📧 E-posta Kodunu Doğrula →' : '💬 SMS Kodunu Doğrula →')}
+              {loading ? 'Doğrulanıyor...' : (verifyMethod === 'email' ? '[E-posta] Kodunu Doğrula ->' : '[SMS] Kodunu Doğrula ->')}
             </button>
 
             <div style={{ textAlign: 'center', marginTop: 16 }}>
               <button type="button" onClick={handleResend} disabled={resendLoading}
                 className={styles.link} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
-                {resendLoading ? 'Gönderiliyor...' : '🔄 Kod ulaşmadı mı? Yeniden Gönder'}
+                {resendLoading ? 'Gönderiliyor...' : 'Kod ulaşmadı mı? Yeniden Gönder'}
               </button>
             </div>
           </form>

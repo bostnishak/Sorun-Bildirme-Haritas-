@@ -70,7 +70,7 @@ export const adminService = {
       return { total, byStatus, byCategory };
     }
 
-    // Kurum yetkilisi — kendi bölgesi
+    // Kurum yetkilisi — kendi bölgesi temel istatistikler
     const stats = await prisma.$queryRaw<any[]>`
       SELECT
         COUNT(*)::int                                       AS total,
@@ -86,7 +86,30 @@ export const adminService = {
       WHERE ST_Within(i.location, inst.boundary)
     `;
 
-    return stats[0];
+    // Kategoriye Göre Dağılım (Pie Chart İçin)
+    const byCategoryRaw = await prisma.$queryRaw<any[]>`
+      SELECT i.category, COUNT(*)::int as _count
+      FROM issues i
+      JOIN institutions inst ON inst.id = ${institutionId}::uuid
+      WHERE ST_Within(i.location, inst.boundary)
+      GROUP BY i.category
+    `;
+
+    // Duruma Göre Dağılım (Bar Chart İçin)
+    const byStatusRaw = await prisma.$queryRaw<any[]>`
+      SELECT i.status, COUNT(*)::int as _count
+      FROM issues i
+      JOIN institutions inst ON inst.id = ${institutionId}::uuid
+      WHERE ST_Within(i.location, inst.boundary)
+      GROUP BY i.status
+    `;
+
+    // Format the response to match the SUPER_ADMIN structure for frontend compatibility
+    return {
+      ...stats[0],
+      byCategory: byCategoryRaw.map(r => ({ category: r.category, _count: r._count })),
+      byStatus: byStatusRaw.map(r => ({ status: r.status, _count: r._count }))
+    };
   },
 
   async getInstitutions() {

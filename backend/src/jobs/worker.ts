@@ -18,28 +18,30 @@ import { webhookDispatcherWorker } from './workers/webhookDispatcher.worker';
 import { reportGeneratorWorker } from './workers/reportGenerator.worker';
 import { notificationWorker } from './workers/notification.worker';
 
-logger.info('🚀 Worker servisi başlatıldı (Image, Webhook, Report, Notification).');
+logger.info('[WORKER] Worker servisi başlatıldı (Image, Webhook, Report, Notification).');
 
 // Cron scheduler
 import { dailyReportCron } from './schedulers/dailyReport.cron';
+import { slaCheckCron } from './schedulers/sla.cron';
 
 // MinIO bucket kontrolü
 import { ensureBucketExists } from '../services/storage.service';
 
 async function main() {
-  logger.info('🚀 Etiya Project Worker başlatılıyor...');
+  logger.info('[WORKER] Etiya Project Worker başlatılıyor...');
 
   // MinIO bucket hazırlığı
   await ensureBucketExists();
 
   // Cron job başlat
   dailyReportCron.start();
-  logger.info('⏰ Günlük rapor cron\'u başlatıldı (Her gün 08:00 Istanbul)');
+  slaCheckCron.start();
+  logger.info('[CRON] Günlük rapor cron\'u ve SLA kontrol cron\'u başlatıldı');
 
   // Worker sağlık durumları
-  logger.info('⚙️  Image Processing Worker: aktif');
-  logger.info('⚙️  Webhook Dispatcher Worker: aktif');
-  logger.info('⚙️  Report Generator Worker: aktif');
+  logger.info('[WORKER] Image Processing Worker: aktif');
+  logger.info('[WORKER] Webhook Dispatcher Worker: aktif');
+  logger.info('[WORKER] Report Generator Worker: aktif');
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {
@@ -53,12 +55,13 @@ async function main() {
     ]);
 
     dailyReportCron.stop();
+    slaCheckCron.stop();
 
     // DB bağlantılarını kapat
     const { prisma } = await import('../config/database');
     await prisma.$disconnect();
 
-    logger.info('✅ Tüm worker\'lar kapatıldı');
+    logger.info('[OK] Tüm worker\'lar kapatıldı');
     process.exit(0);
   };
 

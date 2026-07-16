@@ -30,6 +30,18 @@ export const authLimiter = new RateLimiterRedis({
 });
 
 /**
+ * Strict Auth limiter: şifre sıfırlama ve hassas işlemler için (Email bomb koruması)
+ * 5 istek / saat / IP
+ */
+export const strictAuthLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'rl_auth_strict',
+  points: 5,
+  duration: 3600,
+  blockDuration: 7200, // 2 saat block
+});
+
+/**
  * Issue oluşturma limiter: spam koruması
  * 5 istek / dakika / IP
  */
@@ -134,6 +146,7 @@ export function createRateLimitMiddleware(limiter: RateLimiterRedis, useUserId =
 
 export const globalRateLimit = createRateLimitMiddleware(globalLimiter);
 export const authRateLimit = createRateLimitMiddleware(authLimiter);
+export const strictAuthRateLimit = createRateLimitMiddleware(strictAuthLimiter);
 export const issueCreateRateLimit = createRateLimitMiddleware(issueCreateLimiter, true);
 export const nviRateLimit = createRateLimitMiddleware(nviLimiter);
 export const chatbotRateLimit = createRateLimitMiddleware(chatbotLimiter, true);

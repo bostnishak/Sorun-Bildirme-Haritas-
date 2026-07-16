@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as authController from './auth.controller';
 import { isAuthenticated } from '../../middleware/auth.middleware';
-import { authRateLimit, nviRateLimit } from '../../middleware/rateLimiter.middleware';
+import { authRateLimit, nviRateLimit, strictAuthRateLimit } from '../../middleware/rateLimiter.middleware';
 
 const router = Router();
 
@@ -47,9 +47,9 @@ router.post(
 );
 
 // POST /api/v1/auth/forgot-password — Şifre sıfırlama e-postası gönder
-router.post('/forgot-password', authRateLimit, authController.forgotPassword);
+router.post('/forgot-password', strictAuthRateLimit, authController.forgotPassword);
 
 // POST /api/v1/auth/reset-password — Yeni şifre belirle
-router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password', strictAuthRateLimit, authController.resetPassword);
 
 export { router as authRouter };

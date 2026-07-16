@@ -11,6 +11,8 @@ import { SystemPromptService } from './systemPrompt.service';
 import { SemanticCache } from './semanticCache';
 import { redis } from '../config/redis';
 import { maskPII } from '../utils/piiMasker';
+import { hasProfanityOrHomoglyphs, fullyNormalize } from '../utils/textNormalizer';
+import { createHash } from 'crypto';
 
 const llmProvider = new OpenAIProvider();
 
@@ -28,12 +30,19 @@ export interface ModerationResult {
 
 /**
  * T.C. Kimlik Numarası Algoritma Kontrolü (11 hane, algoritma doğrulaması)
+ * Tire, nokta ve boşluklu formatları da yakalar: "1-2-3-4-5-6-7-8-9-0-1"
  */
 function containsValidTCKN(text: string): boolean {
-  const matches = text.match(/\b[1-9]\d{10}\b/g);
-  if (!matches) return false;
+  // Önce orijinal metin üzerinde dene
+  const rawMatches = text.match(/\b[1-9]\d{10}\b/g);
+  // Sonra tire/nokta/boşluk temizlenmiş metin üzerinde dene
+  const stripped = text.replace(/[-. ]/g, '');
+  const strippedMatches = stripped.match(/\b[1-9]\d{10}\b/g);
 
-  for (const tckn of matches) {
+  const allMatches = [...(rawMatches || []), ...(strippedMatches || [])];
+  if (!allMatches.length) return false;
+
+  for (const tckn of allMatches) {
     const digits = tckn.split('').map(Number);
     const oddSum = digits[0] + digits[2] + digits[4] + digits[6] + digits[8];
     const evenSum = digits[1] + digits[3] + digits[5] + digits[7];
@@ -60,16 +69,18 @@ const PII_PATTERNS = [
 ];
 
 /**
- * Hızlı Hakaret / Küfür Ön Listesi (Tekrarlayan harfleri de yakalar)
+ * Hızlı Hakaret / Küfür Ön Listesi
+ * NOT: Bu sadece fallback regex — ana profanity tespiti artık hasProfanityOrHomoglyphs() tarafından yapılıyor
  */
 const QUICK_PROFANITY_REGEX = /\b([aA@4][mM][kKqQ]|[sS5$][ıIiI1][kKqQ]|[oO0][cÇçC]|[pP][iİıI1][cCçÇ]|[gG][öO0][tT])\b/i;
 
 export function fastLocalSecurityCheck(text: string): ModerationResult | null {
   const start = Date.now();
 
+  // Orijinal metni temizle (hızlı regex için)
   const normalizedText = text.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ0-9]/g, '').toLowerCase();
 
-  // 1. TCKN Kontrolü
+  // 1. TCKN Kontrolü (tireli/boşluklu formatları da kapsar)
   if (containsValidTCKN(text)) {
     return {
       passed: false,
@@ -93,12 +104,18 @@ export function fastLocalSecurityCheck(text: string): ModerationResult | null {
     }
   }
 
-  // 3. Hızlı Küfür / Hakaret Kontrolü (Gelişmiş regex ile boşluksuz ve gizlenmişleri de yakalama)
-  if (QUICK_PROFANITY_REGEX.test(text) || QUICK_PROFANITY_REGEX.test(normalizedText)) {
+  // 3. GELİŞMİŞ Küfür / Hakaret Kontrolü
+  // Önce hızlı regex (mevcut), sonra homoglyph-aware tam normalizer
+  const profanityDetected =
+    QUICK_PROFANITY_REGEX.test(text) ||
+    QUICK_PROFANITY_REGEX.test(normalizedText) ||
+    hasProfanityOrHomoglyphs(text); // Kiril, leet speak, araçımlı yazım
+
+  if (profanityDetected) {
     return {
       passed: false,
       code: 'HATE_SPEECH_VIOLENCE',
-      reason: 'Temel hakaret/küfür kelimesi algılandı.',
+      reason: 'Hakaret/küfür içeriği tespit edildi (homoglyph/leet speak dahil).',
       userFriendlyMessage: 'Lütfen bildirimlerinizde genel ahlak kurallarına uygun, saygılı bir dil kullanınız.',
       latencyMs: Date.now() - start,
     };
@@ -242,8 +259,9 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
       latencyMs: Date.now() - start,
     };
 
-    // Store in semantic cache (run asynchronously)
-    SemanticCache.set(text, finalResult).catch(() => {});
+    // Store in semantic cache with SHA-256 hash key (KVKK uyumu — ham metin yerine hash)
+    const cacheKey = createHash('sha256').update(text.trim().toLowerCase()).digest('hex');
+    SemanticCache.set(cacheKey, finalResult).catch(() => {});
 
     return finalResult;
   } catch (error) {

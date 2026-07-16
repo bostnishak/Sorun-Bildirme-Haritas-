@@ -74,16 +74,23 @@ model User {
   avatarUrl String? @map("avatar_url") @db.VarChar(500)
   avatarKey String? @map("avatar_key") @db.VarChar(500) // MinIO object key
 
+  // Gamification & Security
+  points        Int      @default(0)
+  trustScore    Int      @default(50) @map("trust_score")
+  recoveryCodes String[] @map("recovery_codes") // 2FA Kurtarma kodları
+
+
   // Refresh tokens ve şifre sıfırlama
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
   // İlişkiler
-  issues    Issue[]
-  upvotes   IssueUpvote[]
-  comments  IssueComment[]
-  auditLogs AuditLog[]
+  issues        Issue[]
+  upvotes       IssueUpvote[]
+  comments      IssueComment[]
+  auditLogs     AuditLog[]
   statusChanges IssueStatusHistory[] @relation("StatusChanges")
+  notifications Notification[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -160,6 +167,9 @@ model Issue {
   // LLM Guard sonucu
   llmGuardPassed Boolean @default(false) @map("llm_guard_passed")
   llmGuardReason String? @map("llm_guard_reason") @db.VarChar(500)
+
+  // SLA Takibi
+  slaBreached Boolean @default(false) @map("sla_breached")
 
   // Güvenlik
   ipAddress String  @map("ip_address") @db.VarChar(45) // IPv6 için 45
@@ -288,4 +298,19 @@ model PasswordResetToken {
   @@index([token])
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+model Notification {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @db.VarChar(200)
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  type      String   @db.VarChar(50) // e.g., 'STATUS_UPDATE', 'SYSTEM', 'SLA_ALERT'
+  link      String?  @db.VarChar(500) // Tıklandığında gidilecek URL
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }

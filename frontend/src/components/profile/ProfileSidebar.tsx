@@ -85,6 +85,15 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
             )}
           </div>
           <h2 className={styles.sidebarName}>{user?.firstName} {user?.lastName}</h2>
+          
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
+            <span style={{ background: '#eff6ff', color: '#2563eb', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Puan: {user?.points ?? 0}
+            </span>
+            <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Güven Skoru: {user?.trustScore ?? 100}
+            </span>
+          </div>
         </div>
 
         <nav className={styles.sidebarNav}>
@@ -102,6 +111,14 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
           >
             <IconLock className={styles.navIcon} size={18} />
             Şifre Değiştir
+          </button>
+
+          <button
+            className={`${styles.navItem} ${activeTab === 'security' ? styles.navItemActive : ''}`}
+            onClick={() => onTabChange('security')}
+          >
+            <IconLock className={styles.navIcon} size={18} />
+            Güvenlik & 2FA
           </button>
 
           <button

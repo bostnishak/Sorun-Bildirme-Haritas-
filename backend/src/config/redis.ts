@@ -16,8 +16,8 @@ export const redis = new IORedis(env.REDIS_URL, {
   },
 });
 
-redis.on('connect', () => logger.info('✅ Redis connected'));
-redis.on('error', (err) => logger.error('❌ Redis error:', err));
-redis.on('close', () => logger.warn('⚠️ Redis connection closed'));
+redis.on('connect', () => logger.info('[OK] Redis connected'));
+redis.on('error', (err) => logger.error('[ERROR] Redis error:', err));
+redis.on('close', () => logger.warn('[WARN] Redis connection closed'));
 
 export default redis;

@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
         {!submitted ? (
           <>
             <div className={styles.formHeader}>
-              <h1 className={styles.formTitle}>Şifremi Unuttum 🔑</h1>
+              <h1 className={styles.formTitle}>Şifremi Unuttum</h1>
               <p className={styles.formSubtitle}>
                 Kayıt olduğunuz e-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.
               </p>
@@ -136,7 +136,7 @@ export default function ForgotPasswordPage() {
               <strong>{email}</strong> adresine şifre sıfırlama bağlantısını ilettik. Lütfen gelen kutunuzu (ve gerekiyorsa spam klasörünüzü) kontrol edin.
             </p>
             <div className={styles.nviNotice} style={{ background: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.2)', textAlign: 'left', marginBottom: 24 }}>
-              <span className={styles.nviIcon}>💡</span>
+              <span className={styles.nviIcon} style={{ fontWeight: 700, fontSize: '16px', color: '#2563eb' }}>[i]</span>
               <span>
                 <strong>Geliştirici Notu:</strong> Geliştirme (Test) ortamında çalıştığınız için üretilen şifre sıfırlama linki backend terminal ekrana ve loglara yazılmıştır.
               </span>

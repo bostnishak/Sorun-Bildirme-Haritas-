@@ -156,12 +156,12 @@ async function generatePDFReport(
 </head>
 <body>
   <div class="header">
-    <h1>🗺️ Etiya Project — Günlük Sorun Raporu</h1>
+    <h1>[RAPOR] Etiya Project — Günlük Sorun Raporu</h1>
     <p>${institution.name} | ${dateStr}</p>
     <div class="meta">
-      <div class="meta-item">📍 ${institution.city} / ${institution.district}</div>
-      <div class="meta-item">📅 ${dateStr}</div>
-      <div class="meta-item">📊 ${issues.length} yeni sorun</div>
+      <div class="meta-item">[Konum] ${institution.city} / ${institution.district}</div>
+      <div class="meta-item">[Tarih] ${dateStr}</div>
+      <div class="meta-item">[Özet] ${issues.length} yeni sorun</div>
     </div>
   </div>
   <div class="content">
@@ -235,7 +235,7 @@ function generateEmailHTML(issueCount: number, institutionName: string, dateStr:
 <body style="font-family: Arial, sans-serif; background:#f1f5f9; padding:20px;">
   <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
     <div style="background:linear-gradient(135deg,#1e3a5f,#0f62fe); padding:30px; color:white;">
-      <h1 style="margin:0; font-size:22px;">🗺️ Etiya Project</h1>
+      <h1 style="margin:0; font-size:22px;">[RAPOR] Etiya Project</h1>
       <p style="margin:8px 0 0; opacity:0.8;">Günlük Sorun Raporu</p>
     </div>
     <div style="padding:30px;">

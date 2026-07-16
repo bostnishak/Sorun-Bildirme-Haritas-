@@ -19,7 +19,7 @@ interface ExtractionData {
     kapiNo: string;
   } | null;
   oncelik: string;
-  guvenlik_ihlari: boolean;
+  guvenlik_ihlasi: boolean;
   siteDisiKonu?: boolean;
   eksikBilgiSoru: string | null;
   asistanMesaji: string;
@@ -103,6 +103,11 @@ export function AiChatbotWidget() {
       return;
     }
 
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 1.5 MB\'ı geçemez.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreview(reader.result as string);
@@ -125,7 +130,7 @@ export function AiChatbotWidget() {
         recognition.interimResults = true;
 
         setIsRecording(true);
-        const toastId = toast.loading('🎙️ Mikrofon aktif: Sesli mesajınızı söyleyin...');
+        const toastId = toast.loading('[Sesli] Mikrofon aktif: Sesli mesajınızı söyleyin...');
 
         let finalTranscript = '';
 
@@ -168,10 +173,10 @@ export function AiChatbotWidget() {
 
   const simulateVoiceInput = () => {
     setIsRecording(true);
-    toast.loading('🔴 Sesli Mesaj Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'voice-sim' });
+    toast.loading('[Kayıt] Sesli Mesaj Modülü Dinliyor (Mikrofon & Akıllı Ses Girişi)...', { id: 'voice-sim' });
     setTimeout(() => {
       const spoken = window.prompt(
-        '🎙️ Yapay Zeka Sesli İhbar Asistanı:\nLütfen sesli olarak iletmek istediğiniz sorunu yazın/okuyun:',
+        '[Yapay Zeka Sesli İhbar Asistanı]\nLütfen sesli olarak iletmek istediğiniz sorunu yazın/okuyun:',
         'Kadıköy Moda caddesinde su borusu patladı sular sokağa taşıyor acil müdahale gerekiyor'
       );
       setIsRecording(false);
@@ -212,13 +217,13 @@ export function AiChatbotWidget() {
       });
       const data: ExtractionData = res.data || res;
 
-      if (data.guvenlik_ihlari) {
+      if (data.guvenlik_ihlasi) {
         setMessages(prev => [
           ...prev,
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: `Güvenlik Uyarı / Moderasyon: ${data.asistanMesaji}`,
+            text: `Güvenlik Uyarı / Moderasyon: ${(data.asistanMesaji || '').substring(0, 800)}`,
           },
         ]);
       } else if (data.eksikBilgiSoru) {
@@ -227,7 +232,7 @@ export function AiChatbotWidget() {
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: `${data.asistanMesaji}\n\nEksik Bilgi: ${data.eksikBilgiSoru}`,
+            text: `${(data.asistanMesaji || '').substring(0, 800)}\n\nEksik Bilgi: ${data.eksikBilgiSoru}`,
           },
         ]);
       } else if (data.kategori) {
@@ -236,7 +241,7 @@ export function AiChatbotWidget() {
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: data.asistanMesaji,
+            text: (data.asistanMesaji || '').substring(0, 800),
             extraction: data,
           },
         ]);
@@ -266,8 +271,18 @@ export function AiChatbotWidget() {
             if (currentBbox) {
               useAppStore.getState().fetchClusters(currentBbox, true);
             }
-          } catch (createErr) {
+          } catch (createErr: any) {
             console.error("AI Issue creation failed:", createErr);
+            const errMsg = createErr?.response?.status === 401
+              ? 'Oturum süreniz dolmuş veya yetkiniz yok. Lütfen tekrar giriş yapın.'
+              : 'Bildirim oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+            
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              sender: 'ai',
+              text: `Hata: ${errMsg}`
+            }]);
+            toast.error(errMsg);
           }
         }
       } else {
@@ -276,7 +291,7 @@ export function AiChatbotWidget() {
           {
             id: (Date.now() + 1).toString(),
             sender: 'ai',
-            text: data.asistanMesaji,
+            text: (data.asistanMesaji || '').substring(0, 800),
           },
         ]);
       }
@@ -712,7 +727,7 @@ export function AiChatbotWidget() {
                   handleSendMessage();
                 }
               }}
-              placeholder={isRecording ? '🔴 Dinleniyor... Konuşun' : 'Mesajınızı yazın...'}
+              placeholder={isRecording ? '[Kayıt] Dinleniyor... Konuşun' : 'Mesajınızı yazın...'}
               style={{
                 flex: 1,
                 minWidth: 0,

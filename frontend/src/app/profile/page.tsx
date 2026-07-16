@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { ProfileSidebar } from '@/components/profile/ProfileSidebar';
 import { AccountInfoForm } from '@/components/profile/AccountInfoForm';
 import { ChangePasswordForm } from '@/components/profile/ChangePasswordForm';
+import { SecuritySettingsForm } from '@/components/profile/SecuritySettingsForm';
 import { MyReports } from '@/components/profile/MyReports';
 import styles from './Profile.module.css';
 
@@ -52,6 +53,8 @@ function ProfilePageContent() {
         return <AccountInfoForm />;
       case 'password':
         return <ChangePasswordForm />;
+      case 'security':
+        return <SecuritySettingsForm />;
       case 'reports':
         return <MyReports />;
       default:

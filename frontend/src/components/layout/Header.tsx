@@ -9,6 +9,7 @@ import {
   IconLogin, IconUserPlus, IconUser, IconFileText, IconBell, IconLogOut,
   IconClock, IconSearch, IconCheckCircle, IconAlertCircle
 } from '@/components/ui/Icon';
+import { NotificationBell } from './NotificationBell';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -16,51 +17,6 @@ export function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout, activeView, setActiveView, setReportModalOpen } =
     useAppStore();
-
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const notificationRef = useRef<HTMLDivElement>(null);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "İhbarınız incelemeye alındı",
-      description: "Dikmen Caddesi Su Patlağı ihbarınız yetkililer tarafından inceleniyor.",
-      time: "5 dk önce",
-      type: "review",
-      unread: true
-    },
-    {
-      id: 2,
-      title: "Yeni durum güncellemesi",
-      description: "Turan Güneş Bulvarı Çukur ihbarınız açık durumunda bekliyor.",
-      time: "1 saat önce",
-      type: "update",
-      unread: true
-    },
-    {
-      id: 3,
-      title: "İhbarınız çözüldü",
-      description: "Park aydınlatma ihbarınız çözüldü olarak işaretlendi.",
-      time: "Dün",
-      type: "resolved",
-      unread: false
-    }
-  ]);
-
-  const unreadCount = notifications.filter(n => n.unread).length;
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })));
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setIsNotificationsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
     <header className={styles.header}>
@@ -134,65 +90,7 @@ export function Header() {
             </button>
 
             {/* Notification Bell */}
-            <div className={styles.notificationWrapper} ref={notificationRef}>
-              <button 
-                className={styles.notificationBtn}
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                aria-label="Bildirimler"
-              >
-                <IconBell size={18} />
-                {unreadCount > 0 && (
-                  <span className={styles.notificationBadge}>{unreadCount}</span>
-                )}
-              </button>
-
-              {isNotificationsOpen && (
-                <div className={styles.notificationPanel}>
-                  <div className={styles.notificationHeader}>
-                    <div>
-                      <h4>Bildirimler</h4>
-                      <p>İhbarlarınızla ilgili son güncellemeler</p>
-                    </div>
-                    <button className={styles.markReadBtn} onClick={markAllAsRead}>
-                      Tümünü okundu yap
-                    </button>
-                  </div>
-
-                  <div className={styles.notificationList}>
-                    {notifications.length > 0 ? (
-                      notifications.map(notif => (
-                        <div key={notif.id} className={`${styles.notificationItem} ${notif.unread ? styles.notificationUnread : ''}`}>
-                          <div className={styles.notificationIconWrap} data-type={notif.type}>
-                            {notif.type === 'review' && <IconSearch size={16} />}
-                            {notif.type === 'resolved' && <IconCheckCircle size={16} />}
-                            {notif.type === 'update' && <IconBell size={16} />}
-                            {notif.type === 'alert' && <IconAlertCircle size={16} />}
-                          </div>
-                          <div className={styles.notificationContent}>
-                            <h5>{notif.title}</h5>
-                            <p>{notif.description}</p>
-                            <span>{notif.time}</span>
-                          </div>
-                          {notif.unread && <div className={styles.unreadDot} />}
-                        </div>
-                      ))
-                    ) : (
-                      <div className={styles.notificationEmpty}>
-                        <IconBell size={24} color="#94a3b8" />
-                        <h5>Bildirim yok</h5>
-                        <p>İhbarlarınızla ilgili güncellemeler burada görünecek.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.notificationFooter}>
-                    <Link href="/profile?tab=reports" className={styles.viewAllBtn} onClick={() => setIsNotificationsOpen(false)}>
-                      Tüm bildirimleri görüntüle
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
                 <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı">

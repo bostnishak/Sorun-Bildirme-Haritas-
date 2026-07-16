@@ -1,4 +1,5 @@
 import multer from 'multer';
+import FileType from 'file-type';
 import { BadRequestError } from '../utils/errors';
 
 // Desteklenen görsel formatları
@@ -39,10 +40,11 @@ export const uploadSingle = multer({
 
 /**
  * Upload middleware'i promise wrapper ile async/await uyumlu hale getirir
+ * Magic Bytes (file-type) kontrolü ile uzantı sahteciliğini engeller.
  */
 export function handleUpload(req: any, res: any): Promise<void> {
   return new Promise((resolve, reject) => {
-    uploadSingle(req, res, (err) => {
+    uploadSingle(req, res, async (err) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           reject(
@@ -56,6 +58,22 @@ export function handleUpload(req: any, res: any): Promise<void> {
       } else if (err) {
         reject(err);
       } else {
+        if (req.file) {
+          try {
+            const type = await FileType.fromBuffer(req.file.buffer);
+            if (!type || !ALLOWED_MIME_TYPES.includes(type.mime)) {
+              reject(
+                new BadRequestError(
+                  `Dosyanın gerçek içerik yapısı (magic bytes) desteklenmiyor veya sahte uzantı tespit edildi (${type?.mime || 'bilinmeyen tür'}).`,
+                ),
+              );
+              return;
+            }
+          } catch (e) {
+            reject(new BadRequestError(`Dosya bütünlük kontrolü hatası: ${(e as Error).message}`));
+            return;
+          }
+        }
         resolve();
       }
     });

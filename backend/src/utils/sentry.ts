@@ -14,8 +14,8 @@ export function initSentry() {
       profilesSampleRate: 1.0,
       environment: env.NODE_ENV,
     });
-    logger.info('🛡️  Sentry aktif edildi.');
+    logger.info('[SECURITY] Sentry aktif edildi.');
   } else {
-    logger.warn('⚠️  SENTRY_DSN bulunamadı. Sentry devre dışı bırakıldı.');
+    logger.warn('[WARN] SENTRY_DSN bulunamadı. Sentry devre dışı bırakıldı.');
   }
 }

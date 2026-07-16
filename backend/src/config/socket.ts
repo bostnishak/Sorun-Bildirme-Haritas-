@@ -22,11 +22,19 @@ export function initSocket(server: HttpServer) {
     socket.on('join-bbox', (bbox: string) => {
       // Önceki bbox odalarından ayrıl
       Array.from(socket.rooms).forEach(room => {
-        if (room !== socket.id) socket.leave(room);
+        if (room !== socket.id && !room.startsWith('user:')) socket.leave(room);
       });
       // Yeni odaya katıl
       socket.join(bbox);
       logger.debug(`[Socket.io] ${socket.id} joined ${bbox}`);
+    });
+
+    // Kullanıcıya özel bildirim odasına katılma
+    socket.on('join-user', (userId: string) => {
+      if (userId) {
+        socket.join(`user:${userId}`);
+        logger.debug(`[Socket.io] ${socket.id} joined user:${userId}`);
+      }
     });
 
     socket.on('disconnect', () => {

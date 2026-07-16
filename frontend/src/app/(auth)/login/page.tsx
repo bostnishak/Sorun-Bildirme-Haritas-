@@ -33,7 +33,7 @@ export default function LoginPage() {
       setTokens(accessToken, refreshToken);
       setUser(user);
 
-      toast.success(`Hoş geldiniz, ${user.firstName || user.email || 'Kullanıcı'}! 👋`);
+      toast.success(`Hoş geldiniz, ${user.firstName || user.email || 'Kullanıcı'}!`);
       router.push('/');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Giriş başarısız. E-posta veya şifre hatalı.');

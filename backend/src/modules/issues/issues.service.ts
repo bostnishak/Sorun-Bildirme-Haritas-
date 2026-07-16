@@ -5,6 +5,7 @@ import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/erro
 import { getClusterGridSize } from '../../utils/spatial.utils';
 import { webhookQueue, notificationQueue } from '../../jobs/queue';
 import { auditService } from '../../services/audit.service';
+import { notificationService } from '../../services/notification.service';
 import { logger } from '../../utils/logger';
 import { getSocket } from '../../config/socket';
 
@@ -66,7 +67,7 @@ export const issuesService = {
     await webhookQueue.add('issue-created', { issueId: created.id });
 
     // Cluster cache'ini temizle (bu bölge için)
-    await this.invalidateClusterCache(dto.city, dto.district);
+    await this.invalidateClusterCache(dto.city, dto.district, dto.latitude, dto.longitude);
 
     // Socket.io ile canlı harita güncellemesi gönder
     try {
@@ -130,13 +131,16 @@ export const issuesService = {
     if (params.category) where.category = params.category as any;
     if (params.status) where.status = params.status as any;
     if (params.search) {
-      // PostgreSQL Full-Text Search (Trigram vb.)
-      const searchQuery = params.search.trim().split(/\s+/).join(' | ');
-      where.OR = [
-        { title: { search: searchQuery } },
-        { description: { search: searchQuery } },
-        { address: { search: searchQuery } },
-      ];
+      // PostgreSQL Full-Text Search için syntax hatası yaratabilecek özel karakterleri temizle
+      const sanitized = params.search.replace(/[^\w\sğüşıöçĞÜŞİÖÇ0-9]/gi, '').trim();
+      if (sanitized) {
+        const searchQuery = sanitized.split(/\s+/).join(' | ');
+        where.OR = [
+          { title: { search: searchQuery } },
+          { description: { search: searchQuery } },
+          { address: { search: searchQuery } },
+        ];
+      }
     }
 
     const [rawIssues, total] = await Promise.all([
@@ -177,10 +181,14 @@ export const issuesService = {
 
   /**
    * PostGIS tabanlı kümeleme — harita bounding box içindeki sorunları cluster'lar
+   * Tile tabanlı cache key kullanarak bölgesel invalidation sağlar
    */
   async getMapClusters(bbox: BoundingBox) {
     const gridSize = getClusterGridSize(bbox.zoom);
-    const cacheKey = `cluster:${bbox.minLng.toFixed(3)}:${bbox.minLat.toFixed(3)}:${bbox.maxLng.toFixed(3)}:${bbox.maxLat.toFixed(3)}:${bbox.zoom}`;
+    // 1x1 derecelik coğrafi karo (tile) prefix'i (Örn: tile_29_41)
+    const tileX = Math.floor(bbox.minLng);
+    const tileY = Math.floor(bbox.minLat);
+    const cacheKey = `cluster:tile_${tileX}_${tileY}:${bbox.minLng.toFixed(3)}:${bbox.minLat.toFixed(3)}:${bbox.maxLng.toFixed(3)}:${bbox.maxLat.toFixed(3)}:${bbox.zoom}`;
 
     // Cache kontrolü
     const cached = await redis.get(cacheKey);
@@ -267,6 +275,21 @@ export const issuesService = {
       },
     });
 
+    // Görev 3.2: Gamification (Trust Score)
+    if (newStatus !== previousStatus && (newStatus === 'RESOLVED' || newStatus === 'REJECTED')) {
+      const scoreChange = newStatus === 'RESOLVED' ? 10 : -5;
+      
+      // Kullanıcının mevcut skorunu al ve 0'ın altına düşmesini engelle
+      const user = await prisma.user.findUnique({ where: { id: issue.reportedById }, select: { trustScore: true } });
+      if (user) {
+        const newScore = Math.max(0, user.trustScore + scoreChange);
+        await prisma.user.update({
+          where: { id: issue.reportedById },
+          data: { trustScore: newScore }
+        });
+      }
+    }
+
     // Webhook kuyruğuna ekle (Kurumlar için)
     await webhookQueue.add('status-changed', {
       issueId,
@@ -283,7 +306,7 @@ export const issuesService = {
       });
     }
 
-    // Notification kuyruğuna ekle (Vatandaş için)
+    // Notification kuyruğuna ekle (Vatandaş için e-posta)
     if (issue.reportedBy?.email) {
       await notificationQueue.add('send-email', {
         email: issue.reportedBy.email,
@@ -292,8 +315,19 @@ export const issuesService = {
       });
     }
 
+    // Gerçek zamanlı ve kalıcı bildirim (Socket & DB)
+    if (issue.reportedById) {
+      await notificationService.createNotification({
+        userId: issue.reportedById,
+        title: 'Başvurunuzun Durumu Güncellendi',
+        message: `"${issue.title}" başlıklı sorununuz "${newStatus}" durumuna getirildi.${note ? ` Not: ${note}` : ''}`,
+        type: 'ISSUE_STATUS_CHANGED',
+        link: `/issues/${issueId}`,
+      });
+    }
+
     // Cluster cache'ini temizle
-    await this.invalidateClusterCache(issue.city, issue.district);
+    await this.invalidateClusterCache(issue.city, issue.district, issue.latitude, issue.longitude);
 
     // Socket.io ile canlı harita güncellemesi gönder
     try {
@@ -401,22 +435,37 @@ export const issuesService = {
   /**
    * Bir bölge için cluster cache'ini temizle
    * Non-blocking SCAN kullanılır (KEYS production'da Redis'i bloklar)
+   * Koordinat belirtilmişse sadece ilgili 1x1 derecelik tile ve komşu tile'ları temizler (Thundering herd engelleyici)
    */
-  async invalidateClusterCache(_city: string, _district: string): Promise<void> {
+  async invalidateClusterCache(_city: string, _district: string, latitude?: number, longitude?: number): Promise<void> {
     try {
-      // redis.keys() yerine iteratif scan — O(N) blocking'ten kaçınır
-      let cursor = '0';
-      const keysToDelete: string[] = [];
+      let patternsToScan = ['cluster:*'];
 
-      do {
-        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', 'cluster:*', 'COUNT', 100);
-        cursor = nextCursor;
-        keysToDelete.push(...keys);
-      } while (cursor !== '0');
+      if (latitude !== undefined && longitude !== undefined) {
+        const tileX = Math.floor(longitude);
+        const tileY = Math.floor(latitude);
+        patternsToScan = [];
+        // Merkez tile ve 8 komşu tile'ı sil
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            patternsToScan.push(`cluster:tile_${tileX + dx}_${tileY + dy}:*`);
+          }
+        }
+      }
 
-      if (keysToDelete.length > 0) {
-        // Pipeline ile toplu silme — daha verimli
-        await redis.del(...keysToDelete);
+      for (const pattern of patternsToScan) {
+        let cursor = '0';
+        const keysToDelete: string[] = [];
+
+        do {
+          const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+          cursor = nextCursor;
+          keysToDelete.push(...keys);
+        } while (cursor !== '0');
+
+        if (keysToDelete.length > 0) {
+          await redis.del(...keysToDelete);
+        }
       }
     } catch (err) {
       logger.warn('Cluster cache temizleme hatası', err);

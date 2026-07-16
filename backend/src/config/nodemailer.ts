@@ -13,7 +13,7 @@ export const transporter = nodemailer.createTransport({
 });
 
 transporter.verify().then(() => {
-  logger.info('✅ SMTP bağlantısı başarılı');
+  logger.info('[OK] SMTP bağlantısı başarılı');
 }).catch(err => {
-  logger.error('❌ SMTP bağlantı hatası:', err);
+  logger.error('[ERROR] SMTP bağlantı hatası:', err);
 });

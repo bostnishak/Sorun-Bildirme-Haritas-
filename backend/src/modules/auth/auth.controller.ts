@@ -155,12 +155,9 @@ export async function verify2FA(req: Request, res: Response): Promise<void> {
   });
   const { token } = schema.parse(req.body);
 
-  await authService.verifyAndEnable2FA(req.user.sub, token);
+  const result = await authService.verifyAndEnable2FA(req.user.sub, token);
 
-  res.status(200).json({
-    success: true,
-    message: '2FA başarıyla aktifleştirildi.',
-  });
+  res.status(200).json(result);
 }
 
 export async function updateProfile(req: Request, res: Response): Promise<void> {

@@ -178,7 +178,7 @@ export default function IssueDetailPage() {
               }}
               disabled={upvoteMutation.isPending}
             >
-              👍 Bu Sorunu Destekle ({issue.upvoteCount || 0})
+              [+] Bu Sorunu Destekle ({issue.upvoteCount || 0})
             </button>
           </div>
         </div>

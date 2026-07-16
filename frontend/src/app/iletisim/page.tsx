@@ -89,7 +89,7 @@ export default function IletisimPage() {
           ) : (
             <>
               <div className={styles.infoBox}>
-                <h3 className={styles.infoBoxTitle}>📌 5651 Sayılı Kanun Yer Sağlayıcı Uyarısı</h3>
+                <h3 className={styles.infoBoxTitle}>[UYARI] 5651 Sayılı Kanun Yer Sağlayıcı Uyarısı</h3>
                 <p className={styles.infoBoxDesc}>
                   Platformumuz üzerinde yayınlanan ihbar ve görseller 3. şahıslar tarafından yüklenmektedir. Kişilik haklarınızı veya mahremiyetinizi ihlal ettiğini düşündüğünüz içerikler için bildirimde bulunduğunuzda ihbar geçici olarak gizlenerek hukuki inceleme başlatılır.
                 </p>

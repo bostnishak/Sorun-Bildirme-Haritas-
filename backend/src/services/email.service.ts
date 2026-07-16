@@ -21,7 +21,7 @@ export const emailService = {
       </div>
     `;
 
-    logger.info(`📧 [EMAIL SIMULATION / LOG] E-posta Doğrulama Kodu Gönderiliyor -> Kime: ${email} | Kod: [ ${code} ]`);
+    logger.info(`[EMAIL] [SIMULATION / LOG] E-posta Doğrulama Kodu Gönderiliyor -> Kime: ${email} | Kod: [ ${code} ]`);
 
     try {
       await transporter.sendMail({
@@ -30,9 +30,9 @@ export const emailService = {
         subject: 'Sorun Haritası — E-posta Doğrulama Kodu: ' + code,
         html: htmlContent,
       });
-      logger.info(`📧 E-posta başarıyla iletildi: ${email}`);
+      logger.info(`[EMAIL] E-posta başarıyla iletildi: ${email}`);
     } catch (err: any) {
-      logger.warn(`⚠️ SMTP E-posta gönderilemedi (Geliştirme / Test modunda konsol kodu geçerlidir): ${err.message}`);
+      logger.warn(`[WARN] SMTP E-posta gönderilemedi (Geliştirme / Test modunda konsol kodu geçerlidir): ${err.message}`);
     }
   },
 
@@ -51,7 +51,7 @@ export const emailService = {
         <p>Hesabınız için şifre sıfırlama talebinde bulundunuz. Yeni şifrenizi belirlemek için aşağıdaki butona tıklayın:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-            Şifremi Sıfırla →
+            Şifremi Sıfırla ->
           </a>
         </div>
         <p style="font-size: 13px; color: #64748b;">Eğer buton çalışmıyorsa aşağıdaki linki tarayıcınıza yapıştırabilirsiniz:</p>
@@ -62,7 +62,7 @@ export const emailService = {
       </div>
     `;
 
-    logger.info(`📧 [EMAIL SIMULATION / LOG] Şifre Sıfırlama Linki Gönderiliyor -> Kime: ${email} | Link: ${resetUrl}`);
+    logger.info(`[EMAIL] [SIMULATION / LOG] Şifre Sıfırlama Linki Gönderiliyor -> Kime: ${email} | Link: ${resetUrl}`);
 
     try {
       await transporter.sendMail({
@@ -71,9 +71,9 @@ export const emailService = {
         subject: 'Sorun Haritası — Şifre Sıfırlama Bağlantısı',
         html: htmlContent,
       });
-      logger.info(`📧 Şifre sıfırlama e-postası başarıyla iletildi: ${email}`);
+      logger.info(`[EMAIL] Şifre sıfırlama e-postası başarıyla iletildi: ${email}`);
     } catch (err: any) {
-      logger.warn(`⚠️ SMTP E-posta gönderilemedi (Geliştirme / Test modunda konsol linki geçerlidir): ${err.message}`);
+      logger.warn(`[WARN] SMTP E-posta gönderilemedi (Geliştirme / Test modunda konsol linki geçerlidir): ${err.message}`);
     }
   }
 };

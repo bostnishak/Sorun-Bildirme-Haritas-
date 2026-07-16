@@ -7,10 +7,10 @@ export const smsService = {
    * İletiMerkezi Sandbox, Mutlucell veya Twilio Trial Sandbox entegrasyonları kullanılabilir.
    */
   async sendVerificationSms(phone: string, code: string): Promise<void> {
-    logger.info(`📱 [SMS SIMULATION / LOG] SMS Doğrulama Kodu Gönderildi -> Tel: +90 ${phone} | SMS KODU: [ ${code} ]`);
+    logger.info(`[SMS] [SIMULATION / LOG] SMS Doğrulama Kodu Gönderildi -> Tel: +90 ${phone} | SMS KODU: [ ${code} ]`);
 
     // Geliştiriciler için Ücretsiz SMS Entegrasyon rehberi bilgisi
-    logger.info(`💡 Bilgi: Gerçek SMS gönderimi yapmak için ücretsiz test kredisi veren servisler:
+    logger.info(`[NOTE] Bilgi: Gerçek SMS gönderimi yapmak için ücretsiz test kredisi veren servisler:
       1. Netgsm (Test hesabı ile API üzerinden ücretsiz 10-50 SMS gönderimi)
       2. İletiMerkezi (Geliştirici Sandbox hesabı ile ücretsiz test)
       3. Twilio Trial Account (Doğrulanmış numaralara ücretsiz uluslararası SMS)`);

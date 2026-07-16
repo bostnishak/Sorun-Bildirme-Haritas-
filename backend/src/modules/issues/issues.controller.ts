@@ -358,8 +358,8 @@ export async function verifyPhotoProof(req: Request, res: Response): Promise<voi
  */
 export async function assistantSinglePrompt(req: Request, res: Response): Promise<void> {
   const schema = z.object({
-    message: z.string().optional().default(''),
-    imageBase64: z.string().optional(),
+    message: z.string().max(2000, 'Mesaj en fazla 2000 karakter olabilir.').optional().default(''),
+    imageBase64: z.string().max(2_100_000, 'Görsel boyutu çok büyük (max ~1.5 MB).').optional(),
   });
   const { message, imageBase64 } = schema.parse(req.body);
 
@@ -367,6 +367,6 @@ export async function assistantSinglePrompt(req: Request, res: Response): Promis
     throw new BadRequestError('Lütfen bir mesaj veya fotoğraf gönderin.');
   }
 
-  const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user.sub);
+  const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user?.sub);
   res.status(200).json({ success: true, data: extraction });
 }

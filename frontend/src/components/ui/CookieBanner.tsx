@@ -29,8 +29,8 @@ export function CookieBanner() {
   return (
     <div className={styles.bannerContainer}>
       <div className={styles.banner}>
-        <div className={styles.iconBox}>
-          🍪
+        <div className={styles.iconBox} style={{ fontWeight: 700, fontSize: '18px', color: '#2563eb' }}>
+          [i]
         </div>
         <div className={styles.textWrap}>
           <h4 className={styles.title}>Gizlilik ve Çerez Kullanımı</h4>
