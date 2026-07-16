@@ -69,6 +69,8 @@ model User {
 
   // Profil
   phone     String? @map("phone") @db.VarChar(20)
+  city      String? @map("city") @db.VarChar(100)
+  district  String? @map("district") @db.VarChar(100)
   avatarUrl String? @map("avatar_url") @db.VarChar(500)
   avatarKey String? @map("avatar_key") @db.VarChar(500) // MinIO object key
 
