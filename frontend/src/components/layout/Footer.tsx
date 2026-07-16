@@ -58,6 +58,7 @@ export function Footer() {
             <h4 className={styles.colHeader}>Kurumsal</h4>
             <ul className={styles.linkList}>
               <li><Link href="/iletisim">İletişim</Link></li>
+              <li><Link href="/#yardim">Yardım</Link></li>
               <li><Link href="/#iletisim">Basın</Link></li>
               <li><Link href="/#nasil-calisir">Nasıl Çalışır?</Link></li>
             </ul>
@@ -71,8 +72,6 @@ export function Footer() {
               <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
               <li><Link href="/kullanim-kosullari">Kullanım Koşulları</Link></li>
               <li><Link href="/cerez-politikasi">Çerez Politikası</Link></li>
-              <li><Link href="/iletisim">İletişim</Link></li>
-              <li><Link href="/#yardim">Yardım</Link></li>
             </ul>
           </div>
         </div>
