@@ -582,6 +582,12 @@ export function MapView() {
     });
   }, [superClusters, supercluster, selectIssue]);
 
+  const isZoomedIn = viewState.zoom >= (minZoom + 0.8);
+  const strictBounds: [[number, number], [number, number]] = [
+    [25.5, 35.5], // SW (Türkiye Sınırı)
+    [44.8, 42.5]  // NE (Türkiye Sınırı)
+  ];
+
   return (
     <div className={styles.mapWrapper}>
       <Map
@@ -593,10 +599,11 @@ export function MapView() {
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
-        maxBounds={activeBounds}
+        maxBounds={isZoomedIn ? strictBounds : activeBounds}
         {...({ maxBoundsViscosity: 0.95 } as any)}
         minZoom={minZoom}
         maxZoom={16.5}
+        dragPan={isZoomedIn}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
