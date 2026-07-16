@@ -22,8 +22,8 @@ export function StatsBar() {
           open: r.open_count ?? r.open ?? MOCK_STATS.open,
           inReview: r.in_review_count ?? r.inReview ?? MOCK_STATS.inReview,
           resolved: r.resolved_count ?? r.resolved ?? MOCK_STATS.resolved,
-          thisMonth: r.this_month ?? MOCK_STATS.thisMonth,
-          thisMonthChange: r.this_month_change ?? MOCK_STATS.thisMonthChange,
+          thisMonth: r.thisMonth ?? r.this_month ?? MOCK_STATS.thisMonth,
+          thisMonthChange: r.thisMonthChange ?? r.this_month_change ?? MOCK_STATS.thisMonthChange,
         });
       } catch { /* use mock */ }
     };

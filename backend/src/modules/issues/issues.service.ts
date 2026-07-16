@@ -519,6 +519,7 @@ export const issuesService = {
     const resolvedRate = total > 0 ? Math.round((resolvedCount / total) * 100) : 87;
     const stats = {
       totalCount: total > 0 ? total : 12458,
+      resolvedCount: resolvedCount,
       resolvedRate: `${resolvedRate}%`,
       avgResponseHours: '48 Saat',
       citiesCount: citiesCount?.[0]?.count > 0 ? `${citiesCount[0].count} İl` : '81 İl',
