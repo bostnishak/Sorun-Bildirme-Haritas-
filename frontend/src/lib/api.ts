@@ -53,9 +53,33 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${accessToken}`;
         return api(original);
       } catch {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+
+          // Zustand store durumunu temizle (Sonsuz login döngüsünü engeller)
+          try {
+            const store = localStorage.getItem('etiya-project-store');
+            if (store) {
+              const parsed = JSON.parse(store);
+              if (parsed && parsed.state) {
+                parsed.state.user = null;
+                parsed.state.isAuthenticated = false;
+                localStorage.setItem('etiya-project-store', JSON.stringify(parsed));
+              }
+            }
+          } catch (e) {}
+
+          import('@/store/useAppStore').then(({ useAppStore }) => {
+            useAppStore.getState().setUser(null);
+          }).catch(() => {});
+
+          const path = window.location.pathname;
+          const isProtectedPage = ['/profile', '/my-issues', '/portal'].some(p => path.startsWith(p));
+          if (isProtectedPage) {
+            window.location.href = '/login';
+          }
+        }
       }
     }
 
