@@ -191,6 +191,7 @@ services:
       - "3000:3000"
     env_file: .env
     environment:
+      PORT: 3000
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_MAPBOX_TOKEN: ${MAPBOX_TOKEN}
     deploy:
