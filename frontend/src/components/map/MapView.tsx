@@ -30,8 +30,8 @@ const TURKEY_CENTER = {
   bearing: 0
 };
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [23.0, 34.0], // Güneybatı (Görseldeki tam sınırlar)
-  [46.0, 43.0]  // Kuzeydoğu (Görseldeki tam sınırlar)
+  [20.0, 31.0], // Güneybatı (Mapbox'ın 5.6 zoom'da kilitlenmemesi için viewport kadar genişletildi)
+  [50.0, 47.0]  // Kuzeydoğu
 ];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
@@ -84,10 +84,10 @@ export function MapView() {
       setClusterZoom(initialZ);
       
       if (isRealMobileOrTablet) {
-        // Tablet ve Mobil için %10 daha esnek sınırlar
+        // Tablet ve Mobil için harita sınırları (Mapbox kilitlenmemesi için genişletildi)
         setActiveBounds([
-          [20.7, 33.0], // SW (PC'ye göre ~10% daha geniş)
-          [48.3, 44.0]  // NE (PC'ye göre ~10% daha geniş)
+          [10.0, 25.0], // SW
+          [60.0, 55.0]  // NE
         ]);
       } else {
         // PC için görseldeki sabit Türkiye sınırları
@@ -104,14 +104,52 @@ export function MapView() {
 
   const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
 
+  // Zoom eşiği: minZoom + 1.5 (yaklaşık 3 tekerlek tıkı) altında pan tamamen kilitli
+  const panThreshold = minZoom + 1.5;
+
   const onMove = useCallback((evt: any) => {
-    const zoom = evt.viewState.zoom;
+    let { longitude, latitude, zoom } = evt.viewState;
+
+    // ZOOM EŞİĞİ ALTINDA PAN KİLİDİ
+    // Kullanıcı yeterince yakınlaşmadan haritayı sürüklemeye çalışırsa
+    // merkezi Türkiye'nin ortasına zorla geri koy
+    if (zoom < panThreshold) {
+      longitude = TURKEY_CENTER.longitude;
+      latitude = TURKEY_CENTER.latitude;
+    } else {
+      // KESİN SINIR KONTROLÜ (HARD CLAMP)
+      // Yakınlaştıktan sonra da Türkiye dışına çıkılamaz
+      const minLng = 25.5;
+      const maxLng = 45.0;
+      const minLat = 35.5;
+      const maxLat = 42.5;
+
+      if (longitude < minLng) longitude = minLng;
+      if (longitude > maxLng) longitude = maxLng;
+      if (latitude < minLat) latitude = minLat;
+      if (latitude > maxLat) latitude = maxLat;
+    }
+
     setViewState({
       ...evt.viewState,
+      longitude,
+      latitude,
       pitch: calculatePitch(zoom),
       bearing: 0
     });
-  }, []);
+  }, [panThreshold]);
+
+  // Mapbox motorunu doğrudan kontrol et: dragPan handler'ını zoom eşiğine göre aç/kapat
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    if (viewState.zoom < panThreshold) {
+      map.dragPan.disable();
+    } else {
+      map.dragPan.enable();
+    }
+  }, [viewState.zoom, panThreshold]);
+
 
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
 
@@ -337,24 +375,16 @@ export function MapView() {
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
 
-    if (zoom <= minZoom + 0.05) {
-      const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.05 &&
-        Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.05;
-      if (!isCentered) {
-        setViewState({
-          ...e.viewState,
-          pitch: calculatePitch(zoom),
-          bearing: 0
-        });
-        setTimeout(() => {
-          mapRef.current?.easeTo({
-            center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-            duration: 1200,
-            essential: true
-          });
-        }, 10);
-        return; 
-      }
+    // Kullanıcı zoom out yaparak panThreshold'a yaklaştığında (yaklaşık %85)
+    // haritayı otomatik olarak Türkiye merkezine geri getir
+    if (zoom < panThreshold + 0.3) {
+      mapRef.current?.flyTo({
+        center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+        zoom: Math.max(zoom, minZoom),
+        duration: 600,
+        essential: true
+      });
+      return;
     }
 
     setViewState({
@@ -374,11 +404,10 @@ export function MapView() {
         zoom: Math.floor(zoom),
       });
     }
-  }, [fetchClusters, minZoom]);
+  }, [fetchClusters, panThreshold, minZoom]);
 
   useEffect(() => {
     if (filters.city && CITY_COORDS[filters.city]) {
-      setViewState(CITY_COORDS[filters.city]);
       mapRef.current?.flyTo({
         center: [CITY_COORDS[filters.city].longitude, CITY_COORDS[filters.city].latitude],
         zoom: CITY_COORDS[filters.city].zoom,
@@ -391,7 +420,7 @@ export function MapView() {
         duration: 1200
       });
     }
-  }, [filters.city]);
+  }, [filters.city, minZoom]);
 
   const dataToRender = useMemo(() => {
     const source = (clusters && clusters.length > 0) ? clusters : MOCK_ISSUES;
@@ -461,13 +490,6 @@ export function MapView() {
                 supercluster.getClusterExpansionZoom(cluster.id),
                 20
               );
-              setViewState(prev => ({
-                ...prev,
-                longitude,
-                latitude,
-                zoom: expansionZoom,
-                transitionDuration: 500
-              }));
               mapRef.current?.flyTo({
                 center: [longitude, latitude],
                 zoom: expansionZoom,
@@ -566,7 +588,8 @@ export function MapView() {
         {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
         maxZoom={16.5}
-        dragPan={true}
+        dragPan={viewState.zoom >= minZoom + 1.5}
+        keyboard={viewState.zoom >= minZoom + 1.5}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
