@@ -79,8 +79,8 @@ services:
   # ─── BACKEND API ───────────────────────────────────────────────────────────
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
       target: production
     container_name: etiya-project-api
     restart: unless-stopped
@@ -133,8 +133,8 @@ services:
   # ─── BACKGROUND WORKER ─────────────────────────────────────────────────────
   worker:
     build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
+      context: .
+      dockerfile: ./backend/Dockerfile.worker
       target: production
     container_name: etiya-project-worker
     restart: unless-stopped

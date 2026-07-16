@@ -30,7 +30,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     title: '', description: '', category: '', city: 'İstanbul', district: 'Beykoz', address: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<FormData & { image: string }>>({});
+  const [errors, setErrors] = useState<Partial<FormData & { image?: string }>>({});
   const [locationLoading, setLocationLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);

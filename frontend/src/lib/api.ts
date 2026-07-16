@@ -8,7 +8,7 @@ import type {
 } from '../types/issue.types';
 import type { User, LoginDto, RegisterDto, AuthResponse } from '../types/auth.types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api' : 'http://etiya-project-api:3001/api');
 
 export const api = axios.create({
   baseURL: `${API_URL}/v1`,
