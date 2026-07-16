@@ -7,7 +7,12 @@ const sampleReports = [
     id: 1,
     title: 'Dikmen Caddesi Su Patlağı',
     type: 'Altyapı',
-    address: 'Çankaya, Ankara',
+    address: 'Dikmen Caddesi No: 42',
+    district: 'Çankaya',
+    city: 'Ankara',
+    fullAddress: 'Dikmen Caddesi No: 42, Çankaya, Ankara',
+    latitude: 39.8839,
+    longitude: 32.8428,
     status: 'İnceleniyor',
     priority: 'Kritik',
     date: '13 Tem 2026, 12:51'
@@ -16,12 +21,29 @@ const sampleReports = [
     id: 2,
     title: 'Turan Güneş Bulvarı Çukur',
     type: 'Yol / Ulaşım',
-    address: 'Çankaya, Ankara',
+    address: 'Turan Güneş Bulvarı',
+    district: 'Çankaya',
+    city: 'Ankara',
+    fullAddress: 'Turan Güneş Bulvarı, Çankaya, Ankara',
+    latitude: 39.8916,
+    longitude: 32.8608,
     status: 'Açık',
     priority: 'Yüksek',
     date: '13 Tem 2026, 12:51'
   }
 ];
+
+// Öncelik sırası: fullAddress → address + district + city → district + city
+const getDisplayAddress = (report: {
+  fullAddress?: string;
+  address?: string;
+  district?: string;
+  city?: string;
+}) => {
+  if (report.fullAddress) return report.fullAddress;
+  const parts = [report.address, report.district, report.city].filter(Boolean);
+  return parts.join(', ') || '—';
+};
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
@@ -107,7 +129,7 @@ export function MyReports() {
                 <tr key={report.id}>
                   <td className={styles.tableBold}>{report.title}</td>
                   <td>{report.type}</td>
-                  <td className={styles.tableAddress}>{report.address}</td>
+                  <td className={styles.tableAddress}>{getDisplayAddress(report)}</td>
                   <td>
                     <span className={`${styles.badge} ${getStatusBadgeClass(report.status)}`}>
                       {report.status}
