@@ -326,7 +326,15 @@ export async function parseSinglePromptIssue(
       );
     };
 
-    const response = await pRetry(runChatbot, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+    const response = await pRetry(
+      async () => {
+        return await Promise.race([
+          runChatbot(),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('OpenAI API Zaman Aşımı / Kota')), 3500))
+        ]);
+      },
+      { retries: 0 }
+    );
 
     const ChatbotSchema = z.object({
       kategori: z.enum(['WATER_SANITATION', 'TRANSPORTATION', 'ENVIRONMENT', 'INFRASTRUCTURE', 'SECURITY', 'LIGHTING', 'PARKS']).nullable().default(null),
@@ -406,7 +414,109 @@ export async function parseSinglePromptIssue(
       ihbarOlusturuldu: parsed.ihbarOlusturuldu,
     };
   } catch (error) {
-    logger.error('Chatbot NLP ayrıştırma hatası:', { error: String(error) });
+    logger.warn('Chatbot LLM API / Kota hatası, yerel akıllı NLP motoru devreye girdi:', { error: String(error) });
+    const lower = (userText || '').trim().toLowerCase();
+
+    // 1. Platform hakkında genel sorular ve yardım talepleri
+    if (lower.includes('ne işe yarar') || lower.includes('nedir') || lower.includes('harita') || lower.includes('nasıl') || lower.includes('yardım') || lower.includes('kimsin') || lower.includes('bilgi')) {
+      return {
+        kategori: null,
+        kategoriTurkce: null,
+        baslik: null,
+        aciklama: null,
+        adres: null,
+        oncelik: 'LOW',
+        guvenlik_ihlasi: false,
+        siteDisiKonu: false,
+        eksikBilgiSoru: null,
+        asistanMesaji: 'Türkiye Sorun Bildirim Haritası, vatandaşların mahallelerindeki altyapı, çevre, su, ulaşım ve belediye sorunlarını coğrafi olarak işaretleyip bildirmelerini ve çözüm süreçlerini şeffafça takip etmelerini sağlayan akıllı bir platformdur. Bildirim oluşturmak için alttaki mikrofonla sesli konuşabilir, fotoğraf yükleyebilir veya sorunun ne olduğunu ve adresini yazabilirsiniz.',
+        onayBekliyor: false,
+        ihbarOlusturuldu: false,
+      };
+    }
+
+    // 2. Fotoğraf ve/veya ihbar anahtar kelime analizi
+    let kat: any = null;
+    let katTr: string | null = null;
+    let baslik: string | null = null;
+
+    if (lower.includes('su ') || lower.includes('boru') || lower.includes('patla') || lower.includes('kanalizasyon') || lower.includes('taşıyor')) {
+      kat = 'WATER_SANITATION';
+      katTr = 'Su ve Kanalizasyon';
+      baslik = 'Su Borusu / Kanalizasyon Arızası';
+    } else if (lower.includes('lamba') || lower.includes('aydınlatma') || lower.includes('karanlık') || lower.includes('elektrik')) {
+      kat = 'LIGHTING';
+      katTr = 'Aydınlatma ve Elektrik';
+      baslik = 'Sokak Aydınlatma Arızası';
+    } else if (lower.includes('çukur') || lower.includes('yol ') || lower.includes('asfalt') || lower.includes('kaldırım') || lower.includes('altyapı')) {
+      kat = 'INFRASTRUCTURE';
+      katTr = 'Altyapı ve Yol';
+      baslik = 'Yol / Kaldırım Hasarı';
+    } else if (lower.includes('çöp') || lower.includes('kirlilik') || lower.includes('atık') || lower.includes('ağaç') || lower.includes('park') || imageBase64) {
+      kat = 'ENVIRONMENT';
+      katTr = 'Çevre ve Parklar';
+      baslik = 'Çevre Kirliliği / Genel Sorun';
+    } else if (lower.includes('trafik') || lower.includes('otobüs') || lower.includes('durak') || lower.includes('ulaşım')) {
+      kat = 'TRANSPORTATION';
+      katTr = 'Ulaşım ve Trafik';
+      baslik = 'Ulaşım / Durak Sorunu';
+    } else if (lower.includes('güvenlik') || lower.includes('tehlike') || lower.includes('kaza') || lower.includes('yangın')) {
+      kat = 'SECURITY';
+      katTr = 'Güvenlik ve Risk';
+      baslik = 'Acil Güvenlik / Risk Bildirimi';
+    }
+
+    // İl / İlçe yerel çıkarımı
+    const iller = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'adana', 'konya', 'gaziantep'];
+    const ilceler: Record<string, string> = {
+      'kadıköy': 'İstanbul', 'moda': 'İstanbul', 'beşiktaş': 'İstanbul', 'üsküdar': 'İstanbul', 'şişli': 'İstanbul', 'beyoğlu': 'İstanbul', 'fatih': 'İstanbul', 'çankaya': 'Ankara', 'keçiören': 'Ankara', 'konak': 'İzmir', 'karşıyaka': 'İzmir', 'nilüfer': 'Bursa', 'muratpaşa': 'Antalya'
+    };
+    let bulIl = '';
+    let bulIlce = '';
+    for (const [ilce, il] of Object.entries(ilceler)) {
+      if (lower.includes(ilce)) {
+        bulIlce = ilce.charAt(0).toUpperCase() + ilce.slice(1);
+        bulIl = il;
+        break;
+      }
+    }
+    if (!bulIl) {
+      for (const il of iller) {
+        if (lower.includes(il)) {
+          bulIl = il.charAt(0).toUpperCase() + il.slice(1);
+          break;
+        }
+      }
+    }
+
+    if (kat || bulIl || bulIlce || imageBase64) {
+      const adrObj = (bulIl || bulIlce) ? {
+        tamAdres: userText || `${bulIlce} ${bulIl}`.trim(),
+        il: bulIl || 'İstanbul',
+        ilce: bulIlce || 'Merkez',
+        mahalle: '',
+        sokak: '',
+        kapiNo: ''
+      } : null;
+
+      return {
+        kategori: kat || 'ENVIRONMENT',
+        kategoriTurkce: katTr || 'Genel İhbar',
+        baslik: baslik || 'Vatandaş İhbar Bildirimi',
+        aciklama: userText || 'Fotoğraflı ihbar kaydı.',
+        adres: adrObj,
+        oncelik: 'MEDIUM',
+        guvenlik_ihlasi: false,
+        siteDisiKonu: false,
+        eksikBilgiSoru: adrObj ? null : 'Sorunun tam olarak hangi il, ilçe veya mahallede olduğunu belirtebilir misiniz?',
+        asistanMesaji: adrObj 
+          ? `${katTr || 'Genel'} kategorisindeki bildiriminizi ${bulIlce ? bulIlce + '/' : ''}${bulIl || 'belirtilen konum'} için algıladım. Kaydetmemi onaylıyor musunuz?`
+          : `${katTr || 'Genel'} kategorisindeki sorununuzu anladım. Kaydı tamamlamak için lütfen sorunun bulunduğu il ve iliçe bilgisini yazar mısınız?`,
+        onayBekliyor: !!adrObj,
+        ihbarOlusturuldu: false,
+      };
+    }
+
     return {
       kategori: null,
       kategoriTurkce: null,
@@ -417,7 +527,7 @@ export async function parseSinglePromptIssue(
       guvenlik_ihlasi: false,
       siteDisiKonu: false,
       eksikBilgiSoru: 'Hangi il, ilçe ve mahalle/sokakta olduğunu ve sorunun detayını yazabilir misiniz?',
-      asistanMesaji: 'Hbar kaydınızı oluşturabilmek için lütfen sorunun tam adresini ve detaylarını belirtiniz.',
+      asistanMesaji: 'Size yardımcı olabilmem ve ihbarınızı haritaya işleyebilmem için lütfen sorunun detaylarını ve tam adresini (veya fotoğrafını) paylaşınız.',
       onayBekliyor: false,
       ihbarOlusturuldu: false,
     };

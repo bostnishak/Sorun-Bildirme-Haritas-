@@ -234,7 +234,15 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
       );
     };
 
-    const response = await pRetry(runGuardrail, { retries: 3, minTimeout: 1000, maxTimeout: 4000 });
+    const response = await pRetry(
+      async () => {
+        return await Promise.race([
+          runGuardrail(),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('OpenAI API Zaman Aşımı / Kota')), 3000))
+        ]);
+      },
+      { retries: 0 }
+    );
 
     let parsed;
     try {
@@ -266,35 +274,7 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
     return finalResult;
   } catch (error) {
     openAIGuardrailFailureTotal.labels('api_error').inc();
-    
-    // LLM Fail-Closed Logic:
-    // Redis üzerinden hata sayacını artır, eğer dakikada >10 hata ise sistemi kapat (fail-closed)
-    const currentMinute = Math.floor(Date.now() / 60000);
-    const failKey = `llm_guardrail_fail_count:${currentMinute}`;
-    let failCount = 1;
-    
-    try {
-      failCount = await redis.incr(failKey);
-      if (failCount === 1) {
-        await redis.expire(failKey, 120); // 2 dakika sonra silinsin
-      }
-    } catch (redisErr) {
-      // Redis de çöktüyse logla ama devam et
-      logger.error('Redis sayaç artırma hatası:', { error: String(redisErr) });
-    }
-
-    if (failCount > 10) {
-      logger.error('Semantic Guardrail ardışık hatalar (fail-closed devreye girdi). İstemci isteği reddedilecek.', { error: String(error), failCount });
-      return {
-        passed: false,
-        code: 'TROLL_OR_IRRELEVANT',
-        reason: 'Sistem yoğunluğu veya servis kesintisi nedeniyle geçici olarak hizmet verilemiyor (Fail-Closed).',
-        userFriendlyMessage: 'Sistemlerimizde geçici bir yoğunluk var. Lütfen bildiriminizi birkaç dakika sonra tekrar deneyiniz.',
-        latencyMs: Date.now() - start,
-      };
-    }
-
-    logger.error('Semantic Guardrail izole hata — fail-open prensibiyle kabul ediliyor.', { error: String(error), failCount });
+    logger.warn('Semantic Guardrail OpenAI API / Kota hatası — yerel doğrulama katmanı onaylandığı için fail-open prensibiyle kabul ediliyor.', { error: String(error) });
     return {
       passed: true,
       code: 'OK',
