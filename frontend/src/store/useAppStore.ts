@@ -10,6 +10,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  city?: string;
   phone?: string;
   avatarUrl?: string;
   role: 'CITIZEN' | 'INSTITUTION_OFFICER' | 'SUPER_ADMIN';
@@ -113,6 +114,7 @@ interface AppStore {
     password: string;
     firstName: string;
     lastName: string;
+    city: string;
     tcKimlik: string;
     birthYear: number;
   }) => Promise<void>;

@@ -14,6 +14,7 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
   firstName: z.string().min(2).max(100),
   lastName: z.string().min(2).max(100),
+  city: z.string().min(1, 'Lütfen şehir seçiniz.'),
   // TC kimlik opsiyonel — verilirse NVİ doğrulaması yapılır
   tcKimlik: z.string().length(11, 'T.C. Kimlik 11 haneli olmalıdır.').regex(/^\d+$/).optional(),
   birthYear: z.number().int().min(1900).max(new Date().getFullYear() - 18).optional(),
@@ -167,6 +168,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     firstName: z.string().min(2).max(100).optional(),
     lastName: z.string().min(2).max(100).optional(),
     phone: z.string().max(20).optional().nullable(),
+    city: z.string().min(1).optional(),
+    district: z.string().optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {

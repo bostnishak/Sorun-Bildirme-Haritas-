@@ -26,6 +26,7 @@ interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
+  city: string;
   // TC kimlik artık opsiyonel — e-posta ile de kayıt olunabilir
   tcKimlik?: string;
   birthYear?: number;
@@ -90,6 +91,7 @@ export const authService = {
         ...(tcKimlikHash && { tcKimlikHash }),
         firstName: dto.firstName,
         lastName: dto.lastName,
+        city: dto.city,
         ...(dto.birthYear && { birthYear: dto.birthYear }),
         isVerified,
         role: 'CITIZEN',
@@ -99,6 +101,7 @@ export const authService = {
         email: true,
         firstName: true,
         lastName: true,
+        city: true,
         role: true,
         isVerified: true,
         createdAt: true,
@@ -238,6 +241,8 @@ export const authService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      city: (user as any).city,
+      district: (user as any).district,
       role: user.role,
       isVerified: user.isVerified,
     };
@@ -282,6 +287,8 @@ export const authService = {
         firstName: true,
         lastName: true,
         phone: true,
+        city: true,
+        district: true,
         avatarUrl: true,
         role: true,
         isVerified: true,
@@ -308,12 +315,14 @@ export const authService = {
 
     logger.info('Kullanıcı hesabı ve bağlı tüm veriler kalıcı olarak silindi (KVKK).', { userId });
   },
-  async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string }) {
+  async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string; city?: string; district?: string }) {
     const user = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(dto.firstName && { firstName: dto.firstName }),
         ...(dto.lastName && { lastName: dto.lastName }),
+        ...(dto.city && { city: dto.city }),
+        ...(dto.district !== undefined && { district: dto.district }),
         phone: dto.phone ?? null,
       },
       select: {
@@ -322,6 +331,8 @@ export const authService = {
         firstName: true,
         lastName: true,
         phone: true,
+        city: true,
+        district: true,
         avatarUrl: true,
         role: true,
         isVerified: true,

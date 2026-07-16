@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
+import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
+import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 import styles from '@/app/profile/Profile.module.css';
 
 export function AccountInfoForm() {
@@ -10,6 +13,8 @@ export function AccountInfoForm() {
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
+
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -22,10 +27,19 @@ export function AccountInfoForm() {
     }
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Account info updated:', { firstName, lastName, phone, city, district });
-    // TODO: implement API call here
+    setIsSaving(true);
+    try {
+      const response = await api.put('/auth/profile', { firstName, lastName, phone, city, district }) as any;
+      const updatedUser = response?.data || response;
+      useAppStore.getState().updateUser(updatedUser);
+      toast.success('Hesap bilgileri güncellendi.');
+    } catch (err: any) {
+      toast.error(err?.error?.message || err?.message || 'Hesap bilgileri güncellenemedi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -77,26 +91,38 @@ export function AccountInfoForm() {
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Şehir</label>
-                <input
+                <select
                   className={styles.formInput}
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Şehir"
-                />
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    setDistrict(''); // Şehir değişince ilçeyi sıfırla
+                  }}
+                >
+                  <option value="">Şehir seçiniz</option>
+                  {Object.keys(TR_CITIES_DISTRICTS).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>İlçe</label>
-                <input
+                <select
                   className={styles.formInput}
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  placeholder="İlçe"
-                />
+                  disabled={!city}
+                >
+                  <option value="">İlçe seçiniz</option>
+                  {city && TR_CITIES_DISTRICTS[city]?.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
 
               <div className={`${styles.formGroupFull} ${styles.formActions}`}>
-                <button type="submit" className={styles.btnPrimary}>
-                  Kaydet
+                <button type="submit" className={styles.btnPrimary} disabled={isSaving}>
+                  {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
                 </button>
               </div>
             </form>

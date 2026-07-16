@@ -1,7 +1,14 @@
 'use client';
 
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
+
+function safeFormatDate(dateValue?: string | Date | null, formatStr: string = 'dd MMM yyyy') {
+  if (!dateValue) return "Tarih yok";
+  const date = new Date(dateValue);
+  if (!isValid(date)) return "Tarih yok";
+  return format(date, formatStr, { locale: tr });
+}
 import { Issue } from '@/store/useAppStore';
 import { CATEGORY_ICON_MAP } from '@/components/ui/Icon';
 import styles from './IssuePopup.module.css';
@@ -132,7 +139,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
                 İhbar Tarihi
               </span>
               <span className={styles.metaValue}>
-                {format(new Date(issue.createdAt), 'dd MMM yyyy', { locale: tr })}
+                {safeFormatDate(issue.createdAt, 'dd MMM yyyy')}
               </span>
             </div>
             <div className={styles.metaItem}>
@@ -143,7 +150,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
                 İhbar Saati
               </span>
               <span className={styles.metaValue}>
-                {format(new Date(issue.createdAt), 'HH:mm', { locale: tr })}
+                {safeFormatDate(issue.createdAt, 'HH:mm')}
               </span>
             </div>
           </div>

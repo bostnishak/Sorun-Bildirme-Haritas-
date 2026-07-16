@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 import toast from 'react-hot-toast';
+import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
 import styles from './Register.module.css';
 
 const MONTH_NAMES = [
@@ -112,7 +113,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<'register' | 'verify'>('register');
   const [form, setForm] = useState({
     email: '', password: '', firstName: '', lastName: '',
-    tcKimlik: '', phone: '', birthDay: '1', birthMonth: '1', birthYear: '1995',
+    tcKimlik: '', phone: '', city: '', birthDay: '1', birthMonth: '1', birthYear: '1995',
   });
   const [consents, setConsents] = useState({
     kvkk: false,
@@ -183,6 +184,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!form.city) {
+      setError('Lütfen şehir seçiniz.');
+      setLoading(false);
+      return;
+    }
+
     if (!isPasswordValid) {
       setError('Lütfen şifre kurallarının tamamını karşılayan bir şifre belirleyin.');
       setLoading(false);
@@ -203,6 +210,7 @@ export default function RegisterPage() {
         lastName: form.lastName,
         tcKimlik: form.tcKimlik,
         phone: form.phone || undefined,
+        city: form.city,
         birthYear: parseInt(form.birthYear, 10),
         birthMonth: parseInt(form.birthMonth, 10),
         birthDay: parseInt(form.birthDay, 10),
@@ -374,6 +382,19 @@ export default function RegisterPage() {
                 <ScrollSelect name="birthYear" value={form.birthYear} onChange={handleCustomChange}
                   options={years.map(y => ({ value: y, label: `${y}` }))} />
               </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Şehir *</label>
+              <ScrollSelect
+                name="city"
+                value={form.city || 'Şehir seçiniz'}
+                onChange={handleCustomChange}
+                options={[
+                  { value: '', label: 'Şehir seçiniz' },
+                  ...Object.keys(TR_CITIES_DISTRICTS).map(city => ({ value: city, label: city }))
+                ]}
+              />
             </div>
 
             <div className={styles.grid2}>
