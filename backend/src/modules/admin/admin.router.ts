@@ -62,21 +62,21 @@ router.get(
 // GET /api/v1/admin/sla/report
 router.get(
   '/sla/report',
-  requireRole('INSTITUTION_OFFICER'),
+  requireRole('INSTITUTION_OFFICER', 'SUPER_ADMIN'),
   adminController.getSLAReport,
 );
 
 // GET /api/v1/admin/sla/breaches
 router.get(
   '/sla/breaches',
-  requireRole('INSTITUTION_OFFICER'),
+  requireRole('INSTITUTION_OFFICER', 'SUPER_ADMIN'),
   adminController.getSLABreaches,
 );
 
 // GET /api/v1/admin/sla/trend
 router.get(
   '/sla/trend',
-  requireRole('INSTITUTION_OFFICER'),
+  requireRole('INSTITUTION_OFFICER', 'SUPER_ADMIN'),
   adminController.getResolutionTrend,
 );
 

@@ -16,6 +16,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const demoProfiles = [
+    { role: 'Vatandaş (Doğrulanmış)', name: 'Ayşe Yılmaz', email: 'vatandas@etiya.com', password: 'Etiya2026!' },
+    { role: 'Kurum Yetkilisi (İBB)', name: 'Zeynep Kaya', email: 'ibb.yetkili@istanbul.bel.tr', password: 'Etiya2026!' },
+    { role: 'Kurum Yetkilisi (ABB)', name: 'Mehmet Öztürk', email: 'abb.yetkili@ankara.bel.tr', password: 'Etiya2026!' },
+    { role: 'Kurum Yetkilisi (İZBB)', name: 'Selin Aydın', email: 'izmir.yetkili@izmir.bel.tr', password: 'Etiya2026!' },
+    { role: 'Süper Yönetici (Admin)', name: 'Sistem Yöneticisi', email: 'admin@etiya-project.com', password: 'Etiya2026!' },
+    { role: 'Vatandaş (Standart)', name: 'Ahmet Demir', email: 'ahmet@example.com', password: 'Etiya2026!' },
+  ];
+
+  const handleSelectDemo = (profile: { email: string; password: string; name: string }) => {
+    setForm({ email: profile.email, password: profile.password });
+    toast.success(`Örnek profil yüklendi: ${profile.name}. Giriş Yap butonuna basabilirsiniz.`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -211,6 +225,28 @@ export default function LoginPage() {
               </>
             )}
           </button>
+
+          {/* Hızlı Demo Giriş — Örnek Profiller */}
+          <div className={styles.demoSection}>
+            <div className={styles.demoTitle}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Hızlı Demo Giriş — Örnek Profiller (Tek Tıkla Doldur)</span>
+            </div>
+            <div className={styles.demoGrid}>
+              {demoProfiles.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={styles.demoCard}
+                  onClick={() => handleSelectDemo(p)}
+                >
+                  <span className={styles.demoRole}>{p.role}</span>
+                  <span className={styles.demoName}>{p.name}</span>
+                  <span className={styles.demoEmail}>{p.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className={styles.divider}>veya</div>
 

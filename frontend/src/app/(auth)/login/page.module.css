@@ -19,4 +19,77 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-}  /* Submit button */ .submitBtn {   width: 100%;   justify-content: center;   padding: 13px;   font-size: 15px;   margin-top: 4px; }  /* Divider */ .divider {   display: flex;   align-items: center;   gap: 12px;   color: var(--color-text-muted);   font-size: 12px;   margin: 4px 0; }  .divider::before, .divider::after {   content: '';   flex: 1;   height: 1px;   background: var(--color-border); }  /* Footer */ .footer {   text-align: center;   font-size: 14px;   color: var(--color-text-secondary);   margin-top: 24px; }  .link {   color: var(--color-primary);   text-decoration: none;   font-weight: 600; }  .link:hover { text-decoration: underline; }  /* NVI notice */ .nviNotice {   background: rgba(29, 78, 216, 0.05);   border: 1px solid rgba(29, 78, 216, 0.15);   border-radius: var(--radius-md);   padding: 12px 14px;   display: flex;   align-items: flex-start;   gap: 10px;   font-size: 12px;   color: var(--color-text-secondary);   line-height: 1.6; }  .nviIcon {   font-size: 18px;   flex-shrink: 0;   margin-top: 1px; }  /* Grid 3 cols for Date of Birth */ .grid3 {   display: grid;   grid-template-columns: 1fr 1fr 1fr;   gap: 10px; }  /* Password Rules Checklist */ .passwordRules {   display: flex;   flex-direction: column;   gap: 6px;   background: var(--color-surface-2);   border: 1px solid var(--color-border);   padding: 10px 12px;   border-radius: var(--radius-sm);   margin-top: 4px; }  .ruleItem {   display: flex;   align-items: center;   gap: 8px;   font-size: 11px;   color: var(--color-text-muted);   transition: all 0.2s ease; }  .ruleItemValid {   color: #10b981;   font-weight: 600; }  .ruleIcon {   display: inline-flex;   align-items: center;   justify-content: center;   width: 14px;   height: 14px;   border-radius: 50%;   font-size: 9px;   background: var(--color-border);   color: var(--color-text-muted); }  .ruleIconValid {   background: #10b981;   color: white; }  /* Verification Code Inputs */ .verifyBox {   background: rgba(37, 99, 235, 0.04);   border: 1px dashed rgba(37, 99, 235, 0.3);   padding: 16px;   border-radius: var(--radius-md);   margin: 10px 0; }
+}
+
+/* Demo profiles quick login */
+.demoSection {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.demoTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .demoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demoCard {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.demoCard:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.12);
+}
+
+.demoRole {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.demoName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.demoEmail {
+  font-size: 11px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

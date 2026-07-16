@@ -6,10 +6,9 @@ import fs from 'fs';
 import { hashTCKimlik } from '../src/services/nvi.service';
 
 // Root dizindeki veya backend dizindeki env dosyasını yükle
+dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
-dotenv.config({ path: path.join(__dirname, '../../.env.example') }); // Fallback
 
-// Docker kullanmadan (lokalden) çalıştırılıyorsa RUN_LOCAL=1 verilebilir
 if (process.env.RUN_LOCAL === 'true' && process.env.DATABASE_URL) {
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace('@postgres:', '@localhost:');
 }
@@ -17,43 +16,41 @@ if (process.env.RUN_LOCAL === 'true' && process.env.DATABASE_URL) {
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Veritabanı temizleniyor...');
+  console.log('🔄 Veritabanı temizleniyor...');
   await prisma.$executeRaw`TRUNCATE TABLE issues CASCADE;`;
-  await prisma.user.deleteMany();
+  await prisma.$executeRaw`TRUNCATE TABLE users CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE institutions CASCADE;`;
 
-  console.log('Test kullanıcıları oluşturuluyor...');
   const hashedPassword = await bcrypt.hash('Etiya2026!', 10);
-  const user = await prisma.user.create({
-    data: {
-      firstName: 'Ahmet',
-      lastName: 'Yılmaz',
-      email: 'ahmet@example.com',
-      passwordHash: hashedPassword,
-      role: 'CITIZEN',
-      isVerified: true,
-    },
-  });
 
-  console.log('Kurumlar oluşturuluyor...');
+  console.log('🏛️ Kurumlar oluşturuluyor...');
   const geojsonDir = path.join(__dirname, 'geojson');
   if (!fs.existsSync(geojsonDir)) {
     fs.mkdirSync(geojsonDir, { recursive: true });
   }
 
-  const geojsonPath = path.join(geojsonDir, 'turkey-districts.geojson');
-  if (!fs.existsSync(geojsonPath)) {
-    fs.writeFileSync(geojsonPath, JSON.stringify({ type: "FeatureCollection", features: [] }));
-  }
-
   const istanbulInstitutionId = '22222222-2222-2222-2222-222222222222';
-  try {
-    const istanbulBoundary = {
-      type: "MultiPolygon",
-      coordinates: [[[[28.0, 40.0], [29.0, 40.0], [29.0, 41.0], [28.0, 41.0], [28.0, 40.0]]]]
-    };
-    await prisma.$executeRaw`
-      INSERT INTO institutions (id, name, city, district, email_address, created_at, updated_at, boundary)
-      VALUES (
+  const ankaraInstitutionId = '33333333-3333-3333-3333-333333333333';
+  const izmirInstitutionId = '44444444-4444-4444-4444-444444444444';
+  const kadikoyInstitutionId = '55555555-5555-5555-5555-555555555555';
+
+  const istanbulBoundary = {
+    type: "MultiPolygon",
+    coordinates: [[[[28.0, 40.0], [29.5, 40.0], [29.5, 41.5], [28.0, 41.5], [28.0, 40.0]]]]
+  };
+  const ankaraBoundary = {
+    type: "MultiPolygon",
+    coordinates: [[[[32.0, 39.0], [33.5, 39.0], [33.5, 40.5], [32.0, 40.5], [32.0, 39.0]]]]
+  };
+  const izmirBoundary = {
+    type: "MultiPolygon",
+    coordinates: [[[[26.5, 38.0], [28.0, 38.0], [28.0, 39.0], [26.5, 39.0], [26.5, 38.0]]]]
+  };
+
+  await prisma.$executeRaw`
+    INSERT INTO institutions (id, name, city, district, email_address, created_at, updated_at, boundary)
+    VALUES
+      (
         ${istanbulInstitutionId}::uuid,
         'İstanbul Büyükşehir Belediyesi',
         'İstanbul',
@@ -62,67 +59,283 @@ async function main() {
         NOW(),
         NOW(),
         ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(istanbulBoundary)}), 4326)
-      ) ON CONFLICT DO NOTHING
-    `;
-    console.log('İBB kurumu oluşturuldu.');
-  } catch (err) {
-    console.error('İBB oluşturulurken hata:', err);
-  }
+      ),
+      (
+        ${ankaraInstitutionId}::uuid,
+        'Ankara Büyükşehir Belediyesi',
+        'Ankara',
+        'Merkez',
+        'iletisim@ankara.bel.tr',
+        NOW(),
+        NOW(),
+        ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(ankaraBoundary)}), 4326)
+      ),
+      (
+        ${izmirInstitutionId}::uuid,
+        'İzmir Büyükşehir Belediyesi',
+        'İzmir',
+        'Merkez',
+        'iletisim@izmir.bel.tr',
+        NOW(),
+        NOW(),
+        ST_SetSRID(ST_GeomFromGeoJSON(${JSON.stringify(izmirBoundary)}), 4326)
+      )
+  `;
+  console.log('✅ Kurumlar (İBB, ABB, İZBB) eklendi.');
 
-  const officer = await prisma.user.create({
+  console.log('👥 Örnek kullanıcı profilleri oluşturuluyor...');
+
+  // 1. Doğrulanmış Vatandaş
+  const verifiedCitizen = await prisma.user.create({
     data: {
-      tcKimlikHash: hashTCKimlik('22222222222'),
-      firstName: 'Zeynep',
-      lastName: 'Kaya',
-      email: 'yetkili@istanbul.bel.tr',
+      email: 'vatandas@etiya.com',
       passwordHash: hashedPassword,
-      role: 'INSTITUTION_OFFICER',
-      institutionId: istanbulInstitutionId,
+      firstName: 'Ayşe',
+      lastName: 'Yılmaz',
+      role: 'CITIZEN',
+      isVerified: true,
+      tcKimlikHash: hashTCKimlik('11111111110'),
+      birthYear: 1992,
+      phone: '0532 111 2233',
     },
   });
 
+  // 2. Standart Vatandaş
+  const citizen = await prisma.user.create({
+    data: {
+      email: 'ahmet@example.com',
+      passwordHash: hashedPassword,
+      firstName: 'Ahmet',
+      lastName: 'Demir',
+      role: 'CITIZEN',
+      isVerified: false,
+      phone: '0533 222 3344',
+    },
+  });
+
+  // 3. İstanbul İBB Kurum Yetkilisi
+  const ibbOfficer = await prisma.user.create({
+    data: {
+      tcKimlikHash: hashTCKimlik('22222222220'),
+      firstName: 'Zeynep',
+      lastName: 'Kaya',
+      email: 'ibb.yetkili@istanbul.bel.tr',
+      passwordHash: hashedPassword,
+      role: 'INSTITUTION_OFFICER',
+      institutionId: istanbulInstitutionId,
+      phone: '0212 555 1010',
+    },
+  });
+
+  // 4. Ankara ABB Kurum Yetkilisi
+  const abbOfficer = await prisma.user.create({
+    data: {
+      tcKimlikHash: hashTCKimlik('33333333330'),
+      firstName: 'Mehmet',
+      lastName: 'Öztürk',
+      email: 'abb.yetkili@ankara.bel.tr',
+      passwordHash: hashedPassword,
+      role: 'INSTITUTION_OFFICER',
+      institutionId: ankaraInstitutionId,
+      phone: '0312 555 2020',
+    },
+  });
+
+  // 5. İzmir İZBB Kurum Yetkilisi
+  const izmirOfficer = await prisma.user.create({
+    data: {
+      tcKimlikHash: hashTCKimlik('44444444440'),
+      firstName: 'Selin',
+      lastName: 'Aydın',
+      email: 'izmir.yetkili@izmir.bel.tr',
+      passwordHash: hashedPassword,
+      role: 'INSTITUTION_OFFICER',
+      institutionId: izmirInstitutionId,
+      phone: '0232 555 3030',
+    },
+  });
+
+  // 6. Süper Yönetici
   const admin = await prisma.user.create({
     data: {
-      tcKimlikHash: '33333333333',
+      tcKimlikHash: hashTCKimlik('55555555550'),
       firstName: 'Sistem',
       lastName: 'Yöneticisi',
       email: 'admin@etiya-project.com',
       passwordHash: hashedPassword,
       role: 'SUPER_ADMIN',
+      phone: '0850 111 0000',
     },
   });
 
-  console.log('Gerçekçi sorunlar ekleniyor...');
+  console.log('✅ 6 Örnek Profil (Doğrulanmış Vatandaş, Vatandaş, 3x Kurum Yetkilisi, Süper Admin) oluşturuldu.');
 
-  const issues = [
+  console.log('🗺️ Gerçekçi sorun bildirimleri ekleniyor...');
+
+  const issuesData = [
+    // İSTANBUL (4 sorun)
+    {
+      title: 'Kadıköy Rıhtım Rögar Taşması',
+      description: 'Rıhtım Caddesi otobüs durakları önünde rögar kapaklarından su ve kanalizasyon taşıyor. Yaya ulaşımını olumsuz etkiliyor.',
+      category: 'WATER_SANITATION',
+      priority: 'CRITICAL',
+      status: 'IN_REVIEW',
+      city: 'İstanbul',
+      district: 'Kadıköy',
+      address: 'Rıhtım Caddesi No:18',
+      latitude: 40.9912,
+      longitude: 29.0238,
+      reporterId: verifiedCitizen.id,
+    },
+    {
+      title: 'Beşiktaş Barbaros Bulvarı Derin Çukur',
+      description: 'Barbaros Bulvarı sağ şerit üzerinde asfalt çökmüş durumda, araçlar için ciddi tehlike oluşturuyor.',
+      category: 'TRANSPORTATION',
+      priority: 'HIGH',
+      status: 'OPEN',
+      city: 'İstanbul',
+      district: 'Beşiktaş',
+      address: 'Barbaros Bulvarı No:45',
+      latitude: 41.0456,
+      longitude: 29.0069,
+      reporterId: citizen.id,
+    },
+    {
+      title: 'Mecidiyeköy Altgeçit Aydınlatma Arızası',
+      description: 'Yaya altgeçidindeki lambaların yarısı yanmıyor, gece saatlerinde güvenlik endişesi yaratıyor.',
+      category: 'LIGHTING',
+      priority: 'MEDIUM',
+      status: 'IN_REVIEW',
+      city: 'İstanbul',
+      district: 'Şişli',
+      address: 'Mecidiyeköy Meydan Altgeçit',
+      latitude: 41.0669,
+      longitude: 28.9926,
+      reporterId: verifiedCitizen.id,
+    },
+    {
+      title: 'Salacak Sahil Yolu Temizlik Sorunu',
+      description: 'Kız Kulesi karşısındaki yürüyüş yolunda çöp kutuları dolmuş ve etrafa taşmış durumda.',
+      category: 'ENVIRONMENT',
+      priority: 'MEDIUM',
+      status: 'RESOLVED',
+      city: 'İstanbul',
+      district: 'Üsküdar',
+      address: 'Salacak Sahil Yolu',
+      latitude: 41.0234,
+      longitude: 29.0083,
+      reporterId: citizen.id,
+    },
+    // ANKARA (4 sorun)
     {
       title: 'Turan Güneş Bulvarı Çukur',
-      description: 'Yolun sağ şeridinde derin bir çukur var.',
+      description: 'Yolun sağ şeridinde derin bir çukur var, araç lastiklerine zarar veriyor.',
       category: 'TRANSPORTATION',
       priority: 'HIGH',
       status: 'OPEN',
       city: 'Ankara',
       district: 'Çankaya',
-      address: 'Turan Güneş Bulvarı',
+      address: 'Turan Güneş Bulvarı No:88',
       latitude: 39.8654,
       longitude: 32.8402,
+      reporterId: verifiedCitizen.id,
     },
     {
-      title: 'Dikmen Caddesi Su Patlağı',
-      description: 'Ana su borusu patladı.',
+      title: 'Dikmen Caddesi Ana Su Patlağı',
+      description: 'Ana şebeke su borusu patladı, caddeyi su bastı.',
       category: 'INFRASTRUCTURE',
       priority: 'CRITICAL',
       status: 'IN_REVIEW',
       city: 'Ankara',
       district: 'Çankaya',
-      address: 'Dikmen Caddesi',
+      address: 'Dikmen Caddesi No:112',
       latitude: 39.8789,
       longitude: 32.8315,
-    }
+      reporterId: citizen.id,
+    },
+    {
+      title: 'Güvenpark Yanı Kırık Banklar',
+      description: 'Park içerisindeki oturma gruplarının tahtaları kırılmış ve bakıma muhtaç.',
+      category: 'PARKS',
+      priority: 'LOW',
+      status: 'RESOLVED',
+      city: 'Ankara',
+      district: 'Çankaya',
+      address: 'Kızılay Güvenpark',
+      latitude: 39.9208,
+      longitude: 32.8541,
+      reporterId: verifiedCitizen.id,
+    },
+    {
+      title: 'İvedik OSB Ana Yolda Çökme',
+      description: 'Ağır tonajlı araç geçişinden dolayı yolda kısmi çökme meydana geldi.',
+      category: 'TRANSPORTATION',
+      priority: 'HIGH',
+      status: 'IN_REVIEW',
+      city: 'Ankara',
+      district: 'Yenimahalle',
+      address: 'İvedik OSB 21. Cadde',
+      latitude: 39.9882,
+      longitude: 32.7441,
+      reporterId: citizen.id,
+    },
+    // İZMİR (4 sorun)
+    {
+      title: 'Alsancak Kordon Sahil Yolu Bakım İhtiyacı',
+      description: 'Kordon boyunda yürüyüş yolu taşları yerinden çıkmış, takılıp düşme tehlikesi var.',
+      category: 'PARKS',
+      priority: 'MEDIUM',
+      status: 'OPEN',
+      city: 'İzmir',
+      district: 'Konak',
+      address: 'Atatürk Caddesi Kordon Sahil',
+      latitude: 38.4382,
+      longitude: 27.1425,
+      reporterId: verifiedCitizen.id,
+    },
+    {
+      title: 'Karşıyaka Çarşı Girişi Kanalizasyon Taşması',
+      description: 'Çarşı girişindeki mazgal tıkandığı için yağmur sonrası su göllendi.',
+      category: 'WATER_SANITATION',
+      priority: 'CRITICAL',
+      status: 'IN_REVIEW',
+      city: 'İzmir',
+      district: 'Karşıyaka',
+      address: 'Karşıyaka İskele Meydanı',
+      latitude: 38.4556,
+      longitude: 27.1189,
+      reporterId: citizen.id,
+    },
+    {
+      title: 'Bornova Üniversite Caddesi Aydınlatma Arızası',
+      description: 'Cadde üzerindeki 4 adet sokak lambası yanmıyor.',
+      category: 'LIGHTING',
+      priority: 'MEDIUM',
+      status: 'OPEN',
+      city: 'İzmir',
+      district: 'Bornova',
+      address: 'Kazımdirik Mahallesi Üniversite Cad.',
+      latitude: 38.4611,
+      longitude: 27.2186,
+      reporterId: verifiedCitizen.id,
+    },
+    {
+      title: 'Göztepe Sahil Güvenlik Korkuluk Hasarı',
+      description: 'Sahil şeridindeki demir korkuluklardan bir kısmı kırılmış.',
+      category: 'SECURITY',
+      priority: 'HIGH',
+      status: 'RESOLVED',
+      city: 'İzmir',
+      district: 'Konak',
+      address: 'Mustafa Kemal Sahil Bulvarı Göztepe',
+      latitude: 38.4032,
+      longitude: 27.0872,
+      reporterId: citizen.id,
+    },
   ];
 
-  for (const issue of issues) {
-    await prisma.$executeRaw`
+  for (const item of issuesData) {
+    const issueResult = await prisma.$queryRaw<Array<{ id: string }>>`
       INSERT INTO issues (
         id, title, description, category, priority, status,
         location, latitude, longitude, city, district, address,
@@ -130,18 +343,76 @@ async function main() {
         created_at, updated_at
       ) VALUES (
         uuid_generate_v4(),
-        ${issue.title}, ${issue.description}, ${issue.category}::"Category",
-        ${issue.priority}::"Priority", ${issue.status}::"IssueStatus",
-        ST_SetSRID(ST_MakePoint(${issue.longitude}, ${issue.latitude}), 4326),
-        ${issue.latitude}, ${issue.longitude}, ${issue.city}, ${issue.district},
-        ${issue.address},
-        false, true, ${user.id}::uuid, '127.0.0.1',
+        ${item.title}, ${item.description}, ${item.category}::"Category",
+        ${item.priority}::"Priority", ${item.status}::"IssueStatus",
+        ST_SetSRID(ST_MakePoint(${item.longitude}, ${item.latitude}), 4326),
+        ${item.latitude}, ${item.longitude}, ${item.city}, ${item.district},
+        ${item.address},
+        true, true, ${item.reporterId}::uuid, '127.0.0.1',
         NOW(), NOW()
       )
+      RETURNING id
     `;
+
+    const issueId = issueResult[0]?.id;
+
+    if (issueId) {
+      // Yorum ekle
+      await prisma.issueComment.create({
+        data: {
+          issueId,
+          authorId: verifiedCitizen.id,
+          content: 'Bu sorunun bir an önce incelenmesini rica ediyoruz, çevredeki vatandaşlar şikayetçi.',
+        },
+      });
+
+      // Beğeni (Upvote) ekle
+      await prisma.issueUpvote.create({
+        data: {
+          issueId,
+          userId: verifiedCitizen.id,
+        },
+      });
+
+      // Status history ekle (SLA raporları için)
+      await prisma.issueStatusHistory.create({
+        data: {
+          issueId,
+          fromStatus: 'OPEN',
+          toStatus: 'OPEN',
+          changedBy: item.reporterId,
+          note: 'Sorun ilk kez sisteme bildirildi.',
+        },
+      });
+
+      if (item.status === 'IN_REVIEW' || item.status === 'RESOLVED') {
+        await prisma.issueStatusHistory.create({
+          data: {
+            issueId,
+            fromStatus: 'OPEN',
+            toStatus: 'IN_REVIEW',
+            changedBy: item.city === 'İstanbul' ? ibbOfficer.id : item.city === 'Ankara' ? abbOfficer.id : izmirOfficer.id,
+            note: 'Ekip sahaya yönlendirildi, inceleme başlatıldı.',
+          },
+        });
+      }
+
+      if (item.status === 'RESOLVED') {
+        await prisma.issueStatusHistory.create({
+          data: {
+            issueId,
+            fromStatus: 'IN_REVIEW',
+            toStatus: 'RESOLVED',
+            changedBy: item.city === 'İstanbul' ? ibbOfficer.id : item.city === 'Ankara' ? abbOfficer.id : izmirOfficer.id,
+            note: 'Sorun başarıyla çözüldü ve gerekli onarımlar tamamlandı.',
+          },
+        });
+      }
+    }
   }
 
-  console.log('Seed başarıyla tamamlandı!');
+  console.log('✅ 12 Adet gerçekçi sorun, yorumlar, destekler (upvotes) ve durum tarihçesi eklendi.');
+  console.log('🎉 Seed başarıyla tamamlandı!');
 }
 
 main()

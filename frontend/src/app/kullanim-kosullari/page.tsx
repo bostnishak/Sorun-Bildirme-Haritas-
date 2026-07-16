@@ -1,21 +1,25 @@
-import Link from 'next/link';
+'use client';
+
+import { useRouter } from 'next/navigation';
 import type { Metadata } from 'next';
 import styles from '../kvkk/page.module.css';
 
-export const metadata: Metadata = {
-  title: 'Kullanım Koşulları | Türkiye Sorun Bildirim Haritası',
-  description: 'Türkiye Sorun Bildirim Haritası (Etiya Project) kullanım koşulları ve yasal uyarılar.',
-};
+// export const metadata: Metadata = {
+//   title: 'Kullanım Koşulları | Türkiye Sorun Bildirim Haritası',
+//   description: 'Türkiye Sorun Bildirim Haritası (Etiya Project) kullanım koşulları ve yasal uyarılar.',
+// };
 
 export default function KullanimKosullariPage() {
+  const router = useRouter();
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <Link href="/" className={styles.backLink}>
+          <button onClick={() => router.back()} className={styles.backLink} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Ana Sayfa
-          </Link>
+            Geri Dön
+          </button>
           <span className={styles.pageTitle}>Kullanım Koşulları</span>
         </div>
         <span className={styles.lastUpdated}>Son Güncelleme: 13 Temmuz 2026</span>

@@ -1,45 +1,58 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { Header } from '@/components/layout/Header';
-import { IconShield } from '@/components/ui/Icon';
+import { useRouter } from 'next/navigation';
+import layoutStyles from '../kvkk/page.module.css';
 
 export default function CerezPolitikasiPage() {
+  const router = useRouter();
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-      <Header />
-      <main style={{ maxWidth: '860px', margin: '40px auto', padding: '32px 24px', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#2563eb', fontWeight: 600, fontSize: '14px', marginBottom: '24px' }}>
-          <span>←</span>
-          Ana Sayfaya Dön
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#1e293b', marginBottom: '16px' }}>
-          <IconShield size={28} />
-          <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0 }}>Çerez (Cookie) Politikası</h1>
+    <div className={layoutStyles.page}>
+      <header className={layoutStyles.header}>
+        <div className={layoutStyles.headerLeft}>
+          <button onClick={() => router.back()} className={layoutStyles.backLink} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Geri Dön
+          </button>
+          <span className={layoutStyles.pageTitle}>Çerez Politikası</span>
         </div>
-        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6 }}>
-          Türkiye Sorun Bildirim Haritası (Etiya Project) platformunu ziyaretiniz sırasında kullanıcı deneyiminizin iyileştirilmesi,
-          oturumuzun güvenle sürdürülmesi ve anonim site kullanım istatistiklerinin toplanması amacıyla çerezler kullanılmaktadır.
-        </p>
+        <span className={layoutStyles.lastUpdated}>Son Güncelleme: 13 Temmuz 2026</span>
+      </header>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: '28px', marginBottom: '8px' }}>1. Zorunlu (Oturum) Çerezleri</h2>
-        <p style={{ color: '#475569', fontSize: '14px', lineHeight: 1.6 }}>
-          Platform üzerinde güvenli giriş yapabilmeniz (JWT oturum yönetimi) ve siber saldırılara (CSRF/XSS) karşı korunmanız amacıyla
-          kullanılan teknik çerezlerdir. Bu çerezler olmadan sistemin temel işlevleri çalışmaz.
-        </p>
+      <div className={layoutStyles.hero}>
+        <div className={layoutStyles.heroIcon}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <h1 className={layoutStyles.heroTitle}>Çerez (Cookie) Politikası</h1>
+        <p className={layoutStyles.heroDesc}>Türkiye Sorun Bildirim Haritası (Etiya Project) platformunu ziyaretiniz sırasında kullanıcı deneyiminizin iyileştirilmesi, oturumuzun güvenle sürdürülmesi ve anonim site kullanım istatistiklerinin toplanması amacıyla çerezler kullanılmaktadır.</p>
+      </div>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: '24px', marginBottom: '8px' }}>2. Performans ve Analitik Çerezleri</h2>
-        <p style={{ color: '#475569', fontSize: '14px', lineHeight: 1.6 }}>
-          Hangi şehirlerden bildirim yapıldığını ve harita performansını ölçmek amacıyla anonimleştirilmiş istatistiki veriler toplanır.
-          Kişisel kimlik bilgileriniz hiçbir reklam veya pazarlama amacıyla üçüncü şahıslarla paylaşılmaz.
-        </p>
+      <div className={layoutStyles.content}>
+        <div className={layoutStyles.section}>
+          <h2 className={layoutStyles.sectionTitle}>
+            <span className={layoutStyles.sectionIcon}>1</span>
+            Zorunlu (Oturum) Çerezleri
+          </h2>
+          <p className={layoutStyles.text}>Platform üzerinde güvenli giriş yapabilmeniz (JWT oturum yönetimi) ve siber saldırılara (CSRF/XSS) karşı korunmanız amacıyla kullanılan teknik çerezlerdir. Bu çerezler olmadan sistemin temel işlevleri çalışmaz.</p>
+        </div>
 
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: '24px', marginBottom: '8px' }}>3. Çerez Yönetimi</h2>
-        <p style={{ color: '#475569', fontSize: '14px', lineHeight: 1.6 }}>
-          Tarayıcınızın ayarlarından dilediğiniz zaman çerez tercihlerinizi değiştirebilir veya mevcut çerezleri silebilirsiniz.
-        </p>
-      </main>
+        <div className={layoutStyles.section}>
+          <h2 className={layoutStyles.sectionTitle}>
+            <span className={layoutStyles.sectionIcon}>2</span>
+            Performans ve Analitik Çerezleri
+          </h2>
+          <p className={layoutStyles.text}>Hangi şehirlerden bildirim yapıldığını ve harita performansını ölçmek amacıyla anonimleştirilmiş istatistiki veriler toplanır. Kişisel kimlik bilgileriniz hiçbir reklam veya pazarlama amacıyla üçüncü şahıslarla paylaşılmaz.</p>
+        </div>
+
+        <div className={layoutStyles.section}>
+          <h2 className={layoutStyles.sectionTitle}>
+            <span className={layoutStyles.sectionIcon}>3</span>
+            Çerez Yönetimi
+          </h2>
+          <p className={layoutStyles.text}>Tarayıcınızın ayarlarından dilediğiniz zaman çerez tercihlerinizi değiştirebilir veya mevcut çerezleri silebilirsiniz.</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { adminService } from './admin.service';
 import { slaService } from './sla.service';
 import { z } from 'zod';
 import { BadRequestError } from '../../utils/errors';
+import { prisma } from '../../config/database';
 
 const portalIssuesSchema = z.object({
   page: z.string().default('1').transform(Number),
@@ -117,13 +118,28 @@ export async function getAiLogs(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * Helper to resolve institutionId for SLA endpoints
+ */
+async function resolveInstitutionId(req: Request): Promise<string> {
+  if (req.user.institutionId) {
+    return req.user.institutionId;
+  }
+  if (req.query.institutionId && typeof req.query.institutionId === 'string') {
+    return req.query.institutionId;
+  }
+  const firstInst = await prisma.institution.findFirst({ select: { id: true } });
+  if (!firstInst) {
+    throw new BadRequestError('Sistemde kayıtlı kurum bulunmuyor.');
+  }
+  return firstInst.id;
+}
+
+/**
  * GET /api/v1/admin/sla/report
  */
 export async function getSLAReport(req: Request, res: Response): Promise<void> {
-  if (!req.user.institutionId) {
-    throw new BadRequestError('SLA raporu için kuruma bağlı olmalısınız.');
-  }
-  const report = await slaService.getSLAReport(req.user.institutionId);
+  const institutionId = await resolveInstitutionId(req);
+  const report = await slaService.getSLAReport(institutionId);
   res.status(200).json({ success: true, data: report });
 }
 
@@ -131,10 +147,8 @@ export async function getSLAReport(req: Request, res: Response): Promise<void> {
  * GET /api/v1/admin/sla/breaches
  */
 export async function getSLABreaches(req: Request, res: Response): Promise<void> {
-  if (!req.user.institutionId) {
-    throw new BadRequestError('SLA ihlalleri için kuruma bağlı olmalısınız.');
-  }
-  const breaches = await slaService.getSLABreaches(req.user.institutionId);
+  const institutionId = await resolveInstitutionId(req);
+  const breaches = await slaService.getSLABreaches(institutionId);
   res.status(200).json({ success: true, data: breaches });
 }
 
@@ -142,10 +156,8 @@ export async function getSLABreaches(req: Request, res: Response): Promise<void>
  * GET /api/v1/admin/sla/trend
  */
 export async function getResolutionTrend(req: Request, res: Response): Promise<void> {
-  if (!req.user.institutionId) {
-    throw new BadRequestError('Trend raporu için kuruma bağlı olmalısınız.');
-  }
+  const institutionId = await resolveInstitutionId(req);
   const days = req.query.days ? parseInt(req.query.days as string, 10) : 7;
-  const trend = await slaService.getResolutionTrend(req.user.institutionId, days);
+  const trend = await slaService.getResolutionTrend(institutionId, days);
   res.status(200).json({ success: true, data: trend });
 }

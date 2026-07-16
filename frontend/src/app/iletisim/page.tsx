@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import styles from './page.module.css';
+import layoutStyles from '../kvkk/page.module.css';
 
 export default function IletisimPage() {
+  const router = useRouter();
   const [form, setForm] = useState({
     subjectType: '5651_TAKEDOWN',
     fullName: '',
@@ -45,19 +48,28 @@ export default function IletisimPage() {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <Link href="/" className={styles.backLink}>
-            ← Ana Sayfaya Dön
-          </Link>
-          <h1 className={styles.title}>İletişim & Hukuki Bildirim Merkezi</h1>
-          <p className={styles.subtitle}>
-            5651 Sayılı Kanun uyarınca içerik kaldırma (Uyar-Kaldır), KVKK Madde 11 talepleri, AI kararlarına itiraz ve genel destek bildirimlerinizi bu form aracılığıyla resmi olarak iletebilirsiniz.
-          </p>
-        </header>
+    <div className={layoutStyles.page}>
+      <header className={layoutStyles.header}>
+        <div className={layoutStyles.headerLeft}>
+          <button onClick={() => router.back()} className={layoutStyles.backLink} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Geri Dön
+          </button>
+          <span className={layoutStyles.pageTitle}>İletişim & Hukuki Bildirim Merkezi</span>
+        </div>
+        <span className={layoutStyles.lastUpdated}>Son Güncelleme: 13 Temmuz 2026</span>
+      </header>
 
-        <div className={styles.card}>
+      <div className={layoutStyles.hero}>
+        <div className={layoutStyles.heroIcon}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h1 className={layoutStyles.heroTitle}>İletişim & Hukuki Bildirim Merkezi</h1>
+        <p className={layoutStyles.heroDesc}>5651 Sayılı Kanun uyarınca içerik kaldırma (Uyar-Kaldır), KVKK Madde 11 talepleri, AI kararlarına itiraz ve genel destek bildirimlerinizi bu form aracılığıyla resmi olarak iletebilirsiniz.</p>
+      </div>
+
+      <div className={layoutStyles.content} style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 40px' }}>
+        <div className={styles.card} style={{ marginTop: '-40px', position: 'relative', zIndex: 10, background: 'white', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.08)', padding: '30px' }}>
           {submitted ? (
             <div className={styles.successCard}>
               <div className={styles.successIcon}>✓</div>
