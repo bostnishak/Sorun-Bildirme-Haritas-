@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import { FilterSidebar } from '@/components/layout/FilterSidebar';
 import { TableView } from '@/components/table/TableView';
@@ -21,7 +22,18 @@ const MapView = dynamic(() => import('@/components/map/MapView').then(m => ({ de
 });
 
 export function MapAreaClient() {
-  const { activeView } = useAppStore();
+  const { activeView, setActiveView } = useAppStore();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const viewParam = searchParams?.get('view');
+    if (viewParam === 'table' && activeView !== 'table') {
+      setActiveView('table');
+    } else if (viewParam === 'map' && activeView !== 'map') {
+      setActiveView('map');
+    }
+  }, [searchParams, activeView, setActiveView]);
+
   return (
     <div className={styles.appLayout}>
       <FilterSidebar />

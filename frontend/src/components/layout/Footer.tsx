@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAppStore } from '@/store/useAppStore';
 import styles from './Footer.module.css';
 
 export function Footer() {
@@ -45,8 +46,22 @@ export function Footer() {
           <div>
             <h4 className={styles.colHeader}>Platform</h4>
             <ul className={styles.linkList}>
-              <li><Link href="/?view=map">Harita Görünümü</Link></li>
-              <li><Link href="/?view=table">Tablo Görünümü</Link></li>
+              <li>
+                <Link
+                  href="/?view=map#harita"
+                  onClick={() => useAppStore.getState().setActiveView('map')}
+                >
+                  Harita Görünümü
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/?view=table#harita"
+                  onClick={() => useAppStore.getState().setActiveView('table')}
+                >
+                  Tablo Görünümü
+                </Link>
+              </li>
               <li><Link href="/my-issues">Bildirimlerim</Link></li>
               <li><Link href="/register">Kayıt Ol</Link></li>
               <li><Link href="/login">Giriş Yap</Link></li>
@@ -58,8 +73,8 @@ export function Footer() {
             <h4 className={styles.colHeader}>Kurumsal</h4>
             <ul className={styles.linkList}>
               <li><Link href="/iletisim">İletişim</Link></li>
-              <li><Link href="/#yardim">Yardım</Link></li>
-              <li><Link href="/#iletisim">Basın</Link></li>
+              <li><Link href="/#nasil-calisir">Yardım</Link></li>
+              <li><Link href="/iletisim">Basın</Link></li>
               <li><Link href="/#nasil-calisir">Nasıl Çalışır?</Link></li>
             </ul>
           </div>
@@ -88,9 +103,6 @@ export function Footer() {
         <div className={styles.bottomRow}>
           <p className={styles.copyright}>
             © {currentYear} Türkiye Sorun Bildirim Haritası (Etiya Project). Tüm hakları saklıdır.
-          </p>
-          <p className={styles.disclaimer}>
-            5651 Sayılı Kanun uyarınca yer sağlayıcı olarak hizmet vermektedir.
           </p>
         </div>
       </div>
