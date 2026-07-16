@@ -147,10 +147,18 @@ export function ContactSectionClient() {
             <p className={styles.contactBoxDesc}>{c.desc}</p>
             <div className={styles.contactList}>
               {c.items.map((item, idx) => (
-                <div key={idx} className={styles.contactItem}>
-                  <item.Icon size={16} />
+                <a
+                  key={idx}
+                  href={item.type === 'email' ? `mailto:${item.value}` : item.type === 'phone' ? `tel:${item.value}` : `https://${item.value}`}
+                  target={item.type === 'web' ? '_blank' : undefined}
+                  rel={item.type === 'web' ? 'noopener noreferrer' : undefined}
+                  className={styles.contactItem}
+                >
+                  <span style={{ display: 'inline-flex', color: c.color }}>
+                    <item.Icon size={16} />
+                  </span>
                   <span>{item.value}</span>
-                </div>
+                </a>
               ))}
             </div>
           </div>
