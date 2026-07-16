@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etiya-project-v1';
+const CACHE_NAME = 'etiya-project-v2-unified-20260716';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
