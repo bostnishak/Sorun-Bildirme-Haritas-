@@ -211,8 +211,10 @@ export const useAppStore = create<AppStore>()(
         if (
           !force &&
           currentBbox &&
-          Math.abs(currentBbox.minLng - bbox.minLng) < 0.001 &&
-          Math.abs(currentBbox.minLat - bbox.minLat) < 0.001 &&
+          Math.abs(currentBbox.minLng - bbox.minLng) < 0.01 &&
+          Math.abs(currentBbox.minLat - bbox.minLat) < 0.01 &&
+          Math.abs(currentBbox.maxLng - bbox.maxLng) < 0.01 &&
+          Math.abs(currentBbox.maxLat - bbox.maxLat) < 0.01 &&
           currentBbox.zoom === bbox.zoom
         ) return;
 

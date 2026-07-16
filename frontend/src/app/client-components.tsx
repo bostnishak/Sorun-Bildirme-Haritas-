@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAppStore } from '@/store/useAppStore';
 import { FilterSidebar } from '@/components/layout/FilterSidebar';
@@ -7,7 +8,10 @@ import { TableView } from '@/components/table/TableView';
 import { ReportIssueForm } from '@/components/forms/ReportIssueForm';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { IconMessageSquare, IconCheckCircle, IconClock, IconMapPin } from '@/components/ui/Icon';
+import {
+  IconMessageSquare, IconCheckCircle, IconClock, IconMapPin,
+  IconBuilding, IconUsers, IconZap, IconMail, IconPhone, IconGlobe
+} from '@/components/ui/Icon';
 import { MOCK_STATS } from '@/lib/mockData';
 import styles from './page.module.css';
 
@@ -63,3 +67,134 @@ export function ReportModalClient() {
   if (!isReportModalOpen) return null;
   return <ReportIssueForm onClose={() => setReportModalOpen(false)} />;
 }
+
+const CONTACT_DATA = [
+  {
+    id: 'basin',
+    title: 'Basın ve İletişim',
+    desc: 'Basın mensupları ve medya kuruluşları için iletişim bilgileri. Görsel ve bilgi talepleriniz için aşağıdaki kanalları kullanabilirsiniz.',
+    Icon: IconBuilding,
+    color: '#1d4ed8',
+    bgLight: 'rgba(29, 78, 216, 0.08)',
+    items: [
+      { type: 'email', value: 'basin@sorunharitasi.gov.tr', Icon: IconMail },
+      { type: 'phone', value: '+90 (312) 000 00 00', Icon: IconPhone },
+      { type: 'web', value: 'sorunharitasi.gov.tr/basin', Icon: IconGlobe },
+    ],
+  },
+  {
+    id: 'kurumsal',
+    title: 'Kurumsal İşbirliği',
+    desc: "Belediyeler, kamu kurumları ve STK'lar için entegrasyon ve kurumsal üyelik talepleri.",
+    Icon: IconUsers,
+    color: '#16a34a',
+    bgLight: 'rgba(22, 163, 74, 0.08)',
+    items: [
+      { type: 'email', value: 'kurum@sorunharitasi.gov.tr', Icon: IconMail },
+      { type: 'phone', value: '+90 (312) 000 00 01', Icon: IconPhone },
+    ],
+  },
+  {
+    id: 'teknik',
+    title: 'Teknik Destek',
+    desc: 'Platform kullanımı, teknik sorunlar ve API entegrasyonu konularında destek alın.',
+    Icon: IconZap,
+    color: '#7c3aed',
+    bgLight: 'rgba(124, 58, 237, 0.08)',
+    items: [
+      { type: 'email', value: 'destek@sorunharitasi.gov.tr', Icon: IconMail },
+      { type: 'phone', value: '+90 (312) 000 00 02', Icon: IconPhone },
+    ],
+  },
+];
+
+export function ContactSectionClient() {
+  const [activeTab, setActiveTab] = useState('basin');
+  const activeData = CONTACT_DATA.find(c => c.id === activeTab) || CONTACT_DATA[0];
+
+  return (
+    <div className={styles.contactSectionWrapper}>
+      {/* DESKTOP VIEW: 3-column Grid */}
+      <div className={styles.contactGridDesktop}>
+        {CONTACT_DATA.map((c) => (
+          <div key={c.id} className={styles.contactBox}>
+            <div className={styles.contactBoxHeader}>
+              <div className={styles.contactBoxIcon} style={{ color: c.color, background: c.bgLight }}>
+                <c.Icon size={20} />
+              </div>
+              <h3 className={styles.contactBoxTitle}>{c.title}</h3>
+            </div>
+            <p className={styles.contactBoxDesc}>{c.desc}</p>
+            <div className={styles.contactList}>
+              {c.items.map((item, idx) => (
+                <div key={idx} className={styles.contactItem}>
+                  <item.Icon size={16} />
+                  <span>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* MOBILE VIEW: Single card with tabs under 'Bize Ulaşın' */}
+      <div className={styles.contactMobileContainer}>
+        <div className={styles.contactMobileCard}>
+          <div className={styles.contactMobileHeader}>
+            <div className={styles.contactMobileHeaderIcon}>
+              <IconMail size={20} />
+            </div>
+            <div>
+              <h3 className={styles.contactMobileTitle}>Bize Ulaşın</h3>
+              <p className={styles.contactMobileSubtitle}>İletişime geçmek için bir kategori seçin</p>
+            </div>
+          </div>
+
+          {/* Tab Selector Buttons */}
+          <div className={styles.contactMobileTabs}>
+            {CONTACT_DATA.map((c) => {
+              const isActive = activeTab === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setActiveTab(c.id)}
+                  className={`${styles.contactMobileTabBtn} ${isActive ? styles.activeTabBtn : ''}`}
+                  style={{
+                    color: isActive ? c.color : undefined,
+                    background: isActive ? c.bgLight : undefined,
+                    borderColor: isActive ? c.color : 'transparent',
+                  }}
+                >
+                  <c.Icon size={14} />
+                  <span>{c.title.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab Content */}
+          <div className={styles.contactMobileContent}>
+            <p className={styles.contactMobileContentDesc}>{activeData.desc}</p>
+            <div className={styles.contactMobileList}>
+              {activeData.items.map((item, idx) => (
+                <a
+                  key={idx}
+                  href={item.type === 'email' ? `mailto:${item.value}` : item.type === 'phone' ? `tel:${item.value}` : `https://${item.value}`}
+                  target={item.type === 'web' ? '_blank' : undefined}
+                  rel={item.type === 'web' ? 'noopener noreferrer' : undefined}
+                  className={styles.contactMobileItem}
+                >
+                  <span style={{ display: 'inline-flex', color: activeData.color }}>
+                    <item.Icon size={14} />
+                  </span>
+                  <span>{item.value}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

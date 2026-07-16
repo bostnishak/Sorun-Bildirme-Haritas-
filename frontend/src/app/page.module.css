@@ -626,3 +626,142 @@
     padding: 16px 14px;
   }
 }
+
+/* ─── Contact Section Responsive Tabs ───────────────────────────────────── */
+.contactSectionWrapper {
+  width: 100%;
+}
+
+.contactGridDesktop {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.contactMobileContainer {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .contactGridDesktop {
+    display: none;
+  }
+  .contactMobileContainer {
+    display: block;
+  }
+}
+
+.contactMobileCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.contactMobileHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.contactMobileHeaderIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contactMobileTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.contactMobileSubtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 2px 0 0 0;
+}
+
+.contactMobileTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+}
+
+.contactMobileTabBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.contactMobileTabBtn:hover {
+  background: var(--color-bg);
+}
+
+.activeTabBtn {
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.contactMobileContent {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.contactMobileContentDesc {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.contactMobileList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contactMobileItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.contactMobileItem:hover {
+  background: white;
+  border-color: var(--color-text-muted);
+}
+

@@ -105,51 +105,20 @@ export function MapView() {
 
   const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
 
-  // Zoom eşiği: minZoom + 1.5 (yaklaşık 3 tekerlek tıkı) altında pan tamamen kilitli
-  const panThreshold = minZoom + 1.5;
+  // Zoom eşiği: minZoom + 0.1 (çok ufak bir yakınlaşmada, örn. %20'de bile pan kilidi açılır)
+  // Kullanıcı hemen haritayı sürüklemeye başlayabilsin
+  const panThreshold = minZoom + 0.1;
 
   const onMove = useCallback((evt: any) => {
-    let { longitude, latitude, zoom } = evt.viewState;
-
-    // ZOOM EŞİĞİ ALTINDA PAN KİLİDİ
-    // Kullanıcı yeterince yakınlaşmadan haritayı sürüklemeye çalışırsa
-    // merkezi Türkiye'nin ortasına zorla geri koy
-    if (zoom < panThreshold) {
-      longitude = TURKEY_CENTER.longitude;
-      latitude = TURKEY_CENTER.latitude;
-    } else {
-      // KESİN SINIR KONTROLÜ (HARD CLAMP)
-      // Yakınlaştıktan sonra da Türkiye dışına çıkılamaz
-      const minLng = 25.5;
-      const maxLng = 45.0;
-      const minLat = 35.5;
-      const maxLat = 42.5;
-
-      if (longitude < minLng) longitude = minLng;
-      if (longitude > maxLng) longitude = maxLng;
-      if (latitude < minLat) latitude = minLat;
-      if (latitude > maxLat) latitude = maxLat;
-    }
-
     setViewState({
       ...evt.viewState,
-      longitude,
-      latitude,
-      pitch: calculatePitch(zoom),
-      bearing: 0
+      pitch: calculatePitch(evt.viewState.zoom),
+      bearing: 0,
     });
-  }, [panThreshold]);
+  }, []);
 
-  // Mapbox motorunu doğrudan kontrol et: dragPan handler'ını zoom eşiğine göre aç/kapat
-  useEffect(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) return;
-    if (viewState.zoom < panThreshold) {
-      map.dragPan.disable();
-    } else {
-      map.dragPan.enable();
-    }
-  }, [viewState.zoom, panThreshold]);
+  // NOT: dragPan kontrolü Map prop'u üzerinden yapılıyor (satır 592),
+  // useEffect ile çift kontrol React re-render sırasında çelişkiye yol açıyordu — kaldırıldı.
 
 
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters } = useAppStore();
@@ -166,6 +135,8 @@ export function MapView() {
 
     const socket = initSocket();
     const handleIssueUpdate = (data: any) => {
+      // mapRef.current yüklüyse gerçek görüntü sınırlarını kullan,
+      // henüz yüklenmemişse Türkiye'nin tüm sınırlarını fallback olarak kullan
       if (mapRef.current) {
         const bounds = mapRef.current.getBounds();
         if (bounds) {
@@ -175,8 +146,17 @@ export function MapView() {
             maxLng: bounds.getEast(),
             maxLat: bounds.getNorth(),
             zoom: Math.floor(mapRef.current.getZoom()),
-          });
+          }, true); // force=true → aynı bbox olsa bile güncelle
         }
+      } else {
+        // Harita henüz yüklenmedi — Türkiye sınırlarıyla fallback isteği at
+        fetchClusters({
+          minLng: TURKEY_BOUNDS[0][0],
+          minLat: TURKEY_BOUNDS[0][1],
+          maxLng: TURKEY_BOUNDS[1][0],
+          maxLat: TURKEY_BOUNDS[1][1],
+          zoom: Math.floor(TURKEY_CENTER.zoom),
+        }, true);
       }
     };
     socket.on('issue-updated', handleIssueUpdate);
@@ -187,6 +167,17 @@ export function MapView() {
 
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
+
+    // Zoom Hassasiyeti: 1x -> 3x
+    try {
+      if (map.scrollZoom) {
+        map.scrollZoom.setWheelZoomRate(3 / 450); // Varsayılan: 1/450
+        map.scrollZoom.setZoomRate(3 / 100);      // Varsayılan: 1/100
+      }
+    } catch (err) {
+      console.warn('Hassasiyet ayarı yapılamadı:', err);
+    }
+
     try {
       const TRANSLATIONS: Record<string, string> = {
         "Georgia": "Gürcistan",
@@ -376,38 +367,55 @@ export function MapView() {
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
 
-    // Kullanıcı zoom out yaparak panThreshold'a yaklaştığında (yaklaşık %85)
-    // haritayı otomatik olarak Türkiye merkezine geri getir
-    if (zoom < panThreshold + 0.3) {
-      mapRef.current?.flyTo({
-        center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-        zoom: Math.max(zoom, minZoom),
-        duration: 600,
-        essential: true
-      });
-      return;
+    // Uzaklaşınca (zoom out) merkezi koruma (manyetik merkez)
+    // Sadece harita TAMAMEN uzaklaştırıldığında merkeze kilitlensin. 
+    // Aksi halde kullanıcı fareyi bir ile (ör: İstanbul) tutup yakınlaştırdığında merkeze geri çekiyordu.
+    if (zoom <= minZoom + 0.02) {
+      const currentCenter = mapRef.current?.getCenter();
+      const isOffCenter = currentCenter && (
+        Math.abs(currentCenter.lng - TURKEY_CENTER.longitude) > 0.05 ||
+        Math.abs(currentCenter.lat - TURKEY_CENTER.latitude) > 0.05
+      );
+
+      // Sonsuz döngüyü (infinite loop) engellemek için sadece merkezden sapmışsak flyTo yap
+      if (isOffCenter) {
+        mapRef.current?.flyTo({
+          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+          zoom: minZoom,
+          duration: 800,
+          essential: true
+        });
+        return;
+      }
     }
 
     setViewState({
       ...e.viewState,
       pitch: calculatePitch(zoom),
-      bearing: 0
+      bearing: 0,
     });
     setClusterZoom(zoom);
     const b = mapRef.current?.getBounds();
     if (b) {
       setMapBounds(b.toArray().flat() as [number, number, number, number]);
       fetchClusters({
-        minLng: TURKEY_BOUNDS[0][0],
-        minLat: TURKEY_BOUNDS[0][1],
-        maxLng: TURKEY_BOUNDS[1][0],
-        maxLat: TURKEY_BOUNDS[1][1],
+        minLng: b.getWest(),
+        minLat: b.getSouth(),
+        maxLng: b.getEast(),
+        maxLat: b.getNorth(),
         zoom: Math.floor(zoom),
       });
     }
   }, [fetchClusters, panThreshold, minZoom]);
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     if (filters.city && CITY_COORDS[filters.city]) {
       mapRef.current?.flyTo({
         center: [CITY_COORDS[filters.city].longitude, CITY_COORDS[filters.city].latitude],
@@ -586,17 +594,16 @@ export function MapView() {
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
         maxBounds={activeBounds}
-        {...({ maxBoundsViscosity: 1.0 } as any)}
+        {...({ maxBoundsViscosity: 0.95 } as any)}
         minZoom={minZoom}
         maxZoom={16.5}
-        dragPan={viewState.zoom >= minZoom + 1.5}
-        keyboard={viewState.zoom >= minZoom + 1.5}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
         reuseMaps={true}
         localIdeographFontFamily="sans-serif"
         optimizeForTerrain={false}
+        renderWorldCopies={false}
       >
         <Source id="provinces" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
           {/* Ülke sınırları (admin_level 0) - Sınırların belirgin olması için eklendi */}
