@@ -14,7 +14,7 @@ import styles from './Profile.module.css';
 function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, logout, _hasHydrated } = useAppStore();
+  const { isAuthenticated, logout, _hasHydrated, user } = useAppStore();
   
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam === 'photo' ? 'info' : (tabParam || 'info');
@@ -71,9 +71,15 @@ function ProfilePageContent() {
           <div className={styles.pageHeader}>
             <div className={styles.pageTitleRow}>
               <h1 className={styles.pageTitle}>Profilim</h1>
-              <div className={styles.statusBadge}>
-                <div className={styles.statusDot}></div>
-                Aktif Hesap
+              <div 
+                className={styles.statusBadge} 
+                style={user?.isVerified ? {} : { background: '#ffedd5', color: '#ea580c' }}
+              >
+                <div 
+                  className={styles.statusDot} 
+                  style={user?.isVerified ? {} : { background: '#ea580c' }}
+                ></div>
+                {user?.isVerified ? 'Doğrulanmış Hesap' : 'Doğrulanmamış Hesap'}
               </div>
             </div>
             <p className={styles.pageSubtitle}>

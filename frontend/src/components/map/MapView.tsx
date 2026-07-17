@@ -449,27 +449,9 @@ export function MapView() {
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
 
-    // Uzaklaşınca (zoom out) merkezi koruma (manyetik merkez)
-    // Sadece harita TAMAMEN uzaklaştırıldığında merkeze kilitlensin. 
-    // Aksi halde kullanıcı fareyi bir ile (ör: İstanbul) tutup yakınlaştırdığında merkeze geri çekiyordu.
-    if (zoom <= minZoom + 0.02) {
-      const currentCenter = mapRef.current?.getCenter();
-      const isOffCenter = currentCenter && (
-        Math.abs(currentCenter.lng - TURKEY_CENTER.longitude) > 0.05 ||
-        Math.abs(currentCenter.lat - TURKEY_CENTER.latitude) > 0.05
-      );
-
-      // Sonsuz döngüyü (infinite loop) engellemek için sadece merkezden sapmışsak flyTo yap
-      if (isOffCenter) {
-        mapRef.current?.flyTo({
-          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: minZoom,
-          duration: 800,
-          essential: true
-        });
-        return;
-      }
-    }
+    // maxBounds={TURKEY_BOUNDS} zaten Türkiye dışına çıkmayı engelliyor.
+    // Eski "manyetik merkez" flyTo kilidi mobilde sola kaydırınca haritanın
+    // kendi kendine geri çekilmesine yol açıyordu — kaldırıldı.
 
     setViewState({
       ...e.viewState,
@@ -488,7 +470,7 @@ export function MapView() {
         zoom: Math.floor(zoom),
       });
     }
-  }, [fetchClusters, panThreshold, minZoom]);
+  }, [fetchClusters, minZoom]);
 
   const isInitialMount = useRef(true);
 

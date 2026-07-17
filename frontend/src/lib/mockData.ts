@@ -11,7 +11,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0082,
     longitude: 28.9784,
-    upvoteCount: 42,
+    upvoteCount: 42, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '102',
@@ -25,7 +25,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     latitude: 40.9788,
     longitude: 29.0255,
-    upvoteCount: 156,
+    upvoteCount: 156, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '103',
@@ -39,7 +39,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     latitude: 41.0422,
     longitude: 29.0067,
-    upvoteCount: 89,
+    upvoteCount: 89, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '104',
@@ -53,7 +53,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0256,
     longitude: 29.0112,
-    upvoteCount: 12,
+    upvoteCount: 12, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '105',
@@ -67,7 +67,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0664,
     longitude: 28.9922,
-    upvoteCount: 204,
+    upvoteCount: 204, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '106',
@@ -81,7 +81,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     latitude: 41.1687,
     longitude: 28.9789,
-    upvoteCount: 67,
+    upvoteCount: 67, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '107',
@@ -95,7 +95,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0340,
     longitude: 28.9778,
-    upvoteCount: 112,
+    upvoteCount: 112, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '108',
@@ -109,7 +109,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
     latitude: 40.9902,
     longitude: 28.8741,
-    upvoteCount: 34,
+    upvoteCount: 34, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '109',
@@ -123,7 +123,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0211,
     longitude: 29.1362,
-    upvoteCount: 231,
+    upvoteCount: 231, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '110',
@@ -137,7 +137,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
     latitude: 40.9234,
     longitude: 29.1311,
-    upvoteCount: 88,
+    upvoteCount: 88, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '111',
@@ -151,7 +151,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString(),
     latitude: 40.8789,
     longitude: 29.2312,
-    upvoteCount: 145,
+    upvoteCount: 145, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '112',
@@ -165,7 +165,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
     latitude: 41.1072,
     longitude: 28.7981,
-    upvoteCount: 380,
+    upvoteCount: 380, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '113',
@@ -179,7 +179,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString(),
     latitude: 40.9856,
     longitude: 28.9167,
-    upvoteCount: 56,
+    upvoteCount: 56, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '114',
@@ -193,7 +193,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     latitude: 40.9221,
     longitude: 29.2155,
-    upvoteCount: 512,
+    upvoteCount: 512, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '115',
@@ -207,7 +207,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString(),
     latitude: 41.0049,
     longitude: 29.1021,
-    upvoteCount: 289,
+    upvoteCount: 289, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '116',
@@ -221,7 +221,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
     latitude: 39.9208,
     longitude: 32.8541,
-    upvoteCount: 125,
+    upvoteCount: 125, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '117',
@@ -235,7 +235,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(),
     latitude: 39.9048,
     longitude: 32.8615,
-    upvoteCount: 65,
+    upvoteCount: 65, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '118',
@@ -249,7 +249,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     latitude: 39.9806,
     longitude: 32.8697,
-    upvoteCount: 180,
+    upvoteCount: 180, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '119',
@@ -263,7 +263,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
     latitude: 39.9678,
     longitude: 32.8105,
-    upvoteCount: 42,
+    upvoteCount: 42, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '120',
@@ -277,7 +277,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     latitude: 38.4361,
     longitude: 27.1418,
-    upvoteCount: 310,
+    upvoteCount: 310, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '121',
@@ -291,7 +291,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     latitude: 38.4552,
     longitude: 27.1147,
-    upvoteCount: 220,
+    upvoteCount: 220, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '122',
@@ -305,7 +305,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
     latitude: 38.4619,
     longitude: 27.2185,
-    upvoteCount: 95,
+    upvoteCount: 95, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '123',
@@ -319,7 +319,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 120 * 60 * 60 * 1000).toISOString(),
     latitude: 38.3892,
     longitude: 27.1517,
-    upvoteCount: 47,
+    upvoteCount: 47, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '124',
@@ -333,7 +333,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
     latitude: 40.2184,
     longitude: 28.9567,
-    upvoteCount: 88,
+    upvoteCount: 88, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '125',
@@ -347,7 +347,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
     latitude: 40.1837,
     longitude: 29.0601,
-    upvoteCount: 154,
+    upvoteCount: 154, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '126',
@@ -361,7 +361,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
     latitude: 40.1895,
     longitude: 29.1172,
-    upvoteCount: 102,
+    upvoteCount: 102, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '127',
@@ -375,7 +375,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     latitude: 36.8841,
     longitude: 30.7056,
-    upvoteCount: 33,
+    upvoteCount: 33, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '128',
@@ -389,7 +389,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 15 * 60 * 60 * 1000).toISOString(),
     latitude: 36.8687,
     longitude: 30.6439,
-    upvoteCount: 76,
+    upvoteCount: 76, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   },
   {
     id: '129',
@@ -403,7 +403,7 @@ export const MOCK_ISSUES = [
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
     latitude: 36.9142,
     longitude: 30.6728,
-    upvoteCount: 205,
+    upvoteCount: 205, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   }
 ];export const MOCK_STATS = {
   total: MOCK_ISSUES.length,

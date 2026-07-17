@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import {
   IconMapPin, IconMap, IconTable, IconPlus,
   IconLogin, IconUserPlus, IconUser, IconFileText, IconBell, IconLogOut,
@@ -17,6 +18,20 @@ export function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout, activeView, setActiveView, setReportModalOpen } =
     useAppStore();
+  const { unreadCount } = useNotificationStore();
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className={styles.header}>
@@ -75,67 +90,119 @@ export function Header() {
 
       {/* Actions */}
       <div className={styles.actions}>
-
         {isAuthenticated ? (
           <>
-            <button
-              id="btn-report-issue"
-              className={`btn btn-primary ${styles.reportBtn}`}
-              onClick={() => setReportModalOpen(true)}
-              title="Sorun Bildir"
-              aria-label="Sorun Bildir"
-            >
-              <IconPlus size={14} />
-              <span className={styles.reportBtnText}>Sorun Bildir</span>
-            </button>
+            <div className={styles.desktopOnly}>
+              <button
+                id="btn-report-issue"
+                className={`btn btn-primary ${styles.reportBtn}`}
+                onClick={() => setReportModalOpen(true)}
+                title="Sorun Bildir"
+                aria-label="Sorun Bildir"
+              >
+                <IconPlus size={14} />
+                <span className={styles.reportBtnText}>Sorun Bildir</span>
+              </button>
+            </div>
 
-            {/* Notification Bell */}
             <NotificationBell />
 
+            <div className={styles.desktopOnly}>
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
                 <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı">
                   <span>Yönetim Portalı</span>
                 </Link>
               )}
+            </div>
 
-              <div className={styles.userMenuWrapper}>
-                <Link href="/profile" className={styles.userMenu} style={{ textDecoration: 'none' }}>
-                  <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
-                    {user?.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={user.avatarUrl}
-                        alt="Profil fotoğrafı"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                      />
-                    ) : (
-                      <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
-                    )}
-                  </div>
-                  <div className={styles.userInfo}>
-                    <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
-                  </div>
-                  <svg className={styles.headerProfileChevron} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </Link>
-
-                <div className={styles.userDropdown}>
-                  <div className={styles.dropdownHeader}>
-                    <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
-                  </div>
-                  
-                  <Link href="/profile?tab=info" className={styles.dropdownItem}>
-                    <IconUser size={17} strokeWidth={1.8} />
-                    Profil Sayfam
-                  </Link>
-                  <Link href="/profile?tab=reports" className={styles.dropdownItem}>
-                    <IconFileText size={17} strokeWidth={1.8} />
-                    İhbarlarım
-                  </Link>
+            <div className={styles.userMenuWrapper} ref={menuRef}>
+              <button 
+                className={styles.userMenu} 
+                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                }}
+              >
+                <div className={styles.avatar} style={{ overflow: 'hidden', position: 'relative' }}>
+                  {user?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatarUrl}
+                      alt="Profil fotoğrafı"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  ) : (
+                    <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                  )}
+                  {/* Mobile Notification Badge */}
+                  {unreadCount > 0 && (
+                    <div className={`${styles.mobileNotificationBadge} ${styles.mobileOnly}`}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </div>
+                  )}
                 </div>
-              </div>
+                <div className={styles.userInfo}>
+                  <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
+                </div>
+                <svg className={styles.headerProfileChevron} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
 
+              <div className={`${styles.userDropdown} ${isMobileMenuOpen ? styles.isOpen : ''}`}>
+                <div className={styles.dropdownHeader}>
+                  <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
+                </div>
+                
+                <Link href="/profile?tab=info" className={styles.dropdownItem} onClick={() => setIsMobileMenuOpen(false)}>
+                  <IconUser size={17} strokeWidth={1.8} />
+                  Profil Sayfam
+                </Link>
+                
+                <Link href="/profile?tab=reports" className={styles.dropdownItem} onClick={() => setIsMobileMenuOpen(false)}>
+                  <IconFileText size={17} strokeWidth={1.8} />
+                  İhbarlarım
+                </Link>
+                
+                <button 
+                  className={`${styles.dropdownItem} ${styles.mobileOnly}`}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setReportModalOpen(true);
+                  }}
+                >
+                  <IconPlus size={17} strokeWidth={1.8} />
+                  Sorun Bildir
+                </button>
+                
+                <button 
+                  className={`${styles.dropdownItem} ${styles.mobileOnly}`}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent('open-notifications'));
+                  }}
+                >
+                  <IconBell size={17} strokeWidth={1.8} />
+                  Bildirimler
+                </button>
+
+                <div className={styles.dropdownSeparator}></div>
+                
+                <button 
+                  className={`${styles.dropdownItem} ${styles.dropdownItemLogout}`}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    logout();
+                  }}
+                >
+                  <IconLogOut size={17} strokeWidth={1.8} />
+                  Çıkış Yap
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.desktopOnly}>
               <button 
                 className={styles.headerLogoutBtn} 
                 onClick={logout}
@@ -143,6 +210,7 @@ export function Header() {
               >
                 <IconLogOut size={18} />
               </button>
+            </div>
           </>
         ) : (
           <Link href="/login" className="btn btn-primary" id="btn-login" title="Giriş Yap">
@@ -154,4 +222,3 @@ export function Header() {
     </header>
   );
 }
-

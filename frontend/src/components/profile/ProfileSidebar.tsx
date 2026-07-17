@@ -91,7 +91,7 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
               Puan: {user?.points ?? 0}
             </span>
             <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Güven Skoru: {user?.trustScore ?? 100}
+              Güven Skoru: {user?.trustScore ?? '–'}
             </span>
           </div>
         </div>

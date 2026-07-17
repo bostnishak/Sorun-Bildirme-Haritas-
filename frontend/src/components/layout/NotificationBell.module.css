@@ -223,3 +223,9 @@
   margin: 0;
   font-size: 12px;
 }
+
+@media (max-width: 768px) {
+  .bellButton {
+    display: none !important;
+  }
+}

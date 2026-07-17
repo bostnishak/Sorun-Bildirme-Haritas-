@@ -631,3 +631,62 @@
     width: auto;
   }
 }
+
+/* Desktop Only Helper */
+@media (max-width: 768px) {
+  .desktopOnly {
+    display: none !important;
+  }
+
+  .userDropdown {
+    display: none;
+    top: calc(100% + 12px);
+    right: -10px; /* Align to edge */
+    width: 240px;
+    border-radius: 16px;
+  }
+
+  .userDropdown.isOpen {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .userMenuWrapper {
+    pointer-events: auto; /* Ensure wrapper captures clicks */
+  }
+
+  /* Override hover for mobile */
+  .userMenuWrapper:hover .userDropdown {
+    display: none; 
+  }
+  .userMenuWrapper:hover .userDropdown.isOpen {
+    display: flex;
+  }
+
+  .mobileNotificationBadge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 2px 5px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    z-index: 10;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobileOnly {
+    display: none !important;
+  }
+}

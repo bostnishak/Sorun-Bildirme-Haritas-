@@ -184,7 +184,8 @@ export async function changePassword(req: Request, res: Response): Promise<void>
       .string()
       .min(8, 'Şifre en az 8 karakter olmalı.')
       .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
-      .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
+      .regex(/[a-z]/, 'Şifre en az bir küçük harf içermeli.')
+      .regex(/[^A-Za-z0-9]/, 'Şifre en az bir özel karakter içermeli.'),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {

@@ -31,12 +31,13 @@ export function AccountInfoForm() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const response = await api.put('/auth/profile', { firstName, lastName, phone, city, district }) as any;
-      const updatedUser = response?.data || response;
+      const response = await api.patch('/auth/me', { phone, city, district }) as any;
+      const updatedUser = response?.data?.user || response?.data || response?.user || response;
       useAppStore.getState().updateUser(updatedUser);
-      toast.success('Hesap bilgileri güncellendi.');
+      toast.success('Profil bilgileriniz güncellendi.');
     } catch (err: any) {
-      toast.error(err?.error?.message || err?.message || 'Hesap bilgileri güncellenemedi.');
+      const msg = err?.response?.data?.message || err?.error?.message || err?.message || 'Profil güncellenirken bir hata oluştu.';
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
@@ -47,7 +48,7 @@ export function AccountInfoForm() {
       <div className={styles.contentCard}>
         <h3 className={styles.cardTitle}>Hesap Bilgileri</h3>
         <p className={styles.cardSubtitle}>
-          Kişisel bilgilerinizi buradan görüntüleyebilir ve güncelleyebilirsiniz.
+          Telefon, şehir ve ilçe bilgilerinizi buradan güncelleyebilirsiniz.
         </p>
 
         <form onSubmit={handleSubmit} className={styles.formGrid}>
@@ -56,8 +57,8 @@ export function AccountInfoForm() {
                 <input
                   className={styles.formInput}
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
+                  disabled
+                  title="Ad değiştirilemez"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -65,8 +66,8 @@ export function AccountInfoForm() {
                 <input
                   className={styles.formInput}
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
+                  disabled
+                  title="Soyad değiştirilemez"
                 />
               </div>
 

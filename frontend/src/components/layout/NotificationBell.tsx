@@ -22,6 +22,12 @@ export function NotificationBell() {
   } = useNotificationStore();
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-notifications', handleOpen);
+    return () => window.removeEventListener('open-notifications', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated && user?.id) {
       fetchNotifications();
 

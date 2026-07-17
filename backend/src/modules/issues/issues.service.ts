@@ -198,32 +198,36 @@ export const issuesService = {
 
     const clusters = await prisma.$queryRaw<any[]>`
       SELECT
-        ST_X(ST_Centroid(ST_Collect(location)))::float  AS lng,
-        ST_Y(ST_Centroid(ST_Collect(location)))::float  AS lat,
+        ST_X(ST_Centroid(ST_Collect(issues.location)))::float  AS lng,
+        ST_Y(ST_Centroid(ST_Collect(issues.location)))::float  AS lat,
         COUNT(*)::int                                    AS point_count,
-        ARRAY_AGG(id::text)                             AS ids,
-        (ARRAY_AGG(id::text))[1]                        AS id,
-        MODE() WITHIN GROUP (ORDER BY category::text)   AS dominant_category,
-        MODE() WITHIN GROUP (ORDER BY status::text)     AS dominant_status,
-        MODE() WITHIN GROUP (ORDER BY priority::text)   AS dominant_priority,
-        MODE() WITHIN GROUP (ORDER BY title::text)      AS title,
-        MODE() WITHIN GROUP (ORDER BY description::text) AS description,
-        MODE() WITHIN GROUP (ORDER BY city::text)       AS city,
-        MODE() WITHIN GROUP (ORDER BY district::text)   AS district,
-        MODE() WITHIN GROUP (ORDER BY address::text)    AS address,
-        MODE() WITHIN GROUP (ORDER BY created_at::text) AS created_at,
-        MODE() WITHIN GROUP (ORDER BY image_url::text)  AS image_url,
-        MODE() WITHIN GROUP (ORDER BY upvote_count::int) AS upvote_count
+        ARRAY_AGG(issues.id::text)                             AS ids,
+        (ARRAY_AGG(issues.id::text))[1]                        AS id,
+        MODE() WITHIN GROUP (ORDER BY issues.category::text)   AS dominant_category,
+        MODE() WITHIN GROUP (ORDER BY issues.status::text)     AS dominant_status,
+        MODE() WITHIN GROUP (ORDER BY issues.priority::text)   AS dominant_priority,
+        MODE() WITHIN GROUP (ORDER BY issues.title::text)      AS title,
+        MODE() WITHIN GROUP (ORDER BY issues.description::text) AS description,
+        MODE() WITHIN GROUP (ORDER BY issues.city::text)       AS city,
+        MODE() WITHIN GROUP (ORDER BY issues.district::text)   AS district,
+        MODE() WITHIN GROUP (ORDER BY issues.address::text)    AS address,
+        MODE() WITHIN GROUP (ORDER BY issues.created_at::text) AS created_at,
+        MODE() WITHIN GROUP (ORDER BY issues.image_url::text)  AS image_url,
+        MODE() WITHIN GROUP (ORDER BY issues.upvote_count::int) AS upvote_count,
+        MODE() WITHIN GROUP (ORDER BY u.first_name::text) AS "reporterFirstName",
+        MODE() WITHIN GROUP (ORDER BY u.last_name::text) AS "reporterLastName",
+        MODE() WITHIN GROUP (ORDER BY u.trust_score::int) AS "reporterTrustScore"
       FROM issues
+      LEFT JOIN users u ON issues.reported_by_id = u.id
       WHERE
-        location && ST_MakeEnvelope(
+        issues.location && ST_MakeEnvelope(
           ${bbox.minLng}, ${bbox.minLat},
           ${bbox.maxLng}, ${bbox.maxLat},
           4326
         )
-        AND status != 'REJECTED'::"IssueStatus"
+        AND issues.status != 'REJECTED'::"IssueStatus"
       GROUP BY
-        ST_SnapToGrid(location, ${gridSize})
+        ST_SnapToGrid(issues.location, ${gridSize})
       ORDER BY point_count DESC
       LIMIT 500
     `;

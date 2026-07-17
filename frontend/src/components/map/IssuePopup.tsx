@@ -10,6 +10,7 @@ function safeFormatDate(dateValue?: string | Date | null, formatStr: string = 'd
   return format(date, formatStr, { locale: tr });
 }
 import { Issue } from '@/store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 import { CATEGORY_ICON_MAP } from '@/components/ui/Icon';
 import styles from './IssuePopup.module.css';
 
@@ -53,10 +54,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function IssuePopup({ issue, onClose }: IssuePopupProps) {
+  const { user: currentUser } = useAppStore();
   const IconComponent = CATEGORY_ICON_MAP[issue.category];
   const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.OPEN;
   const priorityCfg = PRIORITY_CONFIG[issue.priority] || PRIORITY_CONFIG.MEDIUM;
   const catColor = CATEGORY_COLORS[issue.category] || '#6366f1';
+
+  // Kendi ihbarımda currentUser.trustScore'u fallback olarak kullan
+  const issueUserId = (issue as any).reportedById || (issue as any).userId || (issue as any).reporterId;
+  const isOwnIssue = currentUser && issueUserId && issueUserId === currentUser.id;
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -130,6 +136,54 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
         {/* ── Açıklama ── */}
         <div className={styles.description}>
           <p>{issue.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup saha ekiplerine yönlendirilmiştir.'}</p>
+        </div>
+
+        {/* ── İhbar Sahibi & Güven Puanı ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: '10px', marginBottom: '16px', border: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1' }}>İhbar Sahibi</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
+                {(() => {
+                  const firstName = (issue as any).reporterFirstName || (issue as any).user?.firstName || (issue as any).reporter?.firstName || (issue as any).reportedBy?.firstName || '';
+                  const lastName = (issue as any).reporterLastName || (issue as any).user?.lastName || (issue as any).reporter?.lastName || (issue as any).reportedBy?.lastName || '';
+                  const firstInitial = firstName.trim().charAt(0).toUpperCase();
+                  const lastInitial = lastName.trim().charAt(0).toUpperCase();
+                  if (firstInitial && lastInitial) return `${firstInitial}.${lastInitial}.`;
+                  if (firstInitial) return `${firstInitial}.`;
+                  return 'Bilinmiyor';
+                })()}
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1' }}>Güven Puanı</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
+                {(() => {
+                  const score =
+                    (issue as any).reporterTrustScore ??
+                    (issue as any).reporter?.trustScore ??
+                    (issue as any).reportedBy?.trustScore ??
+                    (issue as any).user?.trustScore ??
+                    (issue as any).trustScore ??
+                    (isOwnIssue ? currentUser?.trustScore : undefined);
+                  return score !== undefined && score !== null ? score : 'Belirtilmemiş';
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── Meta Bilgiler ── */}

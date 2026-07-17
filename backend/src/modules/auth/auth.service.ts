@@ -311,6 +311,7 @@ export const authService = {
         avatarUrl: true,
         role: true,
         isVerified: true,
+        trustScore: true,
         institution: {
           select: { id: true, name: true, city: true, district: true },
         },
@@ -355,6 +356,7 @@ export const authService = {
         avatarUrl: true,
         role: true,
         isVerified: true,
+        trustScore: true,
       },
     });
     logger.info('Kullanıcı profili güncellendi', { userId });
