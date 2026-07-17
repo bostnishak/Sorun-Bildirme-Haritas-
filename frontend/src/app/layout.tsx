@@ -52,12 +52,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Favicon & Manifest */}
         <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
-        {/* Register PWA Service Worker */}
+        {/* Force Unregister PWA Service Worker to clear cache */}
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator && typeof window !== 'undefined') {
             window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                console.warn('SW register error:', err);
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  registration.unregister();
+                }
               });
             });
           }

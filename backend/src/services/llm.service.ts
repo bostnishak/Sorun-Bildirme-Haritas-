@@ -7,6 +7,7 @@ import { redis } from '../config/redis';
 import { openAITokensTotal, aiModerationDurationHistogram } from '../utils/metrics';
 import { OpenAIProvider } from './llm/openai.provider';
 import { SystemPromptService } from './systemPrompt.service';
+import { maskPII } from '../utils/piiMasker';
 
 const llmProvider = new OpenAIProvider();
 
@@ -53,7 +54,10 @@ export async function guardContent(
   description: string,
 ): Promise<LLMGuardResult> {
   const start = Date.now();
-  const userMessage = `Başlık: "${title.substring(0, 200)}"\nAçıklama: "${description.substring(0, 1000)}"`;
+  // Standart formdan gelen başlık ve açıklamayı PII sızıntısına karşı maskele
+  const safeTitle = maskPII(title.substring(0, 200));
+  const safeDescription = maskPII(description.substring(0, 1000));
+  const userMessage = `Başlık: "${safeTitle}"\nAçıklama: "${safeDescription}"`;
   const cacheKey = `llm_guard:${crypto.createHash('md5').update(userMessage).digest('hex')}`;
 
   try {
@@ -102,10 +106,9 @@ export async function guardContent(
   } catch (err) {
     if (err instanceof BadRequestError) throw err;
 
-    // OpenAI API hatası — servisi kullanılamaz diye reddetme
-    // Yedek: içeriği kabul et ama logla
-    logger.error('LLM Guard API hatası — içerik atlandı', { error: String(err) });
-    return { valid: true, reason: 'LLM servis hatası — atlandı' };
+    // OpenAI API hatası — Fail-Close prensibi ile isteği reddet
+    logger.error('LLM Guard API hatası — Fail-Close uygulandı', { error: String(err) });
+    throw new BadRequestError('Yapay zeka analiz servisimiz şu an yoğunluk nedeniyle hizmet veremiyor. Lütfen daha sonra tekrar deneyin.');
   }
 }
 
@@ -164,7 +167,7 @@ export async function analyzeImageContent(
 
     return result;
   } catch (err) {
-    logger.error('Vision AI hatası — atlandı', { error: String(err) });
-    return { valid: true, reason: 'Görsel analiz servis hatası — atlandı' };
+    logger.error('Vision AI hatası — Fail-Close uygulandı', { error: String(err) });
+    return { valid: false, reason: 'Görsel analiz servis hatası veya kota aşımı' };
   }
 }

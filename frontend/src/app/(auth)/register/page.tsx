@@ -465,7 +465,7 @@ export default function RegisterPage() {
                   onChange={(e) => setConsents(p => ({ ...p, kvkk: e.target.checked }))}
                 />
                 <span className={styles.consentText}>
-                  <Link href="/kvkk" target="_blank">KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</Link>&apos;nı okudum, kabul ediyorum. *
+                  <Link href="/kvkk">KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-kosullari">Kullanım Koşulları</Link>&apos;nı okudum, kabul ediyorum. *
                 </span>
               </label>
 

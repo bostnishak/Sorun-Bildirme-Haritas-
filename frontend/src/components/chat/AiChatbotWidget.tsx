@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { issueKeys } from '@/hooks/useIssues';
 
 interface ExtractionData {
   kategori: string | null;
@@ -25,7 +27,11 @@ interface ExtractionData {
   asistanMesaji: string;
   onayBekliyor: boolean;
   ihbarOlusturuldu: boolean;
+  istenenKonumOnayi?: boolean;
+  konumAlinabilir?: boolean;
 }
+
+
 
 interface Message {
   id: string;
@@ -37,6 +43,7 @@ interface Message {
 
 export function AiChatbotWidget() {
   const user = useAppStore(state => state.user);
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -53,25 +60,6 @@ export function AiChatbotWidget() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
-  const loadingStates = [
-    'Metin ve bağlam inceleniyor...', 
-    'Güvenlik ve kurallar analiz ediliyor...', 
-    'Kategori eşleştiriliyor...', 
-    'İhbar detayları hazırlanıyor...'
-  ];
-
-  useEffect(() => {
-    if (loading) {
-      const interval = setInterval(() => {
-        setLoadingTextIndex(prev => (prev + 1) % loadingStates.length);
-      }, 1500);
-      return () => clearInterval(interval);
-    } else {
-      setLoadingTextIndex(0);
-    }
-  }, [loading]);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -231,13 +219,13 @@ export function AiChatbotWidget() {
     }
   };
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent, overrideText?: string) => {
     if (e) e.preventDefault();
-    if ((!input.trim() && !imagePreview) || loading) return;
+    const userText = overrideText || input.trim();
+    if (!userText && !imagePreview || loading) return;
 
-    const userText = input.trim();
     const imageToSend = imagePreview;
-    setInput('');
+    if (!overrideText) setInput('');
     setImagePreview(null);
 
     const newMsg: Message = {
@@ -261,83 +249,88 @@ export function AiChatbotWidget() {
       });
       const data: ExtractionData = res.data || res;
 
-      if (data.guvenlik_ihlasi) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            sender: 'ai',
-            text: `Güvenlik Uyarı / Moderasyon: ${(data.asistanMesaji || '').substring(0, 800)}`,
-          },
-        ]);
-      } else if (data.eksikBilgiSoru) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            sender: 'ai',
-            text: `${(data.asistanMesaji || '').substring(0, 800)}\n\nEksik Bilgi: ${data.eksikBilgiSoru}`,
-          },
-        ]);
-      } else if (data.kategori) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            sender: 'ai',
-            text: (data.asistanMesaji || '').substring(0, 800),
-            extraction: data,
-          },
-        ]);
+      // Her durumda asistanMesajı'nı temiz göster — LLM zaten doğru mesajı içeriyor
+      const aiText = (data.asistanMesaji || '').trim().substring(0, 1000);
 
-        if (data.ihbarOlusturuldu && data.adres) {
-          try {
-            const formData = new FormData();
-            formData.append('title', data.baslik || 'AI Bildirimi');
-            formData.append('description', data.aciklama || 'AI tarafından oluşturuldu.');
-            formData.append('category', data.kategori);
-            formData.append('city', data.adres.il || 'İstanbul');
-            formData.append('district', data.adres.ilce || 'Beykoz');
-            formData.append('address', data.adres.tamAdres);
-            
-            // Eğer resim varsa blob'a çevirip ekle
-            if (imageToSend) {
-              const res = await fetch(imageToSend);
-              const blob = await res.blob();
-              formData.append('image', blob, 'ai-upload.jpg');
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: aiText,
+          extraction: data.kategori ? data : undefined,
+        },
+      ]);
+
+      if (data.konumAlinabilir) {
+        if (!navigator.geolocation) {
+          toast.error('Tarayıcınız konum servisini desteklemiyor.');
+        } else {
+          const geoToast = toast.loading('📍 Konumunuz bulunuyor...');
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              try {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const geoRes: any = await api.get(`/issues/geocode?lat=${lat}&lng=${lng}`);
+                // API dönüşünde data.data içinde nesne olabilir (geocode API yanıt yapısına göre)
+                const addressObj = geoRes.data?.data || geoRes.data || {};
+                const tamAdres = addressObj.tamAdres || Object.values(addressObj).join(', ');
+                
+                toast.success('Konum başarıyla alındı!', { id: geoToast });
+                handleSendMessage(undefined, `[Sistem Notu: Kullanıcının konumu başarıyla tespit edildi: ${tamAdres || lat+','+lng}. Lütfen bu adresi kullanarak doğrudan ihbar onayı isteyin.]`);
+              } catch (e) {
+                toast.error('Konum adrese çevrilemedi.', { id: geoToast });
+                handleSendMessage(undefined, `[Sistem Notu: Konum alındı ancak adrese çevrilemedi. Koordinatlar: ${pos.coords.latitude}, ${pos.coords.longitude}. Lütfen adresi manuel isteyin.]`);
+              }
+            },
+            (err) => {
+              toast.error('Konum izni reddedildi veya alınamadı.', { id: geoToast });
+              handleSendMessage(undefined, `[Sistem Notu: Kullanıcı konum iznini reddetti veya konum alınamadı. Adresi manuel olarak istemeye devam edin.]`);
             }
-
-            await api.post('/issues', formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            });
-
-            const currentBbox = useAppStore.getState().currentBbox;
-            if (currentBbox) {
-              useAppStore.getState().fetchClusters(currentBbox, true);
-            }
-          } catch (createErr: any) {
-            console.error("AI Issue creation failed:", createErr);
-            const errMsg = createErr?.response?.status === 401
-              ? 'Oturum süreniz dolmuş veya yetkiniz yok. Lütfen tekrar giriş yapın.'
-              : 'Bildirim oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
-            
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              sender: 'ai',
-              text: `Hata: ${errMsg}`
-            }]);
-            toast.error(errMsg);
-          }
+          );
         }
-      } else {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
+      }
+
+      if (data.ihbarOlusturuldu && data.adres) {
+        try {
+          const formData = new FormData();
+          formData.append('title', data.baslik || 'AI Bildirimi');
+          formData.append('description', data.aciklama || 'AI tarafından oluşturuldu.');
+          formData.append('category', data.kategori || 'ENVIRONMENT');
+          formData.append('city', data.adres.il || 'İstanbul');
+          formData.append('district', data.adres.ilce || 'Merkez');
+          formData.append('address', data.adres.tamAdres);
+
+          if (imageToSend) {
+            const res = await fetch(imageToSend);
+            const blob = await res.blob();
+            formData.append('image', blob, 'ai-upload.jpg');
+          }
+
+          await api.post('/issues', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+
+          // 1. Haritayı yenile
+          const currentBbox = useAppStore.getState().currentBbox;
+          if (currentBbox) {
+            useAppStore.getState().fetchClusters(currentBbox, true);
+          }
+          // 2. Tabloyu (ve diğer tüm issue listelerini) yenile
+          queryClient.invalidateQueries({ queryKey: issueKeys.all });
+        } catch (createErr: any) {
+          console.error('AI Issue creation failed:', createErr);
+          const errMsg = createErr?.response?.status === 401
+            ? 'Oturum süreniz dolmuş veya yetkiniz yok. Lütfen tekrar giriş yapın.'
+            : 'Bildirim oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.';
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
             sender: 'ai',
-            text: (data.asistanMesaji || '').substring(0, 800),
-          },
-        ]);
+            text: errMsg,
+          }]);
+          toast.error(errMsg);
+        }
       }
     } catch (err: any) {
       const isRateLimit = err.response?.status === 429;
@@ -578,37 +571,80 @@ export function AiChatbotWidget() {
                   </div>
                 )}
 
-                {msg.extraction && msg.extraction.kategori && !msg.extraction.eksikBilgiSoru && (
+                {/* Onay Kartı — tam bilgi toplandığında göster */}
+                {msg.extraction && msg.extraction.onayBekliyor && msg.extraction.kategori && (
                   <div
                     style={{
-                      marginTop: '8px',
-                      padding: '12px',
-                      borderRadius: '12px',
-                      backgroundColor: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
-                      color: '#065f46',
-                      fontSize: '0.82rem',
+                      marginTop: '10px',
+                      padding: '14px',
+                      borderRadius: '14px',
+                      backgroundColor: '#f0fdf4',
+                      border: '2px solid #86efac',
+                      fontSize: '0.83rem',
+                      color: '#14532d',
                     }}
                   >
-                    <div style={{ fontWeight: 600, marginBottom: '6px', color: '#047857' }}>
-                      Çıkarılan İhbar Verisi:
+                    <div style={{ fontWeight: 700, marginBottom: '10px', color: '#15803d', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Ihbar Özeti</span>
                     </div>
-                    <div><b>Kategori:</b> {msg.extraction.kategoriTurkce || msg.extraction.kategori}</div>
-                    <div><b>Başlık:</b> {msg.extraction.baslik}</div>
-                    {msg.extraction.adres && (
-                      <div><b>Adres:</b> {msg.extraction.adres.tamAdres || `${msg.extraction.adres.sokak} No:${msg.extraction.adres.kapiNo}, ${msg.extraction.adres.ilce}/${msg.extraction.adres.il}`}</div>
-                    )}
-                    <div><b>Öncelik:</b> {msg.extraction.oncelik}</div>
-                    {msg.extraction.onayBekliyor && (
-                      <div style={{ marginTop: '8px', padding: '6px', background: '#d1fae5', borderRadius: '6px', textAlign: 'center', fontWeight: 600, color: '#065f46' }}>
-                        Lütfen onaylamak için "evet" yazınız.
-                      </div>
-                    )}
-                    {msg.extraction.ihbarOlusturuldu && (
-                      <div style={{ marginTop: '8px', padding: '6px', background: '#dcfce7', borderRadius: '6px', textAlign: 'center', fontWeight: 700, color: '#166534' }}>
-                        ✓ İhbar Başarıyla Kaydedildi
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div><span style={{ color: '#166534', fontWeight: 600 }}>Kategori:</span> {msg.extraction.kategoriTurkce || msg.extraction.kategori}</div>
+                      {msg.extraction.baslik && <div><span style={{ color: '#166534', fontWeight: 600 }}>Başlık:</span> {msg.extraction.baslik}</div>}
+                      {msg.extraction.adres && (
+                        <div><span style={{ color: '#166534', fontWeight: 600 }}>Adres:</span> {msg.extraction.adres.tamAdres || `${msg.extraction.adres.sokak || ''} ${msg.extraction.adres.ilce}/${msg.extraction.adres.il}`.trim()}</div>
+                      )}
+                      <div><span style={{ color: '#166534', fontWeight: 600 }}>Aciliyet:</span> {{
+                        'CRITICAL': 'Kritik',
+                        'HIGH': 'Yüksek',
+                        'MEDIUM': 'Orta',
+                        'LOW': 'Düşük',
+                      }[msg.extraction.oncelik] || msg.extraction.oncelik}</div>
+                    </div>
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '8px 10px',
+                      background: '#dcfce7',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#166534',
+                      fontSize: '0.82rem',
+                      border: '1px solid #86efac',
+                    }}>
+                      Onaylamak için &quot;evet&quot; veya &quot;onayla&quot; yazın
+                    </div>
+                  </div>
+                )}
+
+                {/* Kaydedildi Kartı */}
+                {msg.extraction?.ihbarOlusturuldu && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '10px 14px',
+                    background: '#dcfce7',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    fontWeight: 700,
+                    color: '#166534',
+                    fontSize: '0.85rem',
+                    border: '1px solid #86efac',
+                  }}>
+                    ✓ İhbar Başarıyla Kaydedildi
+                  </div>
+                )}
+
+                {/* Eski uyumluluk: kategori var ama onayBekliyor false, ihbar kaydedilmedi — küçük bilgi kartı */}
+                {msg.extraction && msg.extraction.kategori && !msg.extraction.onayBekliyor && !msg.extraction.ihbarOlusturuldu && !msg.extraction.siteDisiKonu && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.78rem',
+                  }}>
+                    <b>Kategori:</b> {msg.extraction.kategoriTurkce || msg.extraction.kategori}
                   </div>
                 )}
               </div>
@@ -618,18 +654,39 @@ export function AiChatbotWidget() {
               <div
                 style={{
                   alignSelf: 'flex-start',
-                  padding: '10px 14px',
+                  padding: '12px 16px',
                   borderRadius: '14px',
                   backgroundColor: '#f1f5f9',
                   border: '1px solid #e2e8f0',
-                  color: '#64748b',
-                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  minWidth: '60px',
+                  minHeight: '36px'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
-                  <span style={{ fontSize: '16px' }}>⏳</span>
-                  {loadingStates[loadingTextIndex]}
-                </div>
+                <style>
+                  {`
+                    @keyframes typing-dot {
+                      0%, 100% { transform: translateY(0); opacity: 0.5; }
+                      50% { transform: translateY(-4px); opacity: 1; }
+                    }
+                    .ai-dot {
+                      width: 6px;
+                      height: 6px;
+                      background-color: #64748b;
+                      border-radius: 50%;
+                      animation: typing-dot 1.2s infinite ease-in-out;
+                    }
+                    .ai-dot:nth-child(1) { animation-delay: 0s; }
+                    .ai-dot:nth-child(2) { animation-delay: 0.2s; }
+                    .ai-dot:nth-child(3) { animation-delay: 0.4s; }
+                  `}
+                </style>
+                <div className="ai-dot"></div>
+                <div className="ai-dot"></div>
+                <div className="ai-dot"></div>
               </div>
             )}
             {/* Auto-scroll anchor */}

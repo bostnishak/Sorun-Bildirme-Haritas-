@@ -67,30 +67,20 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 850px) {
   .statsBar {
     height: auto;
     min-height: 56px;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding: 8px 16px;
+    justify-content: space-around;
+    padding: 8px 12px;
     padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    gap: 12px;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-  }
-
-  .statsBar::-webkit-scrollbar {
-    display: none;
+    gap: 8px;
   }
 
   .statItem {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    min-width: 120px;
-    justify-content: flex-start;
-    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    gap: 6px;
   }
 
   .statIconWrap {
@@ -109,8 +99,10 @@
   .statSub {
     font-size: 9px;
   }
-  
-  .divider {
-    display: none;
+}
+
+@media (max-width: 600px) {
+  .hideOnMobile {
+    display: none !important;
   }
 }

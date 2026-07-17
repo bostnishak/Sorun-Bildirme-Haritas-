@@ -32,14 +32,22 @@ export interface BlurResult {
 export async function blurSensitiveContent(imageBuffer: Buffer): Promise<BlurResult> {
   const client = getVisionClient();
 
-  // Paralel olarak yüz ve nesne tespiti yap
-  const [faceResult, objectResult] = await Promise.all([
-    client.faceDetection({ image: { content: imageBuffer } }),
-    client.objectLocalization!({ image: { content: imageBuffer } }),
-  ]);
+  let faces: any[] = [];
+  let allObjects: any[] = [];
 
-  const faces = faceResult[0]?.faceAnnotations ?? [];
-  const allObjects = objectResult[0]?.localizedObjectAnnotations ?? [];
+  try {
+    // Paralel olarak yüz ve nesne tespiti yap
+    const [faceResult, objectResult] = await Promise.all([
+      client.faceDetection({ image: { content: imageBuffer } }),
+      client.objectLocalization!({ image: { content: imageBuffer } }),
+    ]);
+
+    faces = faceResult[0]?.faceAnnotations ?? [];
+    allObjects = objectResult[0]?.localizedObjectAnnotations ?? [];
+  } catch (error) {
+    logger.error('Google Vision API hatası (kimlik doğrulama veya bağlantı). İşçi (worker) çökmesi engellendi. Resim sansürlenmeden devam edilecek.', { error: String(error) });
+    return { buffer: imageBuffer, facesFound: 0, platesFound: 0, wasModified: false };
+  }
 
   // Plaka tespiti — Google Vision "License plate" veya "Vehicle registration plate"
   const plates = allObjects.filter(

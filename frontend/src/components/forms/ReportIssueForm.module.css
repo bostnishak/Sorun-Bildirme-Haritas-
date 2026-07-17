@@ -455,3 +455,24 @@
   font-weight: 600;
   margin-top: 6px;
 }
+
+@media (max-width: 600px) {
+  .modal {
+    margin: 10px;
+    max-height: 95vh;
+  }
+  .modalHeader {
+    padding: 16px 16px 0;
+  }
+  .modalBody {
+    padding: 16px;
+  }
+  .modalFooter {
+    padding: 16px;
+    flex-direction: column-reverse;
+  }
+  .modalFooter > * {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}

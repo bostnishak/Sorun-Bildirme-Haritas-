@@ -37,7 +37,7 @@ export function StatsBar() {
 
   return (
     <div className={styles.statsBar}>
-      <div id="stat-total" className={styles.statItem}>
+      <div id="stat-total" className={`${styles.statItem} ${styles.hideOnMobile}`}>
         <div className={styles.statIconWrap} style={{ background: 'rgba(29,78,216,0.1)', color: 'var(--color-primary)' }}>
           <IconMessageSquare size={18} />
         </div>
@@ -50,7 +50,7 @@ export function StatsBar() {
         </div>
       </div>
 
-      <div className={styles.divider} />
+      <div className={`${styles.divider} ${styles.hideOnMobile}`} />
 
       <div id="stat-open" className={styles.statItem}>
         <div className={styles.statIconWrap} style={{ background: 'rgba(220,38,38,0.1)', color: 'var(--color-open)' }}>
@@ -95,9 +95,9 @@ export function StatsBar() {
         </div>
       </div>
 
-      <div className={styles.divider} />
+      <div className={`${styles.divider} ${styles.hideOnMobile}`} />
 
-      <div id="stat-this-month" className={styles.statItem}>
+      <div id="stat-this-month" className={`${styles.statItem} ${styles.hideOnMobile}`}>
         <div className={styles.statIconWrap} style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--color-resolved)' }}>
           <IconTrendingUp size={18} />
         </div>

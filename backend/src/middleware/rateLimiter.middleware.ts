@@ -54,27 +54,27 @@ export const issueCreateLimiter = new RateLimiterRedis({
 });
 
 /**
- * Chatbot limiter: AI maliyet kontrolü
- * 10 istek / dakika / IP
+ * Chatbot limiter: AI maliyet kontrolü (DDoS ve bütçe koruması)
+ * 10 istek / saat / IP
  */
 export const chatbotLimiter = new RateLimiterRedis({
   storeClient: redis,
   keyPrefix: 'rl_chatbot',
   points: 10,
-  duration: 60,
-  blockDuration: 300, // 5 dakika block
+  duration: 3600, // 1 saat
+  blockDuration: 3600, // 1 saat block
 });
 
 /**
  * Guest Chatbot limiter: strict AI cost control for non-logged in users
- * 3 istek / dakika / IP
+ * 5 istek / saat / IP
  */
 export const guestChatbotLimiter = new RateLimiterRedis({
   storeClient: redis,
   keyPrefix: 'rl_guest_chatbot',
-  points: 3,
-  duration: 60,
-  blockDuration: 300,
+  points: 5,
+  duration: 3600, // 1 saat
+  blockDuration: 3600, // 1 saat block
 });
 
 /**
