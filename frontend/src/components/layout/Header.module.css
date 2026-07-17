@@ -169,32 +169,37 @@
   position: relative;
   display: flex;
   align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: -10px;
 }
 
 .userDropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);
   right: 0;
   width: 230px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 14px;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
   padding: 8px;
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 1000;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transform: translateY(-4px);
   transition: all 160ms ease;
 }
 
-.userMenuWrapper:hover .userDropdown {
+.userMenuWrapper:hover .userDropdown,
+.userDropdown.isOpen {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
   transform: translateY(0);
 }
 
@@ -650,6 +655,7 @@
     display: flex;
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
     transform: translateY(0);
   }
 
