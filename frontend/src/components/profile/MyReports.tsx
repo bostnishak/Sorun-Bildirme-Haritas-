@@ -140,7 +140,7 @@ export function MyReports() {
             maxWidth: '100%',
             boxSizing: 'border-box'
           }}>
-            <IconClock size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span style={{ flexShrink: 0, marginTop: '2px', display: 'flex' }}><IconClock size={16} /></span>
             <span style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>Son 3 ayda {lastThreeMonthsCount} ihbar oluşturdunuz.</span>
           </div>
         </div>
