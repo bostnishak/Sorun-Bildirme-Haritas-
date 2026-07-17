@@ -133,6 +133,8 @@ interface AppStore {
   clearFilters: () => void;
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
+  pendingCityZoom: boolean;
+  setPendingCityZoom: (v: boolean) => void;
 }
 
 const defaultFilters = { city: '', district: '', category: '', status: '', search: '' };
@@ -154,6 +156,7 @@ export const useAppStore = create<AppStore>()(
       activeView: 'map',
       filters: defaultFilters,
       _hasHydrated: false,
+      pendingCityZoom: false,
 
       // Auth actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
@@ -273,6 +276,7 @@ export const useAppStore = create<AppStore>()(
 
       clearFilters: () => set({ filters: defaultFilters }),
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+      setPendingCityZoom: (v) => set({ pendingCityZoom: v }),
     }),
     {
       name: 'etiya-project-store',

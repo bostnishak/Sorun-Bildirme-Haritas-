@@ -111,7 +111,7 @@
   padding-top: 20px;
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
@@ -121,6 +121,8 @@
 
 .copyright {
   margin: 0;
+  text-align: center;
+  width: 100%;
 }
 
 .disclaimer {

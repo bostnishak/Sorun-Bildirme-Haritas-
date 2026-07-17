@@ -10,7 +10,7 @@ import styles from './page.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, setTokens } = useAppStore();
+  const { setUser, setTokens, setPendingCityZoom } = useAppStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,6 +34,7 @@ export default function LoginPage() {
       setUser(user);
 
       toast.success(`Hoş geldiniz, ${user.firstName || user.email || 'Kullanıcı'}!`);
+      setPendingCityZoom(true);
       router.push('/');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Giriş başarısız. E-posta veya şifre hatalı.');

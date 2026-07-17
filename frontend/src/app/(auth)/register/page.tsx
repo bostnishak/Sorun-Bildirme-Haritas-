@@ -108,7 +108,7 @@ function ScrollSelect({ value, onChange, options, name }: {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser, setTokens } = useAppStore();
+  const { setUser, setTokens, setPendingCityZoom } = useAppStore();
 
   const [step, setStep] = useState<'register' | 'verify'>('register');
   const [form, setForm] = useState({
@@ -254,6 +254,7 @@ export default function RegisterPage() {
       setUser(user);
 
       toast.success('Hesabınız doğrulandı ve giriş yapıldı! Hoş geldiniz.');
+      setPendingCityZoom(true);
       router.push('/');
     } catch (err: any) {
       setError(err?.error?.message || err?.message || 'Doğrulama başarısız. Lütfen girdiğiniz kodu kontrol edin.');

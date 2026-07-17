@@ -189,7 +189,68 @@ export function MapView() {
   // useEffect ile çift kontrol React re-render sırasında çelişkiye yol açıyordu — kaldırıldı.
 
 
-  const { clusters, fetchClusters, selectedIssue, selectIssue, filters, user, isAuthenticated } = useAppStore();
+  const { clusters, fetchClusters, selectedIssue, selectIssue, filters, user, isAuthenticated, pendingCityZoom, setPendingCityZoom } = useAppStore();
+
+  // ── Şehre Smooth Zoom Animasyonu (giriş/kayıt sonrası) ──────────────────
+  const cityZoomDoneRef = useRef(false);
+  useEffect(() => {
+    if (!pendingCityZoom || cityZoomDoneRef.current) return;
+    const cityName = user?.city;
+    if (!cityName) {
+      setPendingCityZoom(false);
+      return;
+    }
+    const coords = CITY_COORDS[cityName];
+    if (!coords) {
+      setPendingCityZoom(false);
+      return;
+    }
+
+    cityZoomDoneRef.current = true;
+    setPendingCityZoom(false);
+
+    // Haritanın yüklenmesini bekleyip animasyonu başlat
+    const runAnimation = () => {
+      if (!mapRef.current) {
+        // Harita henüz yüklenmedi; kısa süre sonra tekrar dene
+        const timer = setTimeout(runAnimation, 200);
+        return () => clearTimeout(timer);
+      }
+
+      // Faz 1: 400ms sonra hafifçe Türkiye genel görünümüne çek (drama etkisi)
+      const t1 = setTimeout(() => {
+        mapRef.current?.flyTo({
+          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+          zoom: TURKEY_CENTER.zoom,
+          duration: 800,
+          easing: (t) => t * (2 - t), // ease-out
+        });
+
+        // Faz 2: 1.4s sonra kullanıcının şehrine doğru smooth zoom
+        const t2 = setTimeout(() => {
+          mapRef.current?.flyTo({
+            center: [coords.longitude, coords.latitude],
+            zoom: coords.zoom,
+            duration: 2200,
+            pitch: 0,
+            bearing: 0,
+            easing: (t) => {
+              // cubic ease-in-out — çok smooth
+              return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            },
+          });
+          cityZoomDoneRef.current = false; // Sonraki oturum için sıfırla
+        }, 1400);
+
+        return () => clearTimeout(t2);
+      }, 400);
+
+      return () => clearTimeout(t1);
+    };
+
+    return runAnimation();
+  }, [pendingCityZoom, user?.city, setPendingCityZoom]);
+
 
   useEffect(() => {
     // Sayfa açılır açılmaz veriyi getir (Mapbox motorunun yüklenmesini beklemeden, paralel olarak)
@@ -419,14 +480,9 @@ export function MapView() {
       console.warn('Sky layer error:', err);
     }
 
-    // ── Mobil/Tablet: Giriş yapan kullanıcının şehrine smooth flyTo ──
+    // ── Tüm Cihazlar: Giriş yapan kullanıcının şehrine smooth flyTo ──
     try {
-      const ua = navigator.userAgent.toLowerCase();
-      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua) ||
-                             (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
-                             window.innerWidth <= 768;
-
-      if (isMobileDevice && isAuthenticated && user?.city) {
+      if (isAuthenticated && user?.city) {
         const cityCoord = CITY_COORDS[user.city];
         if (cityCoord) {
           setTimeout(() => {
@@ -532,7 +588,8 @@ export function MapView() {
       address: item.address || `${item.district || 'Merkez'}, ${item.city || 'İstanbul'}`,
       createdAt: item.createdAt || item.created_at || new Date().toISOString(),
       imageUrl: item.imageUrl || item.image_url || '',
-      upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42
+      upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42,
+      original_point_count: Number(item.point_count || 1)
     },
     geometry: {
       type: 'Point' as const,
@@ -544,7 +601,12 @@ export function MapView() {
     points,
     bounds: [-180, -85, 180, 85], // Always render all clusters to fix panning pop-in delay
     zoom: Math.round(clusterZoom),
-    options: { radius: 75, maxZoom: 16 }
+    options: { 
+      radius: 75, 
+      maxZoom: 16,
+      map: (props: any) => ({ sum_point_count: props.original_point_count }),
+      reduce: (accumulated: any, props: any) => { accumulated.sum_point_count += props.sum_point_count; }
+    }
   });
 
   const renderedMarkers = useMemo(() => {
@@ -552,18 +614,21 @@ export function MapView() {
       const [longitude, latitude] = cluster.geometry.coordinates;
       const {
         cluster: superclusterIsCluster,
-        point_count: rawPointCount,
+        sum_point_count,
+        original_point_count,
         category,
         status,
         issueId,
       } = cluster.properties;
 
-      const pointCount = Number(rawPointCount || 1);
+      const pointCount = superclusterIsCluster ? sum_point_count : original_point_count;
       const isCluster = superclusterIsCluster || pointCount > 1;
 
       if (isCluster) {
-        const totalIssues = points.reduce((acc: number, p: any) => acc + Number(p.properties.point_count || 1), 0) || 32;
-        const size = Math.min(32 + (pointCount / Math.max(totalIssues, 1)) * 36, 56);
+        // Logaritmik büyüme: küçük cluster'lar (ör: 2) ile büyükler (ör: 100) arasında devasa fark olmasın
+        const scaleLog = Math.log(pointCount) / Math.log(100); 
+        const size = Math.min(32 + scaleLog * 20, 60); 
+
         return (
           <Marker
             key={`cluster-${cluster.id || issueId || Math.random()}`}
@@ -629,30 +694,33 @@ export function MapView() {
             className="custom-individual-marker"
             style={{
               width: '32px',
-              height: '40px',
+              height: '32px',
               position: 'relative',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'flex-start',
               transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
               transformOrigin: 'bottom center',
               zIndex: 1
             }}
           >
-            <svg viewBox="0 0 24 24" fill={statusColor} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
+            {/* ViewBox "0 0 24 24" gives perfect bounds. The anchor="bottom" will sit exactly at the path tip. */}
+            <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMax meet" fill={statusColor} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
             </svg>
             
             <span style={{
               position: 'absolute',
-              top: '8px',
+              top: '6px', // Align with the circular top part of the pin
               left: '50%',
               transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 2
+              zIndex: 2,
+              pointerEvents: 'none' // Don't block clicks on the pin
             }}>
               {getCategorySvg(category)}
             </span>

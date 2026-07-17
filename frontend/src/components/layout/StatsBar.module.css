@@ -67,6 +67,12 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 950px) {
+  .hideOnMobile {
+    display: none !important;
+  }
+}
+
 @media (max-width: 850px) {
   .statsBar {
     height: auto;
@@ -101,8 +107,21 @@
   }
 }
 
-@media (max-width: 600px) {
-  .hideOnMobile {
-    display: none !important;
+@media (max-width: 480px) {
+  .statIconWrap {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .statValue {
+    font-size: 15px;
+  }
+
+  .statLabel {
+    font-size: 9px;
+  }
+
+  .statSub {
+    font-size: 8px;
   }
 }
