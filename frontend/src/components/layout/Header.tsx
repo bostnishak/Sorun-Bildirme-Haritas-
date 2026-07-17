@@ -155,19 +155,52 @@ export function Header() {
                   <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
                 </div>
                 
-                <Link href="/profile?tab=info" className={styles.dropdownItem} onClick={() => setIsMobileMenuOpen(false)}>
+                <button 
+                  type="button"
+                  className={styles.dropdownItem} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    router.push('/profile?tab=info');
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    router.push('/profile?tab=info');
+                  }}
+                >
                   <IconUser size={17} strokeWidth={1.8} />
                   Profil Sayfam
-                </Link>
-                
-                <Link href="/profile?tab=reports" className={styles.dropdownItem} onClick={() => setIsMobileMenuOpen(false)}>
-                  <IconFileText size={17} strokeWidth={1.8} />
-                  İhbarlarım
-                </Link>
+                </button>
                 
                 <button 
+                  type="button"
+                  className={styles.dropdownItem} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    router.push('/profile?tab=reports');
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    router.push('/profile?tab=reports');
+                  }}
+                >
+                  <IconFileText size={17} strokeWidth={1.8} />
+                  İhbarlarım
+                </button>
+                
+                <button 
+                  type="button"
                   className={`${styles.dropdownItem} ${styles.mobileOnly}`}
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    setReportModalOpen(true);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
                     setIsMobileMenuOpen(false);
                     setReportModalOpen(true);
                   }}
@@ -177,8 +210,15 @@ export function Header() {
                 </button>
                 
                 <button 
+                  type="button"
                   className={`${styles.dropdownItem} ${styles.mobileOnly}`}
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent('open-notifications'));
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
                     setIsMobileMenuOpen(false);
                     window.dispatchEvent(new CustomEvent('open-notifications'));
                   }}
@@ -190,8 +230,15 @@ export function Header() {
                 <div className={styles.dropdownSeparator}></div>
                 
                 <button 
+                  type="button"
                   className={`${styles.dropdownItem} ${styles.dropdownItemLogout}`}
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    logout();
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
                     setIsMobileMenuOpen(false);
                     logout();
                   }}

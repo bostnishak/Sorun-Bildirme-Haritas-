@@ -98,41 +98,51 @@ export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSide
 
         <nav className={styles.sidebarNav}>
           <button
+            type="button"
             className={`${styles.navItem} ${activeTab === 'info' ? styles.navItemActive : ''}`}
-            onClick={() => onTabChange('info')}
+            onMouseDown={(e) => { e.preventDefault(); onTabChange('info'); }}
+            onClick={(e) => { e.preventDefault(); onTabChange('info'); }}
           >
             <IconUser className={styles.navIcon} size={18} />
             Hesap Bilgileri
           </button>
 
           <button
+            type="button"
             className={`${styles.navItem} ${activeTab === 'password' ? styles.navItemActive : ''}`}
-            onClick={() => onTabChange('password')}
+            onMouseDown={(e) => { e.preventDefault(); onTabChange('password'); }}
+            onClick={(e) => { e.preventDefault(); onTabChange('password'); }}
           >
             <IconLock className={styles.navIcon} size={18} />
             Şifre Değiştir
           </button>
 
           <button
+            type="button"
             className={`${styles.navItem} ${activeTab === 'security' ? styles.navItemActive : ''}`}
-            onClick={() => onTabChange('security')}
+            onMouseDown={(e) => { e.preventDefault(); onTabChange('security'); }}
+            onClick={(e) => { e.preventDefault(); onTabChange('security'); }}
           >
             <IconLock className={styles.navIcon} size={18} />
             Güvenlik & 2FA
           </button>
 
           <button
+            type="button"
             className={`${styles.navItem} ${activeTab === 'reports' ? styles.navItemActive : ''}`}
-            onClick={() => onTabChange('reports')}
+            onMouseDown={(e) => { e.preventDefault(); onTabChange('reports'); }}
+            onClick={(e) => { e.preventDefault(); onTabChange('reports'); }}
           >
             <IconFileText className={styles.navIcon} size={18} />
             İhbarlarım
           </button>
 
           <button
+            type="button"
             className={`${styles.navItem} ${styles.dropdownItemLogout}`}
             style={{ marginTop: 'auto', borderTop: 'none', color: '#ef4444' }}
-            onClick={onLogout}
+            onMouseDown={(e) => { e.preventDefault(); onLogout(); }}
+            onClick={(e) => { e.preventDefault(); onLogout(); }}
           >
             <IconLogOut className={styles.navIcon} size={18} />
             Çıkış Yap
