@@ -751,31 +751,20 @@ export function MapView() {
     });
   }, [superClusters, supercluster, selectIssue]);
 
-  const isDesktopGuest = isDesktop && !isAuthenticated;
+
 
   return (
     <div
       className={styles.mapWrapper}
     >
-      {/* Görünmez overlay: sadece giriş yapılmamış PC kullanıcıları için */}
-      {isDesktopGuest && (
-        <div
-          onClick={handleLoginRedirect}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 10,
-            cursor: 'pointer',
-            background: 'transparent',
-          }}
-        />
-      )}
+
       <Map
         ref={mapRef}
         onLoad={handleMapLoad}
         {...viewState}
         onMove={onMove}
         onMoveEnd={handleMoveEnd}
+
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}

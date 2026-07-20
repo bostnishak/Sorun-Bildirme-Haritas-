@@ -259,16 +259,28 @@ export function Header() {
             </div>
           </>
         ) : (
-          <button
-            onClick={() => router.push('/login')}
-            className="btn btn-primary"
-            id="btn-login"
-            title="Giriş Yap"
-            style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto' }}
-          >
-            <IconLogin size={15} />
-            Giriş Yap
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link
+              href="/register"
+              className="btn btn-secondary"
+              id="btn-register"
+              title="Kayıt Ol"
+              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
+            >
+              <IconUserPlus size={15} />
+              <span className={styles.desktopOnly}>Kayıt Ol</span>
+            </Link>
+            <Link
+              href="/login"
+              className="btn btn-primary"
+              id="btn-login"
+              title="Giriş Yap"
+              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
+            >
+              <IconLogin size={15} />
+              <span className={styles.desktopOnly}>Giriş Yap</span>
+            </Link>
+          </div>
         )}
       </div>
     </header>

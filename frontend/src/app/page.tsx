@@ -9,7 +9,7 @@ import {
   IconLeaf, IconRoad, IconWater, IconConstruction, IconLight, IconTree,
   IconMessageSquare, IconTarget, IconArrowRight,
 } from '@/components/ui/Icon';
-import styles from './page.module.css';
+import styles from './page.module.css'
 
 export default function HomePage() {
   return (
