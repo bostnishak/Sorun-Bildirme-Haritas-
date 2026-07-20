@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl';
+import { useRouter } from 'next/navigation';
 // @ts-ignore
 import MapboxLanguage from '@mapbox/mapbox-gl-language';
 import useSupercluster from 'use-supercluster';
@@ -140,6 +141,8 @@ export function MapView() {
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
 
   const [activeBounds, setActiveBounds] = useState<[[number, number], [number, number]]>(TURKEY_BOUNDS);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -161,6 +164,7 @@ export function MapView() {
       
       // Tüm cihazlarda aynı sıkı Türkiye sınırı — çevre ülkelere gidiş engellendi
       setActiveBounds(TURKEY_BOUNDS);
+      setIsDesktop(!isRealMobileOrTablet);
     }
   }, []);
 
@@ -172,8 +176,7 @@ export function MapView() {
 
   const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
 
-  // Zoom eşiği: minZoom + 0.1 (çok ufak bir yakınlaşmada, örn. %20'de bile pan kilidi açılır)
-  // Kullanıcı hemen haritayı sürüklemeye başlayabilsin
+  // Zoom eşiği: Kullanıcı biraz bile yakınlaştırsa sağa sola oynatabilsin
   const panThreshold = minZoom + 0.1;
 
   const onMove = useCallback((evt: any) => {
@@ -189,6 +192,11 @@ export function MapView() {
 
 
   const { clusters, fetchClusters, selectedIssue, selectIssue, filters, user, isAuthenticated, pendingCityZoom, setPendingCityZoom } = useAppStore();
+
+  // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
+  const handleLoginRedirect = useCallback(() => {
+    router.push('/login');
+  }, [router]);
 
   // ── Şehre Smooth Zoom Animasyonu (giriş/kayıt sonrası) ──────────────────
   const cityZoomDoneRef = useRef(false);
@@ -503,10 +511,24 @@ export function MapView() {
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
 
-    // maxBounds={TURKEY_BOUNDS} zaten Türkiye dışına çıkmayı engelliyor.
-    // Eski "manyetik merkez" flyTo kilidi mobilde sola kaydırınca haritanın
-    // kendi kendine geri çekilmesine yol açıyordu — kaldırıldı.
+    // Kullanıcı uzaklaştığında (zoom out) haritayı otomatik olarak Türkiye merkezine topla
+    // Sadece PC'de çalışır (Mobildeki geri sekme hatasını önlemek için)
+    if (isDesktop && zoom < panThreshold + 0.3) {
+      const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.01 &&
+                         Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.01;
+      
+      if (!isCentered) {
+        mapRef.current?.flyTo({
+          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+          zoom: Math.max(zoom, minZoom),
+          duration: 600,
+          essential: true
+        });
+        return; // Animasyon bitene kadar state ve cluster güncellemelerini durdur
+      }
+    }
 
     setViewState({
       ...e.viewState,
@@ -729,8 +751,25 @@ export function MapView() {
     });
   }, [superClusters, supercluster, selectIssue]);
 
+  const isDesktopGuest = isDesktop && !isAuthenticated;
+
   return (
-    <div className={styles.mapWrapper}>
+    <div
+      className={styles.mapWrapper}
+    >
+      {/* Görünmez overlay: sadece giriş yapılmamış PC kullanıcıları için */}
+      {isDesktopGuest && (
+        <div
+          onClick={handleLoginRedirect}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            cursor: 'pointer',
+            background: 'transparent',
+          }}
+        />
+      )}
       <Map
         ref={mapRef}
         onLoad={handleMapLoad}
@@ -744,7 +783,7 @@ export function MapView() {
         {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
         maxZoom={16.5}
-        dragPan={true}
+        dragPan={viewState.zoom > panThreshold}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={false}
