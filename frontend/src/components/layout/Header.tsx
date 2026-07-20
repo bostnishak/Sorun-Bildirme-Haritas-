@@ -13,6 +13,15 @@ import {
 import { NotificationBell } from './NotificationBell';
 import styles from './Header.module.css';
 
+function getRoleLabel(role?: string): string {
+  switch (role) {
+    case 'CITIZEN': return 'Vatandaş';
+    case 'INSTITUTION_OFFICER': return 'Personel';
+    case 'SUPER_ADMIN': return 'Admin';
+    default: return role || 'Vatandaş';
+  }
+}
+
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,18 +101,6 @@ export function Header() {
       <div className={styles.actions}>
         {isAuthenticated ? (
           <>
-            <div className={styles.desktopOnly}>
-              <button
-                id="btn-report-issue"
-                className={`btn btn-primary ${styles.reportBtn}`}
-                onClick={() => setReportModalOpen(true)}
-                title="Sorun Bildir"
-                aria-label="Sorun Bildir"
-              >
-                <IconPlus size={14} />
-                <span className={styles.reportBtnText}>Sorun Bildir</span>
-              </button>
-            </div>
 
             <NotificationBell />
 
@@ -144,6 +141,7 @@ export function Header() {
                 </div>
                 <div className={styles.userInfo}>
                   <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
+                  <span className={styles.userRole}>{getRoleLabel(user?.role)}</span>
                 </div>
                 <svg className={styles.headerProfileChevron} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)', marginLeft: '2px' }}>
                   <polyline points="9 18 15 12 9 6" />
@@ -153,6 +151,7 @@ export function Header() {
               <div className={`${styles.userDropdown} ${isMobileMenuOpen ? styles.isOpen : ''}`}>
                 <div className={styles.dropdownHeader}>
                   <span className={styles.dropdownName}>{user?.firstName} {user?.lastName}</span>
+                  <span className={styles.dropdownRole}>{getRoleLabel(user?.role)}</span>
                 </div>
                 
                 <button 
@@ -193,7 +192,7 @@ export function Header() {
                 
                 <button 
                   type="button"
-                  className={`${styles.dropdownItem} ${styles.mobileOnly}`}
+                  className={styles.dropdownItem}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setIsMobileMenuOpen(false);
@@ -260,10 +259,16 @@ export function Header() {
             </div>
           </>
         ) : (
-          <Link href="/login" className="btn btn-primary" id="btn-login" title="Giriş Yap">
+          <button
+            onClick={() => router.push('/login')}
+            className="btn btn-primary"
+            id="btn-login"
+            title="Giriş Yap"
+            style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto' }}
+          >
             <IconLogin size={15} />
             Giriş Yap
-          </Link>
+          </button>
         )}
       </div>
     </header>

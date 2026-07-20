@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { QueryProvider } from './providers';
 import '@/styles/globals.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 export const metadata: Metadata = {
   title: 'Etiya Project — Türkiye Sorun Bildirim Haritası',

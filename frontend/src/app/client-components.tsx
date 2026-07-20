@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import {
   IconMessageSquare, IconCheckCircle, IconClock, IconMapPin,
-  IconBuilding, IconUsers, IconZap, IconMail, IconPhone, IconGlobe
+  IconBuilding, IconUsers, IconZap, IconMail, IconPhone, IconGlobe, IconPlus
 } from '@/components/ui/Icon';
 import { MOCK_STATS } from '@/lib/mockData';
 import styles from './page.module.css';
@@ -22,7 +22,7 @@ const MapView = dynamic(() => import('@/components/map/MapView').then(m => ({ de
 });
 
 function MapAreaClientInner() {
-  const { activeView, setActiveView } = useAppStore();
+  const { activeView, setActiveView, isAuthenticated, setReportModalOpen } = useAppStore();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -39,6 +39,17 @@ function MapAreaClientInner() {
       <FilterSidebar />
       <main className={styles.mapArea}>
         {activeView === 'map' ? <MapView /> : <TableView />}
+
+        {isAuthenticated && (
+          <button
+            className={styles.issueReportFab}
+            onClick={() => setReportModalOpen(true)}
+            aria-label="Sorun Bildir"
+          >
+            <IconPlus size={20} strokeWidth={2.5} />
+            <span className={styles.issueReportFabText}>Sorun Bildir</span>
+          </button>
+        )}
       </main>
     </div>
   );

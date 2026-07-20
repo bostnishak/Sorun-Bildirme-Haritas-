@@ -50,6 +50,53 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Sorun Bildir FAB */
+.issueReportFab {
+  position: absolute;
+  left: 24px;
+  bottom: 18px; /* 86px from fixed - 68px statsbar = 18px absolute in mapArea */
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.issueReportFab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -5px rgba(37, 99, 235, 0.55);
+}
+
+.issueReportFabText {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .issueReportFab {
+    left: 16px;
+    bottom: 18px;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .issueReportFabText {
+    display: none;
+  }
+}
+
 /* Scroll hint */
 .scrollHint {
   position: absolute;

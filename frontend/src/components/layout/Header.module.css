@@ -331,21 +331,6 @@
     display: none;
   }
 
-  .reportBtnText {
-    display: none !important;
-  }
-  
-  .reportBtn {
-    padding: 0 !important;
-    width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    min-width: 42px !important;
-    border-radius: 14px !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-  }
 
   .logoutBtn {
     padding: 6px 8px;

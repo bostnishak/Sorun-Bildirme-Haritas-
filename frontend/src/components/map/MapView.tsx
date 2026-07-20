@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl';
 // @ts-ignore
 import MapboxLanguage from '@mapbox/mapbox-gl-language';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import useSupercluster from 'use-supercluster';
 import { useAppStore } from '@/store/useAppStore';
 import { MOCK_ISSUES } from '@/lib/mockData';
@@ -205,51 +204,51 @@ export function MapView() {
       setPendingCityZoom(false);
       return;
     }
+    
+    let pollTimer: NodeJS.Timeout;
+    let t1: NodeJS.Timeout;
+    let t2: NodeJS.Timeout;
 
-    cityZoomDoneRef.current = true;
-    setPendingCityZoom(false);
-
-    // Haritanın yüklenmesini bekleyip animasyonu başlat
     const runAnimation = () => {
       if (!mapRef.current) {
         // Harita henüz yüklenmedi; kısa süre sonra tekrar dene
-        const timer = setTimeout(runAnimation, 200);
-        return () => clearTimeout(timer);
+        pollTimer = setTimeout(runAnimation, 200);
+        return;
       }
+      
+      cityZoomDoneRef.current = true; // Sadece 1 kere yap
 
       // Faz 1: 400ms sonra hafifçe Türkiye genel görünümüne çek (drama etkisi)
-      const t1 = setTimeout(() => {
+      t1 = setTimeout(() => {
         mapRef.current?.flyTo({
           center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: TURKEY_CENTER.zoom,
-          duration: 800,
-          easing: (t) => t * (2 - t), // ease-out
+          zoom: minZoom - 0.2, // biraz daha uzaklaş
+          duration: 1000,
+          essential: true
         });
 
-        // Faz 2: 1.4s sonra kullanıcının şehrine doğru smooth zoom
-        const t2 = setTimeout(() => {
+        // Faz 2: 1.4s sonra asıl hedefe uç
+        t2 = setTimeout(() => {
           mapRef.current?.flyTo({
-            center: [coords.longitude, coords.latitude],
-            zoom: coords.zoom,
-            duration: 2200,
-            pitch: 0,
-            bearing: 0,
-            easing: (t) => {
-              // cubic ease-in-out — çok smooth
-              return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            },
+            center: [CITY_COORDS[cityName].longitude, CITY_COORDS[cityName].latitude],
+            zoom: CITY_COORDS[cityName].zoom,
+            duration: 2500,
+            essential: true
           });
-          cityZoomDoneRef.current = false; // Sonraki oturum için sıfırla
+          
+          setPendingCityZoom(false); // Zoom animasyonu tamamlandı işareti
         }, 1400);
-
-        return () => clearTimeout(t2);
       }, 400);
-
-      return () => clearTimeout(t1);
     };
 
-    return runAnimation();
-  }, [pendingCityZoom, user?.city, setPendingCityZoom]);
+    runAnimation();
+
+    return () => {
+      clearTimeout(pollTimer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [pendingCityZoom, user?.city, setPendingCityZoom, minZoom]);
 
 
   useEffect(() => {
