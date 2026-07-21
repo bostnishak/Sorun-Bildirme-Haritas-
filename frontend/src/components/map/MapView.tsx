@@ -156,11 +156,11 @@ export function MapView() {
       const isMobileWidth = window.innerWidth <= 768;
       const isRealMobileOrTablet = isTouchDevice || isMobileWidth;
       
-      // Mobilde 5.0 zoom ile başla — üstten/alttan kesilerek sadece Türkiye görünsün
-      const initialZ = isRealMobileOrTablet ? 5.0 : TURKEY_CENTER.zoom;
+      // Mobilde 4.4 zoom ile başla — tüm Türkiye (Edirne'den Kars'a) kesilmeden ekrana sığsın (Ölçek düzeltildi)
+      const initialZ = isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom;
       
-      // PC'de minZoom 5.6, mobilde 5.0 olacak
-      setMinZoom(isRealMobileOrTablet ? 5.0 : TURKEY_CENTER.zoom);
+      // PC'de minZoom 5.6, mobilde 4.4 olacak
+      setMinZoom(isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom);
       
       setViewState(prev => ({ ...prev, zoom: initialZ }));
       setClusterZoom(initialZ);
@@ -201,18 +201,19 @@ export function MapView() {
     router.push('/login');
   }, [router]);
 
-  // ── Şehre Smooth Zoom Animasyonu (giriş/kayıt sonrası) ──────────────────
+  // ── Şehre Smooth Zoom Animasyonu (Tüm Hesap Türleri: Vatandaş, Çalışan, Admin) ──
   const cityZoomDoneRef = useRef(false);
   useEffect(() => {
-    if (!pendingCityZoom || cityZoomDoneRef.current) return;
-    const cityName = user?.city;
-    if (!cityName) {
-      setPendingCityZoom(false);
-      return;
-    }
+    if (cityZoomDoneRef.current) return;
+    
+    // Yalnızca pendingCityZoom açıksa VEYA (giriş yapılmış, şehri belli ve mobilde ise ilk açılışta)
+    const shouldAnimate = pendingCityZoom || (isAuthenticated && Boolean(user?.city) && !isDesktop);
+    if (!shouldAnimate) return;
+
+    const cityName = user?.city || 'Ankara';
     const coords = CITY_COORDS[cityName];
     if (!coords) {
-      setPendingCityZoom(false);
+      if (pendingCityZoom) setPendingCityZoom(false);
       return;
     }
     
@@ -222,34 +223,45 @@ export function MapView() {
 
     const runAnimation = () => {
       if (!mapRef.current) {
-        // Harita henüz yüklenmedi; kısa süre sonra tekrar dene
         pollTimer = setTimeout(runAnimation, 200);
         return;
       }
       
-      cityZoomDoneRef.current = true; // Sadece 1 kere yap
+      cityZoomDoneRef.current = true;
 
-      // Faz 1: 400ms sonra hafifçe Türkiye genel görünümüne çek (drama etkisi)
+      // Kullanıcı isteği: "bilgisayar web panelinde gerek yok ama mobil site halinde o geçiş olsun"
+      if (isDesktop && pendingCityZoom) {
+        mapRef.current?.flyTo({
+          center: [coords.longitude, coords.latitude],
+          zoom: coords.zoom,
+          duration: 1800,
+          essential: true
+        });
+        setPendingCityZoom(false);
+        return;
+      }
+
+      // Mobilde: Önce tüm Türkiye'yi (kesilmeyen 4.4 ölçekte) göster, sonra şehre smooth zoom at
       t1 = setTimeout(() => {
         mapRef.current?.flyTo({
           center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: minZoom - 0.2, // biraz daha uzaklaş
-          duration: 1000,
+          zoom: 4.4,
+          duration: 800,
           essential: true
         });
 
-        // Faz 2: 1.4s sonra asıl hedefe uç
         t2 = setTimeout(() => {
           mapRef.current?.flyTo({
-            center: [CITY_COORDS[cityName].longitude, CITY_COORDS[cityName].latitude],
-            zoom: CITY_COORDS[cityName].zoom,
-            duration: 2500,
+            center: [coords.longitude, coords.latitude],
+            zoom: coords.zoom,
+            duration: 3200,
+            curve: 1.45,
             essential: true
           });
           
-          setPendingCityZoom(false); // Zoom animasyonu tamamlandı işareti
-        }, 1400);
-      }, 400);
+          if (pendingCityZoom) setPendingCityZoom(false);
+        }, 1100);
+      }, 300);
     };
 
     runAnimation();
@@ -259,7 +271,7 @@ export function MapView() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [pendingCityZoom, user?.city, setPendingCityZoom, minZoom]);
+  }, [pendingCityZoom, isAuthenticated, user?.city, setPendingCityZoom, isDesktop]);
 
 
   useEffect(() => {
@@ -496,27 +508,7 @@ export function MapView() {
       console.warn('Sky layer error:', err);
     }
 
-    // ── Tüm Cihazlar: Giriş yapan kullanıcının şehrine smooth flyTo ──
-    try {
-      if (isAuthenticated && user?.city) {
-        const cityCoord = CITY_COORDS[user.city];
-        if (cityCoord) {
-          setTimeout(() => {
-            map.flyTo({
-              center: [cityCoord.longitude, cityCoord.latitude],
-              zoom: cityCoord.zoom,
-              duration: 2500,
-              essential: true,
-              curve: 1.42,
-            });
-          }, 1500);
-        }
-      }
-    } catch (err) {
-      console.warn('City flyTo error:', err);
-    }
-
-  }, [isAuthenticated, user?.city]);
+  }, []);
 
   const fetchTimerRef = useRef<any>(null);
 

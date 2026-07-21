@@ -16,8 +16,8 @@ import styles from './Header.module.css';
 function getRoleLabel(role?: string): string {
   switch (role) {
     case 'CITIZEN': return 'Vatandaş';
-    case 'INSTITUTION_OFFICER': return 'Personel';
-    case 'SUPER_ADMIN': return 'Admin';
+    case 'INSTITUTION_OFFICER': return 'Çalışan (Yetkili)';
+    case 'SUPER_ADMIN': return 'Süper Yönetici';
     default: return role || 'Vatandaş';
   }
 }

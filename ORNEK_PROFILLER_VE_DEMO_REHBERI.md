@@ -12,51 +12,37 @@ Giriş sayfasında (**`/login`**) yer alan **"Hızlı Demo Giriş — Örnek Pro
 
 | # | Profil Tipi | Ad Soyad | E-posta | Şifre | Rol & Yetki Kapsamı |
 |---|-------------|----------|---------|-------|---------------------|
-| **1** | **Doğrulanmış Vatandaş** | Ayşe Yılmaz | `vatandas@etiya.com` | `Etiya2026!` | `CITIZEN` *(NVİ Doğrulandı Rozetli)* |
-| **2** | **Standart Vatandaş** | Ahmet Demir | `ahmet@example.com` | `Etiya2026!` | `CITIZEN` *(Standart Kayıt)* |
-| **3** | **Kurum Yetkilisi (İBB)** | Zeynep Kaya | `ibb.yetkili@istanbul.bel.tr` | `Etiya2026!` | `INSTITUTION_OFFICER` *(İstanbul Sınırları)* |
-| **4** | **Kurum Yetkilisi (ABB)** | Mehmet Öztürk | `abb.yetkili@ankara.bel.tr` | `Etiya2026!` | `INSTITUTION_OFFICER` *(Ankara Sınırları)* |
-| **5** | **Kurum Yetkilisi (İZBB)** | Selin Aydın | `izmir.yetkili@izmir.bel.tr` | `Etiya2026!` | `INSTITUTION_OFFICER` *(İzmir Sınırları)* |
-| **6** | **Süper Yönetici** | Sistem Yöneticisi | `admin@etiya-project.com` | `Etiya2026!` | `SUPER_ADMIN` *(Tüm Platform Yetkisi)* |
+| **1** | **Vatandaş** | Ayşe Yılmaz | `vatandas@etiya.com` | `Etiya2026!` | `CITIZEN` *(NVİ Doğrulandı Rozetli, Şehir: Ankara)* |
+| **2** | **Çalışan (Kurum Yetkilisi)** | Mehmet Öztürk | `calisan@etiya.com` | `Etiya2026!` | `INSTITUTION_OFFICER` *(Kurum & Çözüm Yetkilisi, Şehir: İstanbul)* |
+| **3** | **Süper Yönetici** | Sistem Yöneticisi | `admin@etiya.com` | `Etiya2026!` | `SUPER_ADMIN` *(Tüm Platform Yetkilisi, Şehir: İzmir)* |
 
 ---
 
 ## 🧪 Profil Bazlı Test Senaryoları
 
-### 1. Doğrulanmış Vatandaş (`vatandas@etiya.com`)
-- **Özellikler:** NVİ T.C. Kimlik doğrulaması tamamlanmıştır. Sistemde adının yanında **"Doğrulanmış Vatandaş" (NVİ Rozeti)** görüntülenir.
+### 1. Vatandaş (`vatandas@etiya.com`)
+- **Özellikler:** NVİ T.C. Kimlik doğrulaması tamamlanmıştır. Sistemde adının yanında **"Doğrulanmış Vatandaş" (NVİ Rozeti)** görüntülenir. Kayıtlı şehri **Ankara**'dır.
 - **Test Edilebilecekler:**
-  - Yeni sorun bildirme (`/issues/new` üzerinden GPS konumlu sorun oluşturma)
-  - Mevcut sorunlara destek verme (Upvote)
-  - Sorunlara yorum yapma
-  - Kendi bildirdiği sorunların çözüm süreçlerini takip etme (`/my-issues`)
+  - Ana sayfada mobilden veya webden bağlandığında doğrudan **Ankara** şehrine smooth zoom geçişi.
+  - Yeni sorun bildirme (`/issues/new` üzerinden GPS konumlu sorun oluşturma).
+  - Mevcut sorunlara destek verme (Upvote) ve yorum yapma.
+  - Kendi bildirdiği sorunların çözüm süreçlerini takip etme (`/my-issues`).
 
-### 2. Standart Vatandaş (`ahmet@example.com`)
-- **Özellikler:** E-posta ile kayıt olmuştur, henüz NVİ doğrulaması yapmamıştır.
+### 2. Çalışan (Kurum Yetkilisi) (`calisan@etiya.com`)
+- **Özellikler:** Kurum sorun çözme yetkilisidir. Kayıtlı şehri **İstanbul**'dur.
 - **Test Edilebilecekler:**
-  - Sorun bildirme ve harita üzerinde filtreleme
-  - Profil sayfasından sonradan T.C. Kimlik doğrulaması yaparak rozet kazanma akışı
+  - Ana sayfaya giriş yaptıktan sonra mobilde Türkiye haritası genelinden **İstanbul** il sınırlarına smooth zoom animasyonu.
+  - Kurum Yönetim ve Çözüm Portalı (**`/portal`**) erişimi ve sorun yönetimi.
+  - Açık/incelenen sorunların durumunu değiştirme (`OPEN` -> `IN_REVIEW` -> `RESOLVED` / `REJECTED`).
+  - SLA İhlalleri, exceljs raporları ve çözüm performans verilerini görüntüleme.
 
-### 3. Kurum Yetkilisi — İstanbul Büyükşehir Belediyesi (`ibb.yetkili@istanbul.bel.tr`)
-- **Özellikler:** PostGIS `ST_Within` coğrafi yetkilendirmesi ile yalnızca **İstanbul** il sınırları içerisindeki sorunları yönetme yetkisine sahiptir.
+### 3. Süper Yönetici (`admin@etiya.com`)
+- **Özellikler:** Platformun en üst düzey yöneticisidir. Kayıtlı şehri **İzmir**'dir.
 - **Test Edilebilecekler:**
-  - Kurum Yönetim Portalı (**`/portal`**)
-  - İstanbul bölgesindeki açık/incelenen sorunların durumunu değiştirme (`OPEN` -> `IN_REVIEW` -> `RESOLVED` / `REJECTED`)
-  - SLA İhlalleri ve Çözüm Performans Raporlarını görüntüleme
-
-### 4. Kurum Yetkilisi — Ankara Büyükşehir Belediyesi (`abb.yetkili@ankara.bel.tr`)
-- **Özellikler:** Yalnızca **Ankara** il sınırları içerisindeki sorunları (örneğin Dikmen Caddesi Su Patlağı, Turan Güneş Bulvarı Çukur vb.) görür ve yönetir.
-
-### 5. Kurum Yetkilisi — İzmir Büyükşehir Belediyesi (`izmir.yetkili@izmir.bel.tr`)
-- **Özellikler:** Yalnızca **İzmir** il sınırları içerisindeki sorunları (örneğin Alsancak Kordon, Karşıyaka Çarşı vb.) görür ve yönetir.
-
-### 6. Süper Yönetici (`admin@etiya-project.com`)
-- **Özellikler:** Platformun en üst düzey yetkilisidir.
-- **Test Edilebilecekler:**
-  - Kurum Yönetim Portalı ve tüm Türkiye genelindeki istatistikler
-  - Kurum ekleme / düzenleme / sınır tanımlama
-  - Webhook DLQ (Dead-Letter Queue) yönetimi
-  - AI Moderasyon logları ve SLA genel raporları
+  - Ana sayfada giriş yapıldığında mobilden veya webden **İzmir** il sınırlarına smooth zoom geçişi.
+  - Kurum Yönetim Portalı (**`/portal`**) üzerinden tüm Türkiye genelindeki istatistikler ve denetim.
+  - Kurum ekleme / düzenleme / sınır tanımlama ve sistem yönetimi.
+  - AI Moderasyon logları, SLA genel raporları ve yönetici araçları.
 
 ---
 

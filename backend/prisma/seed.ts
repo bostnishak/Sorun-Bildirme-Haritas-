@@ -90,7 +90,7 @@ async function main() {
 
   console.log('👥 Örnek kullanıcı profilleri oluşturuluyor...');
 
-  // 1. Doğrulanmış Vatandaş
+  // 1. Vatandaş (`CITIZEN`)
   const verifiedCitizen = await prisma.user.create({
     data: {
       email: 'vatandas@etiya.com',
@@ -102,78 +102,44 @@ async function main() {
       tcKimlikHash: hashTCKimlik('11111111110'),
       birthYear: 1992,
       phone: '0532 111 2233',
+      city: 'Ankara',
     },
   });
+  const citizen = verifiedCitizen;
 
-  // 2. Standart Vatandaş
-  const citizen = await prisma.user.create({
-    data: {
-      email: 'ahmet@example.com',
-      passwordHash: hashedPassword,
-      firstName: 'Ahmet',
-      lastName: 'Demir',
-      role: 'CITIZEN',
-      isVerified: false,
-      phone: '0533 222 3344',
-    },
-  });
-
-  // 3. İstanbul İBB Kurum Yetkilisi
-  const ibbOfficer = await prisma.user.create({
+  // 2. Çalışan / Kurum Yetkilisi (`INSTITUTION_OFFICER`)
+  const officer = await prisma.user.create({
     data: {
       tcKimlikHash: hashTCKimlik('22222222220'),
-      firstName: 'Zeynep',
-      lastName: 'Kaya',
-      email: 'ibb.yetkili@istanbul.bel.tr',
+      firstName: 'Mehmet',
+      lastName: 'Öztürk',
+      email: 'calisan@etiya.com',
       passwordHash: hashedPassword,
       role: 'INSTITUTION_OFFICER',
       institutionId: istanbulInstitutionId,
       phone: '0212 555 1010',
+      city: 'İstanbul',
     },
   });
+  const ibbOfficer = officer;
+  const abbOfficer = officer;
+  const izmirOfficer = officer;
 
-  // 4. Ankara ABB Kurum Yetkilisi
-  const abbOfficer = await prisma.user.create({
-    data: {
-      tcKimlikHash: hashTCKimlik('33333333330'),
-      firstName: 'Mehmet',
-      lastName: 'Öztürk',
-      email: 'abb.yetkili@ankara.bel.tr',
-      passwordHash: hashedPassword,
-      role: 'INSTITUTION_OFFICER',
-      institutionId: ankaraInstitutionId,
-      phone: '0312 555 2020',
-    },
-  });
-
-  // 5. İzmir İZBB Kurum Yetkilisi
-  const izmirOfficer = await prisma.user.create({
-    data: {
-      tcKimlikHash: hashTCKimlik('44444444440'),
-      firstName: 'Selin',
-      lastName: 'Aydın',
-      email: 'izmir.yetkili@izmir.bel.tr',
-      passwordHash: hashedPassword,
-      role: 'INSTITUTION_OFFICER',
-      institutionId: izmirInstitutionId,
-      phone: '0232 555 3030',
-    },
-  });
-
-  // 6. Süper Yönetici
+  // 3. Süper Yönetici (`SUPER_ADMIN`)
   const admin = await prisma.user.create({
     data: {
       tcKimlikHash: hashTCKimlik('55555555550'),
       firstName: 'Sistem',
       lastName: 'Yöneticisi',
-      email: 'admin@etiya-project.com',
+      email: 'admin@etiya.com',
       passwordHash: hashedPassword,
       role: 'SUPER_ADMIN',
       phone: '0850 111 0000',
+      city: 'İzmir',
     },
   });
 
-  console.log('✅ 6 Örnek Profil (Doğrulanmış Vatandaş, Vatandaş, 3x Kurum Yetkilisi, Süper Admin) oluşturuldu.');
+  console.log('✅ 3 Örnek Profil (Vatandaş: vatandas@etiya.com, Çalışan: calisan@etiya.com, Admin: admin@etiya.com) oluşturuldu.');
 
   console.log('🗺️ Gerçekçi sorun bildirimleri ekleniyor...');
 

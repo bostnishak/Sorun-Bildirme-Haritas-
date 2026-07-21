@@ -24,14 +24,11 @@ Etiya Project, Türkiye genelinde altyapı ve şehir sorunlarını (bozuk yol, s
 
 Tüm örnek profillerin şifresi **`Etiya2026!`** olarak tanımlanmıştır. Giriş sayfasından (**`/login`**) **"Hızlı Demo Giriş"** paneline tıklayarak tek tıkla test edebilirsiniz. Detaylı senaryo rehberi için **[ORNEK_PROFILLER_VE_DEMO_REHBERI.md](./ORNEK_PROFILLER_VE_DEMO_REHBERI.md)** dosyasını inceleyiniz.
 
-| Rol | Kullanıcı | E-posta | Şifre | Kapsam |
-|-----|-----------|---------|-------|--------|
-| **Doğrulanmış Vatandaş** | Ayşe Yılmaz | `vatandas@etiya.com` | `Etiya2026!` | NVİ Doğrulandı Rozetli |
-| **Standart Vatandaş** | Ahmet Demir | `ahmet@example.com` | `Etiya2026!` | Standart Vatandaş |
-| **Kurum Yetkilisi (İBB)** | Zeynep Kaya | `ibb.yetkili@istanbul.bel.tr` | `Etiya2026!` | İstanbul Büyükşehir Belediyesi |
-| **Kurum Yetkilisi (ABB)** | Mehmet Öztürk | `abb.yetkili@ankara.bel.tr` | `Etiya2026!` | Ankara Büyükşehir Belediyesi |
-| **Kurum Yetkilisi (İZBB)** | Selin Aydın | `izmir.yetkili@izmir.bel.tr` | `Etiya2026!` | İzmir Büyükşehir Belediyesi |
-| **Süper Yönetici** | Sistem Yöneticisi | `admin@etiya-project.com` | `Etiya2026!` | Tüm Türkiye ve Kurumlar |
+| Rol | Kullanıcı | E-posta | Şifre | Kapsam & Şehir |
+|-----|-----------|---------|-------|----------------|
+| **Vatandaş** (`CITIZEN`) | Ayşe Yılmaz | `vatandas@etiya.com` | `Etiya2026!` | NVİ Doğrulandı Rozetli (Ankara) |
+| **Çalışan** (`INSTITUTION_OFFICER`) | Mehmet Öztürk | `calisan@etiya.com` | `Etiya2026!` | Kurum & Çözüm Yetkilisi (İstanbul) |
+| **Süper Yönetici** (`SUPER_ADMIN`) | Sistem Yöneticisi | `admin@etiya.com` | `Etiya2026!` | Tüm Türkiye Yetkilisi (İzmir) |
 
 ---
 

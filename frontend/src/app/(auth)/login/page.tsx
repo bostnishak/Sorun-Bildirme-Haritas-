@@ -45,6 +45,27 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = async (email: string) => {
+    setForm({ email, password: 'Etiya2026!' });
+    setLoading(true);
+    setError('');
+    try {
+      const response: any = await api.post('/auth/login', { email, password: 'Etiya2026!' });
+      const authPayload = response?.data || response;
+      const { user, accessToken, refreshToken } = authPayload || {};
+      if (!user || !accessToken) throw new Error('Kullanıcı bilgisi alınamadı.');
+      setTokens(accessToken, refreshToken);
+      setUser(user);
+      toast.success(`Hoş geldiniz, ${user.firstName || user.email}!`);
+      setPendingCityZoom(true);
+      router.push('/');
+    } catch (err: any) {
+      setError(err?.error?.message || err?.message || 'Demo girişi başarısız. Lütfen bilgileri kontrol edin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       {/* Left decorative panel */}
@@ -111,6 +132,54 @@ export default function LoginPage() {
           <p className={styles.formSubtitle}>
             Hesabınıza giriş yaparak sorun bildirmeye devam edin.
           </p>
+        </div>
+
+        {/* Hızlı Demo Giriş - 3 Hesap Türü */}
+        <div style={{ margin: '14px 0 20px', padding: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⚡ Hızlı Demo Girişi (Tek Tıkla)</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('vatandas@etiya.com')}
+              disabled={loading}
+              style={{
+                padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+                border: '1px solid #3b82f6', background: '#eff6ff', color: '#1d4ed8',
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+              }}
+            >
+              <span>👤 Vatandaş</span>
+              <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>Ankara</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('calisan@etiya.com')}
+              disabled={loading}
+              style={{
+                padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+                border: '1px solid #10b981', background: '#ecfdf5', color: '#047857',
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+              }}
+            >
+              <span>🏢 Çalışan</span>
+              <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>İstanbul</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('admin@etiya.com')}
+              disabled={loading}
+              style={{
+                padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+                border: '1px solid #8b5cf6', background: '#f5f3ff', color: '#6d28d9',
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+              }}
+            >
+              <span>🛡️ Admin</span>
+              <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>İzmir</span>
+            </button>
+          </div>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>

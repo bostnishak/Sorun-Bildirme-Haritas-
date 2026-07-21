@@ -70,9 +70,9 @@ export default function PortalPage() {
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16"/><path d="M2 18h20"/><path d="M12 2v4"/><path d="M4 18v-8h16v8"/><path d="M8 18v-5"/><path d="M12 18v-5"/><path d="M16 18v-5"/><path d="M4 10L12 6l8 4"/></svg>
           </span>
           <div>
-            <h1 className={styles.portalTitle}>Kurum Yönetim Portalı</h1>
+            <h1 className={styles.portalTitle}>Kurum Yönetim ve Çözüm Portalı</h1>
             <p className={styles.portalSubtitle}>
-              {user?.institution?.name || 'Yönetici'} — {user?.institution?.city}
+              {user?.institution?.name || (user?.role === 'SUPER_ADMIN' ? '🛡️ Süper Yönetici Paneli' : '🏢 Kurum & Çözüm Çalışanı')} — {user?.institution?.city || user?.city || 'Tüm Türkiye'}
             </p>
           </div>
         </div>
