@@ -259,6 +259,7 @@ export function MapView() {
           mapRef.current?.flyTo({
             center: [coords.longitude, coords.latitude],
             zoom: coords.zoom,
+            pitch: calculatePitch(coords.zoom),
             duration: 3200,
             curve: 1.45,
             essential: true
@@ -333,6 +334,18 @@ export function MapView() {
     } catch (err) {
       console.warn('Hassasiyet ayarı yapılamadı:', err);
     }
+
+    // Harita yakınlaştıkça (zoom) otomatik eğim (pitch) verme işlemini doğrudan harita objesine bağla (Performans için React State'i atla)
+    map.on('zoom', (e: any) => {
+      // Eğer zoom değişimi flyTo gibi bir animasyondan geliyorsa (originalEvent yoksa), müdahale etme ki animasyon kesilmesin.
+      if (!e.originalEvent) return;
+      
+      const currentZoom = map.getZoom();
+      const targetPitch = calculatePitch(currentZoom);
+      if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
+        map.setPitch(targetPitch);
+      }
+    });
 
     // Load category SVG icons as images for map rendering
     const loadIcon = (id: string, pathData: string) => {
@@ -682,13 +695,14 @@ export function MapView() {
         if (clusterId !== undefined && source && typeof source.getClusterExpansionZoom === 'function') {
           source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
             if (err || !zoom || typeof zoom !== 'number') {
-              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
             } else {
-              mapRef.current?.flyTo({ center: coords as [number, number], zoom: Math.min(zoom, 18), duration: 600 });
+              const targetZoom = Math.min(zoom, 18);
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: targetZoom, pitch: calculatePitch(targetZoom), duration: 600 });
             }
           });
         } else {
-          mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+          mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
         }
       }
     } else if (feature.layer?.id === 'unclustered-point-halo' || feature.layer?.id === 'unclustered-point-inner') {
