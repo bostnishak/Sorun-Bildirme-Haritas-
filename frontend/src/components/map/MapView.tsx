@@ -201,7 +201,7 @@ export function MapView() {
     router.push('/login');
   }, [router]);
 
-  // ── Şehre Smooth Zoom Animasyonu (Tüm Hesap Türleri: Vatandaş, Çalışan, Admin) ──
+  // ── Şehre Smooth Zoom Animasyonu (SADECE MOBİL WEB İÇİN: Vatandaş, Çalışan, Admin) ──
   const cityZoomDoneRef = useRef(false);
   useEffect(() => {
     if (cityZoomDoneRef.current) return;
@@ -209,6 +209,12 @@ export function MapView() {
     // Yalnızca pendingCityZoom açıksa VEYA (giriş yapılmış, şehri belli ve mobilde ise ilk açılışta)
     const shouldAnimate = pendingCityZoom || (isAuthenticated && Boolean(user?.city) && !isDesktop);
     if (!shouldAnimate) return;
+
+    // Kullanıcı talimatı: "sadece mobilde öyle zoom atacaktı bilgisayar ortamındaki webde değil mobil webde yapıcak onu"
+    if (isDesktop) {
+      if (pendingCityZoom) setPendingCityZoom(false);
+      return;
+    }
 
     const cityName = user?.city || 'Ankara';
     const coords = CITY_COORDS[cityName];
@@ -228,18 +234,6 @@ export function MapView() {
       }
       
       cityZoomDoneRef.current = true;
-
-      // Kullanıcı isteği: "bilgisayar web panelinde gerek yok ama mobil site halinde o geçiş olsun"
-      if (isDesktop && pendingCityZoom) {
-        mapRef.current?.flyTo({
-          center: [coords.longitude, coords.latitude],
-          zoom: coords.zoom,
-          duration: 1800,
-          essential: true
-        });
-        setPendingCityZoom(false);
-        return;
-      }
 
       // Mobilde: Önce tüm Türkiye'yi (kesilmeyen 4.4 ölçekte) göster, sonra şehre smooth zoom at
       t1 = setTimeout(() => {
