@@ -7,7 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import {
   IconMapPin, IconMap, IconTable, IconPlus,
-  IconLogin, IconUserPlus, IconUser, IconFileText, IconBell, IconLogOut,
+  IconLogin, IconUser, IconFileText, IconBell, IconLogOut,
   IconClock, IconSearch, IconCheckCircle, IconAlertCircle
 } from '@/components/ui/Icon';
 import { NotificationBell } from './NotificationBell';
@@ -271,17 +271,6 @@ export function Header() {
           </>
         ) : (
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Link
-              href="/register"
-              className="btn btn-secondary"
-              id="btn-register"
-              title="Kayıt Ol"
-              onClick={(e) => handleDirectNav(e, '/register')}
-              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
-            >
-              <IconUserPlus size={15} />
-              <span className={styles.desktopOnly}>Kayıt Ol</span>
-            </Link>
             <Link
               href="/login"
               className="btn btn-primary"
