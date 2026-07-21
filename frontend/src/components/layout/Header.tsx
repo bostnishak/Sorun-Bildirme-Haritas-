@@ -293,6 +293,17 @@ export function Header() {
         ) : (
           <div style={{ display: 'flex', gap: '8px' }}>
             <Link
+              href="/register"
+              className="btn"
+              id="btn-register"
+              title="Kayıt Ol"
+              onClick={(e) => handleDirectNav(e, '/register')}
+              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none', background: 'transparent', color: 'var(--color-primary)', border: 'none', boxShadow: 'none' }}
+            >
+              <IconUser size={15} />
+              <span className={styles.desktopOnly}>Kayıt Ol</span>
+            </Link>
+            <Link
               href="/login"
               className="btn btn-primary"
               id="btn-login"

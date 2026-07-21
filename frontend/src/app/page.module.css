@@ -12,9 +12,12 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1; /* Header (z-index: 9999) altında kalmasını garanti et */
-  padding-top: 60px;   /* header height */
-  padding-bottom: 68px; /* statsbar height */
+  z-index: 1;
+  /* Header (z-index: 9999) altında kalmasını garanti et */
+  padding-top: 60px;
+  /* header height */
+  padding-bottom: 68px;
+  /* statsbar height */
   overflow: hidden;
 }
 
@@ -49,13 +52,18 @@
   animation: spin 0.4s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* Sorun Bildir FAB */
 .issueReportFab {
   position: absolute;
   left: 24px;
-  bottom: 18px; /* 86px from fixed - 68px statsbar = 18px absolute in mapArea */
+  bottom: 18px;
+  /* 86px from fixed - 68px statsbar = 18px absolute in mapArea */
   z-index: 1200;
   display: inline-flex;
   align-items: center;
@@ -101,7 +109,8 @@
 /* Scroll hint */
 .scrollHint {
   position: absolute;
-  bottom: 76px; /* above statsbar */
+  bottom: 76px;
+  /* above statsbar */
   left: 50%;
   transform: translate3d(-50%, 0, 0);
   display: flex;
@@ -126,11 +135,20 @@
   will-change: transform;
 }
 
-.scrollHint:hover { color: var(--color-primary); }
+.scrollHint:hover {
+  color: var(--color-primary);
+}
 
 @keyframes bounce {
-  0%, 100% { transform: translate3d(-50%, 0, 0); }
-  50%       { transform: translate3d(-50%, 5px, 0); }
+
+  0%,
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(-50%, 5px, 0);
+  }
 }
 
 /* ─── Content Sections ────────────────────────────────────────────────────── */
@@ -192,11 +210,15 @@
 }
 
 @media (max-width: 900px) {
-  .featureGrid { grid-template-columns: repeat(2, 1fr); }
+  .featureGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 600px) {
-  .featureGrid { grid-template-columns: 1fr; }
+  .featureGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .featureCard {
@@ -245,7 +267,9 @@
 }
 
 @media (max-width: 800px) {
-  .statsShowcase { grid-template-columns: 1fr; }
+  .statsShowcase {
+    grid-template-columns: 1fr;
+  }
 }
 
 .statsShowcaseText .sectionTitle {
@@ -323,8 +347,13 @@
 }
 
 @media (max-width: 768px) {
-  .stepsGrid { grid-template-columns: 1fr; }
-  .stepsGrid::before { display: none; }
+  .stepsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepsGrid::before {
+    display: none;
+  }
 }
 
 .stepCard {
@@ -423,7 +452,7 @@
   border: 1px solid var(--color-border);
   border-radius: 18px;
   padding: 28px 32px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -525,6 +554,7 @@
     flex-direction: column;
     gap: 8px;
   }
+
   .contactSingleCard {
     padding: 20px 16px;
   }
@@ -539,9 +569,9 @@
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
 .footer {
   background: var(--color-text-primary);
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   padding: 40px 0 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .footerGrid {
@@ -552,10 +582,16 @@
 }
 
 @media (max-width: 900px) {
-  .footerGrid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .footerGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
 }
+
 @media (max-width: 600px) {
-  .footerGrid { grid-template-columns: 1fr; }
+  .footerGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .footerBrand {}
@@ -589,22 +625,22 @@
 .footerBrandDesc {
   font-size: 13px;
   line-height: 1.65;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255, 255, 255, 0.55);
   margin-bottom: 10px;
 }
 
 .footerBrandSub {
   font-size: 12px;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255, 255, 255, 0.35);
   font-style: italic;
 }
 
-.footerCol {}
+şi {}
 
 .footerColTitle {
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 18px;
@@ -620,13 +656,15 @@
 .footerLinks a,
 .footerLinks li {
   font-size: 13px;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   transition: color var(--transition-fast);
   cursor: pointer;
 }
 
-.footerLinks a:hover { color: white; }
+.footerLinks a:hover {
+  color: white;
+}
 
 .footerLegalLink {
   display: flex !important;
@@ -635,7 +673,7 @@
 }
 
 .footerBottom {
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 20px 0;
   display: flex;
   align-items: center;
@@ -646,7 +684,7 @@
 
 .footerCopyright {
   font-size: 13px;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .footerBottomLinks {
@@ -654,20 +692,23 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .footerBottomLinks a {
-  color: rgba(255,255,255,0.55);
+  color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-.footerBottomLinks a:hover { color: white; }
+.footerBottomLinks a:hover {
+  color: white;
+}
 
 @media (max-width: 768px) {
   .heroSection {
-    padding-top: 56px;   /* slightly smaller header on mobile */
+    padding-top: 56px;
+    /* slightly smaller header on mobile */
     padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -823,6 +864,7 @@
   .contactGridDesktop {
     display: none;
   }
+
   .contactMobileContainer {
     display: block;
   }
@@ -941,4 +983,3 @@
   background: white;
   border-color: var(--color-text-muted);
 }
-
