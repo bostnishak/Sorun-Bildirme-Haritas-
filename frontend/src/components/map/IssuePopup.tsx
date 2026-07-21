@@ -171,7 +171,7 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
             <div>
               <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1' }}>Güven Puanı</div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                {(issue as any).reporterTrustScore ?? (issue as any).trustScore ?? 'Belirtilmemiş'}
+                {(issue as any).reporterTrustScore ?? (issue as any).trustScore ?? 50}
               </div>
             </div>
           </div>

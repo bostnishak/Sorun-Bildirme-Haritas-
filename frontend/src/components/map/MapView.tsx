@@ -22,6 +22,30 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: '#6b7280',  // Gri
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  WATER_SANITATION: '#2563eb',
+  TRANSPORTATION: '#ea580c',
+  ENVIRONMENT: '#16a34a',
+  INFRASTRUCTURE: '#7c3aed',
+  SECURITY: '#dc2626',
+  SAFETY: '#dc2626',
+  LIGHTING: '#ca8a04',
+  PARKS: '#15803d',
+  OTHER: '#64748b',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  WATER_SANITATION: 'Su ve Kanalizasyon',
+  TRANSPORTATION: 'Yol / Ulaşım',
+  ENVIRONMENT: 'Çevre ve Temizlik',
+  INFRASTRUCTURE: 'Altyapı',
+  SECURITY: 'Güvenlik',
+  SAFETY: 'Güvenlik',
+  LIGHTING: 'Aydınlatma',
+  PARKS: 'Park ve Yeşil Alan',
+  OTHER: 'Diğer',
+};
+
 const TURKEY_CENTER = {
   latitude: 39.0,
   longitude: 35.5, // Daha fazla doğuyu (Van vb.) kapsamak için kaydırıldı
@@ -118,23 +142,10 @@ const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: n
   'Zonguldak': { latitude: 41.4564, longitude: 31.7987, zoom: 10, pitch: 0, bearing: 0 },
 };
 
-// SVG Kategori İkon Oluşturucu
-const getCategorySvg = (category: string) => {
-  const color = 'white';
-  switch (category) {
-    case 'WATER_SANITATION':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>;
-    case 'TRANSPORTATION':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M5 11l2-5h10l2 5" /></svg>;
-    case 'ENVIRONMENT':
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>;
-    default:
-      return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
-  }
-};
+// Deleted getCategorySvg since we use map.addImage instead
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
-const INTERACTIVE_LAYER_IDS = ['cluster-circle', 'unclustered-point-halo', 'unclustered-point-inner'];
+const INTERACTIVE_LAYER_IDS = ['cluster-circle', 'cluster-label-bg', 'unclustered-point-halo', 'unclustered-point-inner', 'unclustered-label-bg'];
 
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
@@ -322,6 +333,25 @@ export function MapView() {
     } catch (err) {
       console.warn('Hassasiyet ayarı yapılamadı:', err);
     }
+
+    // Load category SVG icons as images for map rendering
+    const loadIcon = (id: string, pathData: string) => {
+      const svg = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">${pathData}</svg>`;
+      const img = new Image();
+      img.onload = () => {
+        if (!map.hasImage(id)) map.addImage(id, img);
+      };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    };
+
+    loadIcon('icon-water', '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>');
+    loadIcon('icon-transport', '<path d="M8 21h8M7 3l1 18M17 3l-1 18"/><path d="M5 7h14M5 17h14M6 12h12"/>');
+    loadIcon('icon-env', '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>');
+    loadIcon('icon-infra', '<rect x="2" y="6" width="20" height="8" rx="1"/><path d="M17 14v7M7 14v7M17 3l-5 3-5-3"/><path d="M7 3v3M17 3v3"/>');
+    loadIcon('icon-security', '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>');
+    loadIcon('icon-lighting', '<line x1="12" y1="1" x2="12" y2="3"/><path d="M9 18h6M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="19.78" y1="4.22" x2="18.36" y2="5.64"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>');
+    loadIcon('icon-parks', '<path d="M17 14l-5-9-5 9h10z"/><path d="M15 20l-3-6-3 6h6z"/><line x1="12" y1="22" x2="12" y2="20"/>');
+    loadIcon('icon-other', '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>');
 
     try {
       const TRANSLATIONS: Record<string, string> = {
@@ -734,7 +764,7 @@ export function MapView() {
             sum_point_count: ['+', ['case', ['has', 'point_count'], ['to-number', ['get', 'point_count']], ['to-number', ['get', 'original_point_count']]]]
           }}
         >
-          {/* Küme Daireleri (GPU WebGL) */}
+          {/* ── Küme Daireleri (Kırmızı — orijinal tasarım) ── */}
           <Layer
             id="cluster-circle"
             type="circle"
@@ -758,7 +788,7 @@ export function MapView() {
               'circle-stroke-color': '#ffffff'
             }}
           />
-          {/* ── Küme İçindeki Sayılar ── */}
+          {/* ── Küme Sayıları (beyaz rakam) ── */}
           <Layer
             id="cluster-label-bg"
             type="symbol"
@@ -773,34 +803,69 @@ export function MapView() {
               'text-color': '#ffffff'
             }}
           />
-          {/* Tekil Nokta Dış Halkası (GPU WebGL) */}
+          {/* ── Sunucudan gelen (Mapbox'ın gruplamadığı) kümeler için sayılar ── */}
+          <Layer
+            id="backend-cluster-label-bg"
+            type="symbol"
+            filter={['all', ['!', ['has', 'point_count']], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            layout={{
+              'text-field': '{original_point_count}',
+              'text-size': 14,
+              'text-allow-overlap': true,
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular']
+            }}
+            paint={{
+              'text-color': '#ffffff'
+            }}
+          />
+
+          {/* ── Tekil Nokta: Kategori rengine göre dış halka ── */}
           <Layer
             id="unclustered-point-halo"
             type="circle"
             filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
             paint={{
-              'circle-radius': 11,
+              'circle-radius': 14,
               'circle-color': [
                 'match',
-                ['get', 'status'],
-                'OPEN', '#ef4444',
-                'IN_REVIEW', '#f59e0b',
-                'RESOLVED', '#10b981',
-                'REJECTED', '#6b7280',
-                '#ef4444'
+                ['get', 'category'],
+                'TRANSPORTATION', CATEGORY_COLORS['TRANSPORTATION'],
+                'WATER_SANITATION', CATEGORY_COLORS['WATER_SANITATION'],
+                'ENVIRONMENT', CATEGORY_COLORS['ENVIRONMENT'],
+                'INFRASTRUCTURE', CATEGORY_COLORS['INFRASTRUCTURE'],
+                'SAFETY', CATEGORY_COLORS['SAFETY'],
+                'SECURITY', CATEGORY_COLORS['SECURITY'],
+                'LIGHTING', CATEGORY_COLORS['LIGHTING'],
+                'PARKS', CATEGORY_COLORS['PARKS'],
+                CATEGORY_COLORS['OTHER']
               ],
               'circle-stroke-width': 2.5,
-              'circle-stroke-color': '#ffffff'
+              'circle-stroke-color': '#ffffff',
+              'circle-opacity': 0.92
             }}
           />
-          {/* Tekil Nokta İç Çekirdeği (GPU WebGL) */}
+          {/* ── Tekil Nokta: Kategori etiketi (Mapbox GL image rendering) ── */}
           <Layer
-            id="unclustered-point-inner"
-            type="circle"
+            id="unclustered-label-bg"
+            type="symbol"
             filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
-            paint={{
-              'circle-radius': 4.5,
-              'circle-color': '#ffffff'
+            layout={{
+              'icon-image': [
+                'match',
+                ['get', 'category'],
+                'TRANSPORTATION', 'icon-transport',
+                'WATER_SANITATION', 'icon-water',
+                'ENVIRONMENT', 'icon-env',
+                'INFRASTRUCTURE', 'icon-infra',
+                'SAFETY', 'icon-security',
+                'SECURITY', 'icon-security',
+                'LIGHTING', 'icon-lighting',
+                'PARKS', 'icon-parks',
+                'icon-other'
+              ],
+              'icon-size': 0.65,
+              'icon-allow-overlap': true,
+              'icon-anchor': 'center'
             }}
           />
         </Source>
