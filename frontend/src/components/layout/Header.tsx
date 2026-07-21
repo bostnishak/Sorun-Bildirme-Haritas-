@@ -117,7 +117,8 @@ export function Header() {
 
             <div className={styles.desktopOnly}>
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
-                <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı" onClick={(e) => handleDirectNav(e, '/portal')}>
+                <Link href="/portal" className={styles.portalBoxBtn} title="Yönetim Portalı" onClick={(e) => handleDirectNav(e, '/portal')}>
+                  <IconFileText size={16} strokeWidth={2.2} />
                   <span>Yönetim Portalı</span>
                 </Link>
               )}
@@ -236,6 +237,26 @@ export function Header() {
                   <IconBell size={17} strokeWidth={1.8} />
                   Bildirimler
                 </button>
+
+                {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
+                  <button 
+                    type="button"
+                    className={`${styles.dropdownItem} ${styles.mobileOnly}`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setIsMobileMenuOpen(false);
+                      handleDirectNav(e, '/portal');
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsMobileMenuOpen(false);
+                      handleDirectNav(e, '/portal');
+                    }}
+                  >
+                    <IconFileText size={17} strokeWidth={1.8} />
+                    Yönetim Portalı
+                  </button>
+                )}
 
                 <div className={styles.dropdownSeparator}></div>
                 

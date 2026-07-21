@@ -113,6 +113,32 @@
   z-index: 10;
 }
 
+/* Yönetim Portalı Box Button (Mavi kutucuk, Sorun Bildir ile tam uyumlu) */
+.portalBoxBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.88rem;
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.portalBoxBtn:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px -2px rgba(37, 99, 235, 0.55);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff !important;
+}
+
 /* User Menu */
 .userMenu {
   display: flex;
