@@ -770,6 +770,17 @@ export async function parseSinglePromptIssue(
     logger.warn('Chatbot LLM API / Kota hatası, yerel akıllı NLP motoru devreye girdi:', { error: String(error) });
     const lower = (userText || '').trim().toLowerCase();
 
+    // 0. Selamlama ve Sohbet Başlangıç Kontrolü
+    const greetings = ['selam', 'merhaba', 'naber', 'slm', 'selamlar', 'hey', 'iyi günler', 'kolay gelsin', 'günaydın', 'iyi akşamlar', 'alo'];
+    if (greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g))) {
+      return {
+        kategori: null, kategoriTurkce: null, baslik: null, aciklama: null, adres: null,
+        oncelik: 'LOW', guvenlik_ihlasi: false, siteDisiKonu: false, eksikBilgiSoru: null,
+        asistanMesaji: 'Merhaba! Ben Türkiye Sorun Bildirim Haritası Akıllı Asistanıyım. Size nasıl yardımcı olabilirim? Mahallenizde karşılaştığınız bir altyapı, çevre, yol veya aydınlatma sorununu bildirmek için sorunun ne olduğunu ve adresini yazabilirsiniz.',
+        onayBekliyor: false, ihbarOlusturuldu: false,
+      };
+    }
+
     // 0a. Onay (evet/onayla/tamam) veya İptal kontrolü (geçmişte onayBekliyor varsa)
     const lastHistoryMsg = frontendHistory && frontendHistory.length > 0 ? frontendHistory[frontendHistory.length - 1].content : '';
     const isAskingConfirmation = lastHistoryMsg && (lastHistoryMsg.includes('onaylıyor musunuz') || lastHistoryMsg.includes('onay bekliyor') || lastHistoryMsg.includes('kaydetmemi onaylıyor'));
@@ -787,7 +798,7 @@ export async function parseSinglePromptIssue(
 
       const userLastMsg = frontendHistory && frontendHistory.length >= 2 ? frontendHistory[frontendHistory.length - 2].content : userText;
 
-      return {
+      const result: ChatbotExtractionResponse = {
         kategori: recoveredKat,
         kategoriTurkce: recoveredKatTr,
         baslik: `${recoveredKatTr} Bildirimi`,
@@ -806,6 +817,13 @@ export async function parseSinglePromptIssue(
         onayBekliyor: false,
         ihbarOlusturuldu: true,
       };
+
+      if (!userId && (result.onayBekliyor || result.ihbarOlusturuldu)) {
+        result.onayBekliyor = false;
+        result.ihbarOlusturuldu = false;
+        result.asistanMesaji = "Tüm bilgileri aldım, ancak ihbarınızı kaydedebilmem için lütfen önce sisteme giriş yapınız.";
+      }
+      return result;
     }
 
     if (isAskingConfirmation && ['hayır', 'iptal', 'vazgeç', 'istemiyorum', 'yok'].some(w => lower === w || lower.startsWith(w + ' '))) {
@@ -844,8 +862,9 @@ export async function parseSinglePromptIssue(
       };
     }
 
-    // 1. Platform hakkında genel sorular ve yardım talepleri
-    if (lower.includes('ne işe yarar') || lower.includes('nedir') || lower.includes('harita') || lower.includes('nasıl') || lower.includes('yardım') || lower.includes('kimsin') || lower.includes('bilgi')) {
+    // 1. Platform hakkında genel sorular (Eğer cümlede adres/sorun kelimeleri veya 'yazdım', 'bul' yoksa)
+    const isAddressOrIssueText = ['mah', 'mahalle', 'sokak', 'cadde', 'parkı', 'meydanı', 'istanbul', 'ankara', 'izmir', 'beykoz', 'kavacık', 'bulvar', 'ilçe', 'no:', 'apt', 'arıza', 'bozuk', 'çalışmıyor', 'yazdım', 'lamba', 'çukur', 'su borusu', 'patladı'].some(w => lower.includes(w));
+    if (!isAddressOrIssueText && (lower.includes('ne işe yarar') || lower.includes('nedir') || lower.includes('nasıl kullanılır') || lower.includes('yardım et') || lower.includes('kimsin') || lower === 'harita' || lower === 'bilgi')) {
       return {
         kategori: null,
         kategoriTurkce: null,
@@ -862,15 +881,40 @@ export async function parseSinglePromptIssue(
       };
     }
 
-    // 2. Fotoğraf ve/veya ihbar anahtar kelime analizi (NLP Tokenizer)
-    let kat: any = null;
-    let katTr: string | null = null;
-    let baslik: string | null = null;
+    // Sohbet geçmişinden kategori hafızasını çıkar (Çoklu tur hafızası)
+    let historyCategory: any = null;
+    let historyCategoryTr: string | null = null;
+    let historyIssueDescription: string | null = null;
 
-    // C0 FIX: Türkçe karakterleri (ç, ğ, ı, ö, ş, ü) bozmayan tokenizer + çoklu kelime öbeği (phrase) desteği
+    if (frontendHistory && frontendHistory.length > 0) {
+      for (let i = frontendHistory.length - 1; i >= 0; i--) {
+        const msg = frontendHistory[i].content;
+        if (!historyCategory) {
+          if (msg.includes('Aydınlatma ve Elektrik') || msg.toLowerCase().includes('lamba') || msg.toLowerCase().includes('aydınlatma')) { historyCategory = 'LIGHTING'; historyCategoryTr = 'Aydınlatma ve Elektrik'; }
+          else if (msg.includes('Ulaşım ve Yollar') || msg.toLowerCase().includes('çukur') || msg.toLowerCase().includes('asfalt')) { historyCategory = 'TRANSPORTATION'; historyCategoryTr = 'Ulaşım ve Yollar'; }
+          else if (msg.includes('Su ve Kanalizasyon') || msg.toLowerCase().includes('su borusu') || msg.toLowerCase().includes('kanalizasyon')) { historyCategory = 'WATER_SANITATION'; historyCategoryTr = 'Su ve Kanalizasyon'; }
+          else if (msg.includes('Altyapı') || msg.toLowerCase().includes('altyapı') || msg.toLowerCase().includes('kablo')) { historyCategory = 'INFRASTRUCTURE'; historyCategoryTr = 'Altyapı'; }
+          else if (msg.includes('Çevre ve Atık') || msg.toLowerCase().includes('çöp')) { historyCategory = 'ENVIRONMENT'; historyCategoryTr = 'Çevre ve Atık'; }
+          else if (msg.includes('Güvenlik ve Acil')) { historyCategory = 'SECURITY'; historyCategoryTr = 'Güvenlik ve Acil Durum'; }
+          else if (msg.includes('Park ve Yeşil')) { historyCategory = 'PARKS'; historyCategoryTr = 'Park ve Yeşil Alanlar'; }
+        }
+
+        if (frontendHistory[i].role === 'user' && !historyIssueDescription && frontendHistory[i].content.trim().length > 5) {
+          const uMsg = frontendHistory[i].content;
+          if (!['selam', 'merhaba', 'naber', 'evet', 'hayır', 'tamam'].some(w => uMsg.toLowerCase() === w)) {
+            historyIssueDescription = uMsg;
+          }
+        }
+      }
+    }
+
+    // 2. Fotoğraf ve/veya ihbar anahtar kelime analizi (NLP Tokenizer)
+    let kat: any = historyCategory || null;
+    let katTr: string | null = historyCategoryTr || null;
+    let baslik: string | null = historyCategoryTr ? `${historyCategoryTr} Bildirimi` : null;
+
     const tokens = lower.split(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ]+/).filter(Boolean);
 
-    // Kök ve negasyon analizi: Bulunan sorunun hemen ardında "değil", "yok", "temiz" var mı?
     const isNegated = (words: string[]) => {
       const idx = tokens.findIndex((t: string) => words.some((w: string) => t.includes(w) || w.includes(t)));
       if (idx === -1) return false;
@@ -883,61 +927,62 @@ export async function parseSinglePromptIssue(
       return match && !isNegated(words);
     };
 
-    if (checkCategory(['çukur', 'yol', 'asfalt', 'kaldırım', 'lastik', 'trafik', 'otobüs', 'durak', 'ulaşım'])) {
-      kat = 'TRANSPORTATION';
-      katTr = 'Ulaşım ve Yollar';
-      baslik = 'Yol / Kaldırım / Ulaşım Sorunu';
-    } else if (checkCategory(['su borusu', 'boru patla', 'kanalizasyon', 'rögar taşıyor', 'fosseptik', 'su patla'])) {
-      kat = 'WATER_SANITATION';
-      katTr = 'Su ve Kanalizasyon';
-      baslik = 'Su Borusu / Kanalizasyon Arızası';
-    } else if (checkCategory(['lamba', 'aydınlatma', 'karanlık', 'sokak lambası'])) {
-      kat = 'LIGHTING';
-      katTr = 'Aydınlatma ve Elektrik';
-      baslik = 'Sokak Aydınlatma Arızası';
-    } else if (checkCategory(['altyapı', 'kazı', 'elektrik direği', 'kablo', 'istinat'])) {
-      kat = 'INFRASTRUCTURE';
-      katTr = 'Altyapı';
-      baslik = 'Altyapı Hasarı';
-    } else if (checkCategory(['çöp', 'kirlilik', 'atık', 'ağaç', 'park', 'koku'])) {
-      kat = 'ENVIRONMENT';
-      katTr = 'Çevre ve Atık';
-      baslik = 'Çevre Kirliliği / Atık Sorunu';
-    } else if (checkCategory(['güvenlik', 'tehlike', 'kaza', 'yangın'])) {
-      kat = 'SECURITY';
-      katTr = 'Güvenlik ve Acil Durum';
-      baslik = 'Acil Güvenlik / Risk Bildirimi';
+    // Yalnızca geçmişte bir kategori henüz belirlenmediyse veya kullanıcı yeni bir sorun kelimesi söylediyse kategoriyi algıla
+    if (!historyCategory || checkCategory(['çukur', 'asfalt', 'kaldırım', 'lastik', 'trafik', 'otobüs', 'durak', 'su borusu', 'boru patla', 'kanalizasyon', 'rögar', 'lamba', 'aydınlatma', 'karanlık', 'sokak lambası', 'altyapı', 'kazı', 'çöp', 'kirlilik', 'koku', 'güvenlik', 'tehlike', 'kaza'])) {
+      if (checkCategory(['çukur', 'yol', 'asfalt', 'kaldırım', 'lastik', 'trafik', 'otobüs', 'durak', 'ulaşım'])) {
+        kat = 'TRANSPORTATION';
+        katTr = 'Ulaşım ve Yollar';
+        baslik = 'Yol / Kaldırım / Ulaşım Sorunu';
+      } else if (checkCategory(['su borusu', 'boru patla', 'kanalizasyon', 'rögar taşıyor', 'fosseptik', 'su patla'])) {
+        kat = 'WATER_SANITATION';
+        katTr = 'Su ve Kanalizasyon';
+        baslik = 'Su Borusu / Kanalizasyon Arızası';
+      } else if (checkCategory(['lamba', 'aydınlatma', 'karanlık', 'sokak lambası', 'elektrik'])) {
+        kat = 'LIGHTING';
+        katTr = 'Aydınlatma ve Elektrik';
+        baslik = 'Sokak Aydınlatma Arızası';
+      } else if (checkCategory(['altyapı', 'kazı', 'elektrik direği', 'kablo', 'istinat'])) {
+        kat = 'INFRASTRUCTURE';
+        katTr = 'Altyapı';
+        baslik = 'Altyapı Hasarı';
+      } else if (checkCategory(['çöp', 'kirlilik', 'atık', 'koku']) || (!kat && checkCategory(['ağaç', 'park']))) {
+        kat = 'ENVIRONMENT';
+        katTr = 'Çevre ve Atık';
+        baslik = 'Çevre Kirliliği / Atık Sorunu';
+      } else if (checkCategory(['güvenlik', 'tehlike', 'kaza', 'yangın'])) {
+        kat = 'SECURITY';
+        katTr = 'Güvenlik ve Acil Durum';
+        baslik = 'Acil Güvenlik / Risk Bildirimi';
+      }
     }
 
-    // C1 FIX: Türkiye'nin tüm 81 ili
     const iller = [
       'adana', 'adıyaman', 'afyonkarahisar', 'ağrı', 'aksaray', 'amasya', 'ankara', 'antalya',
       'ardahan', 'artvin', 'aydın', 'balıkesir', 'bartın', 'batman', 'bayburt', 'bilecik',
       'bingöl', 'bitlis', 'bolu', 'burdur', 'bursa', 'çanakkale', 'çankırı', 'çorum',
       'denizli', 'diyarbakır', 'düzce', 'edirne', 'elâzığ', 'erzincan', 'erzurum',
       'eskişehir', 'gaziantep', 'giresun', 'gümüşhane', 'hakkari', 'hatay', 'ığdır',
-      'ısparta', 'istanbul', 'İstanbul', 'izmir', 'İzmir', 'karaman', 'kars', 'karabuk',
+      'ısparta', 'istanbul', 'izmir', 'karaman', 'kars', 'karabuk',
       'kastamonu', 'kayseri', 'kırklareli', 'kırıkkale', 'kırşehir', 'kilis', 'kocaeli',
       'konya', 'kutahya', 'malatya', 'manisa', 'mardin', 'mersin', 'muğla', 'muş',
       'nevşehir', 'niğde', 'ordu', 'osmaniye', 'rize', 'sakarya', 'samsun', 'siirt',
       'sinop', 'sivas', 'şanlıurfa', 'şırnak', 'tekirdağ', 'tokat', 'trabzon', 'tunceli',
       'uşak', 'van', 'yalova', 'yozgat', 'zonguldak'
     ];
-    // C2 FIX: Genişletilmiş ilçe listesi (en yüksek nüfuslu 5 şehir)
     const ilceler: Record<string, string> = {
       // İstanbul
       'kadıköy': 'İstanbul', 'kadikoy': 'İstanbul', 'moda': 'İstanbul',
       'beşiktaş': 'İstanbul', 'üsküdar': 'İstanbul', 'şişli': 'İstanbul',
       'beyoglu': 'İstanbul', 'beyoğlu': 'İstanbul', 'fatih': 'İstanbul', 'bakırköy': 'İstanbul',
-      'bağcılar': 'İstanbul', 'başakşehir': 'İstanbul',
+      'bağcılar': 'İstanbul', 'başakşehir': 'İstanbul', 'beykoz': 'İstanbul',
       'eyup': 'İstanbul', 'eyüpsultan': 'İstanbul', 'güngören': 'İstanbul',
       'kâğıthane': 'İstanbul', 'kagithane': 'İstanbul', 'kağıthane': 'İstanbul',
       'maltepe': 'İstanbul', 'pendik': 'İstanbul', 'sultanbeyli': 'İstanbul', 'sultançiftliği': 'İstanbul',
       'tuzla': 'İstanbul', 'ümraniye': 'İstanbul', 'zeytinburnu': 'İstanbul',
       'ataşehir': 'İstanbul', 'avcılar': 'İstanbul', 'arnavutköy': 'İstanbul',
       'beylikduzu': 'İstanbul', 'buyukcekmece': 'İstanbul', 'büyükçekmece': 'İstanbul',
-      'çatalca': 'İstanbul', 'esenyurt': 'İstanbul', 'sarıyer': 'İstanbul',
-      'şile': 'İstanbul', 'silivri': 'İstanbul',
+      'çatalca': 'İstanbul', 'esenyurt': 'İstanbul', 'sarıyer': 'İstanbul', 'sariyer': 'İstanbul',
+      'şile': 'İstanbul', 'silivri': 'İstanbul', 'kartal': 'İstanbul',
       // Ankara
       'çankaya': 'Ankara', 'keçiören': 'Ankara', 'mamak': 'Ankara', 'altındağ': 'Ankara',
       'etimesgut': 'Ankara', 'sincan': 'Ankara', 'yenimahalle': 'Ankara', 'pursaklar': 'Ankara',
@@ -989,22 +1034,24 @@ export async function parseSinglePromptIssue(
         kapiNo: ''
       } : null;
 
-      // Eğer cümlede "mahalle", "sokak", "cadde", "no:" gibi spesifik adres kelimeleri yoksa onay beklemesin
-      const hasDetailedAddress = userText && (userText.includes('mahalle') || userText.includes('sokak') || userText.includes('cadde') || userText.includes('no:'));
+      // Eğer cümlede "mahalle", "mah", "sokak", "cadde", "parkı", "meydan", "no:" gibi adres kelimeleri ve ilçe/il varsa bu detaylı ve yeterli bir adrestir
+      const hasDetailedAddress = userText && (bulIl || bulIlce) && (userText.includes('mahalle') || userText.includes('mah') || userText.includes('sokak') || userText.includes('cadde') || userText.includes('parkı') || userText.includes('meydan') || userText.includes('no:'));
+
+      const aciklamaMetni = historyIssueDescription || userText || 'Fotoğraflı ihbar kaydı.';
 
       const fallbackMesaj = imageBase64 && !kat 
         ? 'Görselinizi aldım ancak içeriğini tam anlayabilmem için lütfen sorunun ne olduğunu ve detaylı adresini (il, ilçe, mahalle, sokak) yazar mısınız?'
         : adrObj && hasDetailedAddress
-          ? `${katTr || 'Genel'} kategorisindeki bildiriminizi belirttiğiniz detaylı adres için algıladım. İhbarı bu şekilde kaydetmemi onaylıyor musunuz?`
+          ? `${katTr || 'Genel'} kategorisindeki bildiriminizi ${bulIl ? bulIl + ', ' : ''}${bulIlce ? bulIlce + ' - ' : ''}belirttiğiniz adres (${userText}) için algıladım. İhbarı bu şekilde kaydetmemi onaylıyor musunuz?`
           : adrObj && !hasDetailedAddress
-          ? `${katTr || 'Genel'} kategorisindeki bildiriminizi ${bulIlce ? bulIlce + '/' : ''}${bulIl || 'belirtilen konum'} için anladım. Ancak hızlı müdahale için lütfen tam adres detayını (mahalle ve sokak) verebilir misiniz? Veya 'konumumu al' yazarak izin verebilirsiniz.`
+          ? `${katTr || 'Genel'} kategorisindeki bildiriminizi ${bulIlce ? bulIlce + '/' : ''}${bulIl || 'belirtilen konum'} için anladım. Ancak hızlı müdahale için lütfen tam adres detayını (mahalle ve sokak/park) verebilir misiniz? Veya 'konumumu al' yazarak izin verebilirsiniz.`
           : `${katTr || 'Genel'} kategorisindeki sorununuzu anladım. Kaydı tamamlamak için lütfen sorunun bulunduğu il, ilçe, mahalle ve sokak bilgisini detaylıca yazar mısınız?`;
 
-      return {
+      const result: ChatbotExtractionResponse = {
         kategori: kat || 'ENVIRONMENT',
         kategoriTurkce: katTr || 'Genel İhbar',
         baslik: baslik || 'Vatandaş İhbar Bildirimi',
-        aciklama: userText || 'Fotoğraflı ihbar kaydı.',
+        aciklama: aciklamaMetni,
         adres: adrObj,
         oncelik: 'MEDIUM',
         guvenlik_ihlasi: false,
@@ -1014,6 +1061,13 @@ export async function parseSinglePromptIssue(
         onayBekliyor: !!(adrObj && hasDetailedAddress),
         ihbarOlusturuldu: false,
       };
+
+      if (!userId && (result.onayBekliyor || result.ihbarOlusturuldu)) {
+        result.onayBekliyor = false;
+        result.ihbarOlusturuldu = false;
+        result.asistanMesaji = "Tüm bilgileri aldım, ancak ihbarınızı kaydedebilmem için lütfen önce sisteme giriş yapınız.";
+      }
+      return result;
     }
 
     return {
