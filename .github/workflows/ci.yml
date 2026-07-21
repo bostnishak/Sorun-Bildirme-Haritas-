@@ -71,7 +71,7 @@ jobs:
       - name: Test Build Backend Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: false
           tags: etiya-project-backend:ci-test
@@ -79,7 +79,7 @@ jobs:
       - name: Test Build Frontend Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
           file: ./frontend/Dockerfile
           push: false
           tags: etiya-project-frontend:ci-test
