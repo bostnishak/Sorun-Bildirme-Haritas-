@@ -82,10 +82,10 @@
 
   /* Z-index */
   --z-map: 0;
-  --z-sidebar: 10;
-  --z-header: 20;
-  --z-modal: 50;
-  --z-toast: 100;
+  --z-sidebar: 100;
+  --z-header: 9999;
+  --z-modal: 10000;
+  --z-toast: 10001;
 }
 
 /* ─── Reset & Base ──────────────────────────────────────────────────────── */
@@ -311,6 +311,31 @@ label {
 .animate-slide-up   { animation: slideInUp var(--transition-normal) ease forwards; }
 
 /* ─── Mapbox / MapLibre overrides ──────────────────────────────────────────── */
+
+/* FIX: Harita kontrol katmanlarının Header butonlarını (Giriş Yap, Kayıt Ol)
+   yutmasını önlemek için tüm Mapbox/MapLibre kontrol container'larının
+   z-index'ini Header'ın altında tutuyoruz. */
+.mapboxgl-map,
+.maplibregl-map {
+  z-index: 0 !important;
+}
+
+/* Haritanın üst kısımlarındaki görünmez kontrol katmanları — Header ile çakışmasın */
+.mapboxgl-ctrl-top-left,
+.mapboxgl-ctrl-top-right,
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right {
+  z-index: 1 !important;
+}
+
+/* Canvas overlay — Header'ın altında kalmalı */
+.mapboxgl-canvas-container,
+.maplibregl-canvas-container,
+.mapboxgl-interactive,
+.maplibregl-interactive {
+  z-index: 0 !important;
+}
+
 .mapboxgl-ctrl-group, .maplibregl-ctrl-group {
   background: var(--color-surface) !important;
   border: 1px solid var(--color-border) !important;
@@ -357,6 +382,19 @@ label {
   bottom: 76px !important;
   right: 16px !important;
   z-index: 50 !important;
+}
+
+/* FIX: Mapbox'ın görünmez kontrol kapsayıcısının Header butonlarına giden
+   tıklamaları yutmasını engelle. Container'ın kendisi tıklanamaz olur,
+   ama içindeki gerçek kontroller (zoom vb.) tıklanabilir kalır. */
+.mapboxgl-control-container,
+.maplibregl-control-container {
+  pointer-events: none !important;
+}
+
+.mapboxgl-control-container *,
+.maplibregl-control-container * {
+  pointer-events: auto !important;
 }
 
 /* ─── Mobile Global Overrides ──────────────────────────────────────────── */

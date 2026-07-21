@@ -54,7 +54,7 @@ export function Header() {
   };
 
   return (
-    <header className={styles.header}>
+    <header className={styles.header} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
       {/* Logo */}
       <Link href="/" className={styles.logo} onClick={(e) => handleDirectNav(e, '/')}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px' }}>
