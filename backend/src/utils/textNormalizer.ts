@@ -84,26 +84,26 @@ export function fullyNormalize(text: string): string {
 // Türkçe'ye özel, fonetik varyantlar dahil
 
 const PROFANITY_PATTERNS: RegExp[] = [
-  // Temel küfürler ve varyantlar
-  /amk|amc|amq/i,
-  /sik|s1k|syk/i,
-  /bok|b0k/i,
-  /got|g0t|göt/i,
-  /oc|occ|oç/i,
-  /pic|piç|p1c|p1ç/i,
-  /kahpe|kxhpe/i,
-  /orospu|0r0spu|orosp/i,
-  /ibne|i8ne|1bne/i,
-  /pezevenk|pezeveng/i,
-  /serefsiz|şerefsiz|s3r3fsiz/i,
-  /ananı|ananizi|ananın/i,
-  /bacını|bacınızı/i,
+  // Temel küfürler ve varyantlar (\b ile kelime sınırlandırıldı, örn: 'kocaman' veya 'klasik' engellenmesin)
+  /\b(?:amk|amc|amq)\b/i,
+  /\b(?:sik|s1k|syk)\b/i,
+  /\b(?:bok|b0k)\b/i,
+  /\b(?:got|g0t|göt)\b/i,
+  /\b(?:oc|occ|oç)\b/i,
+  /\b(?:pic|piç|p1c|p1ç)\b/i,
+  /\b(?:kahpe|kxhpe)\b/i,
+  /\b(?:orospu|0r0spu|orosp)\b/i,
+  /\b(?:ibne|i8ne|1bne)\b/i,
+  /\b(?:pezevenk|pezeveng)\b/i,
+  /\b(?:serefsiz|şerefsiz|s3r3fsiz)\b/i,
+  /\b(?:ananı|ananizi|ananın)\b/i,
+  /\b(?:bacını|bacınızı)\b/i,
   // Hakaret kombinasyonları
-  /aptal(?:lar)?/i,
-  /gerizekalı|geri.zekali/i,
-  /salak(?:lar)?/i,
-  /mal(?:lar)?\s+(?:gibi|mısın)/i,
-  // İngilizce yaygın küfürler (platform Türkçe ama girdi mixed olabilir)
+  /\b(?:aptal(?:lar)?)\b/i,
+  /\b(?:gerizekalı|geri\.zekali)\b/i,
+  /\b(?:salak(?:lar)?)\b/i,
+  /\b(?:mal(?:lar)?\s+(?:gibi|mısın))\b/i,
+  // İngilizce yaygın küfürler
   /\bf+u+c+k+\b/i,
   /\bsh+i+t+\b/i,
   /\bb+i+t+c+h+\b/i,

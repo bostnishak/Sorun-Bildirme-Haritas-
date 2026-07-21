@@ -758,15 +758,16 @@ export function MapView() {
               'circle-stroke-color': '#ffffff'
             }}
           />
-          {/* Küme Sayıları (GPU WebGL) */}
+          {/* ── Küme İçindeki Sayılar ── */}
           <Layer
-            id="cluster-count"
+            id="cluster-label-bg"
             type="symbol"
-            filter={['any', ['has', 'point_count'], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            filter={['has', 'point_count']}
             layout={{
-              'text-field': ['to-string', ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['to-number', ['get', 'original_point_count']]]],
-              'text-size': 13,
-              'text-allow-overlap': true
+              'text-field': '{sum_point_count}',
+              'text-size': 14,
+              'text-allow-overlap': true,
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular']
             }}
             paint={{
               'text-color': '#ffffff'

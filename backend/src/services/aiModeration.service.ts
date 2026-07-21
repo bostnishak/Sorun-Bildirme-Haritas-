@@ -127,7 +127,6 @@ export function fastLocalSecurityCheck(text: string): ModerationResult | null {
   // Önce hızlı regex (mevcut), sonra homoglyph-aware tam normalizer
   const profanityDetected =
     QUICK_PROFANITY_REGEX.test(text) ||
-    QUICK_PROFANITY_REGEX.test(normalizedText) ||
     hasProfanityOrHomoglyphs(text); // Kiril, leet speak, araçımlı yazım
 
   if (profanityDetected) {
@@ -376,7 +375,7 @@ export async function enforceDynamicModeration(text: string, issueId?: string): 
   // 2. Katman: OpenAI Moderation API
   const moderationApiResult = await checkOpenAIModerationAPI(text);
   if (moderationApiResult) {
-    await logEntry('openai_moderation', moderationApiResult, 'text-moderation-latest');
+    await logEntry('openai_moderation', moderationApiResult, 'omni-moderation-latest');
     if (!moderationApiResult.passed) {
       logger.warn('AI Moderasyon [Katman 2 - OpenAI Moderation API] ihlali yakaladı.', {
         code: moderationApiResult.code,

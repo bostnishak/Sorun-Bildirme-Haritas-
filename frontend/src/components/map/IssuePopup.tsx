@@ -170,17 +170,8 @@ export function IssuePopup({ issue, onClose }: IssuePopupProps) {
             </div>
             <div>
               <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1' }}>Güven Puanı</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
-                {(() => {
-                  const score =
-                    (issue as any).reporterTrustScore ??
-                    (issue as any).reporter?.trustScore ??
-                    (issue as any).reportedBy?.trustScore ??
-                    (issue as any).user?.trustScore ??
-                    (issue as any).trustScore ??
-                    (isOwnIssue ? currentUser?.trustScore : undefined);
-                  return score !== undefined && score !== null ? score : 'Belirtilmemiş';
-                })()}
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                {(issue as any).reporterTrustScore ?? (issue as any).trustScore ?? 'Belirtilmemiş'}
               </div>
             </div>
           </div>

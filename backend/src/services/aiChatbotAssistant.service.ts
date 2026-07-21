@@ -1,4 +1,4 @@
-﻿import OpenAI from 'openai';
+import OpenAI from 'openai';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { enforceDynamicModeration } from './aiModeration.service';
@@ -564,7 +564,8 @@ YALNIZCA geçerli bir JSON nesnesi döndür. Başka hiçbir şey ekleme.
 export async function parseSinglePromptIssue(
   userText: string,
   imageBase64?: string,
-  userId?: string
+  userId?: string,
+  frontendHistory?: Array<{ role: string; content: string }>
 ): Promise<ChatbotExtractionResponse> {
 
   // 1. Dinamik Moderasyon — kısa sohbet mesajları için hafif yol
@@ -604,10 +605,10 @@ export async function parseSinglePromptIssue(
 
   // 3. OpenAI NLP & Multimodal Vision Entity Extraction
   try {
-    let history: Array<{ role: string; content: string }> = [];
+    let history: Array<{ role: string; content: string }> = frontendHistory && frontendHistory.length > 0 ? [...frontendHistory] : [];
     const redisKey = userId ? `chatbot_history:${userId}` : null;
 
-    if (redisKey) {
+    if (redisKey && history.length === 0) {
       const cachedHistoryEncrypted = await redis.get(redisKey);
       if (cachedHistoryEncrypted) {
         try {
@@ -706,6 +707,10 @@ export async function parseSinglePromptIssue(
     if (rawContent.startsWith('```')) {
       rawContent = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     }
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      rawContent = jsonMatch[0];
+    }
 
     let parsed;
     try {
@@ -714,24 +719,8 @@ export async function parseSinglePromptIssue(
       // z.parse throws ZodError on schema mismatch
       parsed = ChatbotSchema.parse(jsonParsed);
     } catch (parseError) {
-      console.error('--- LLM PARSE ERROR ---');
-      console.error('RAW CONTENT:', rawContent);
-      console.error('ERROR DETAILS:', parseError);
-      logger.error('JSON parse or validation error in Chatbot Assistant, safe fallback applied.', { error: String(parseError) });
-      return {
-        kategori: null,
-        kategoriTurkce: null,
-        baslik: null,
-        aciklama: null,
-        adres: null,
-        oncelik: 'LOW',
-        guvenlik_ihlasi: false,
-        siteDisiKonu: false,
-        eksikBilgiSoru: null,
-        asistanMesaji: 'Üzgünüm, yanıtımı işlerken bir sorun oluştu. Lütfen tekrar dener misiniz?',
-        onayBekliyor: false,
-        ihbarOlusturuldu: false,
-      };
+      logger.warn('LLM JSON/Zod parse hatası, yerel akıllı motor (fallback) devreye sokuluyor:', { raw: rawContent.substring(0, 100), error: String(parseError) });
+      throw parseError; // Yerel akıllı NLP motorunun (outer catch block) çalışması için fırlat
     }
 
     // GÖREV 2: Redis geçmiş sanitizasyonu — PII maskele, uzunluk sınırla, max 5 tur (10 giriş)
@@ -781,6 +770,80 @@ export async function parseSinglePromptIssue(
     logger.warn('Chatbot LLM API / Kota hatası, yerel akıllı NLP motoru devreye girdi:', { error: String(error) });
     const lower = (userText || '').trim().toLowerCase();
 
+    // 0a. Onay (evet/onayla/tamam) veya İptal kontrolü (geçmişte onayBekliyor varsa)
+    const lastHistoryMsg = frontendHistory && frontendHistory.length > 0 ? frontendHistory[frontendHistory.length - 1].content : '';
+    const isAskingConfirmation = lastHistoryMsg && (lastHistoryMsg.includes('onaylıyor musunuz') || lastHistoryMsg.includes('onay bekliyor') || lastHistoryMsg.includes('kaydetmemi onaylıyor'));
+
+    if (isAskingConfirmation && ['evet', 'tamam', 'onayla', 'gönder', 'kaydet', 'olur', 'evet onaylıyorum', 'onaylıyorum'].some(w => lower === w || lower.startsWith(w + ' '))) {
+      let recoveredKat: any = 'ENVIRONMENT';
+      let recoveredKatTr = 'Genel İhbar';
+      if (lastHistoryMsg.includes('Ulaşım')) { recoveredKat = 'TRANSPORTATION'; recoveredKatTr = 'Ulaşım ve Yollar'; }
+      else if (lastHistoryMsg.includes('Su ve Kanalizasyon') || lastHistoryMsg.includes('Su ')) { recoveredKat = 'WATER_SANITATION'; recoveredKatTr = 'Su ve Kanalizasyon'; }
+      else if (lastHistoryMsg.includes('Aydınlatma')) { recoveredKat = 'LIGHTING'; recoveredKatTr = 'Aydınlatma ve Elektrik'; }
+      else if (lastHistoryMsg.includes('Altyapı')) { recoveredKat = 'INFRASTRUCTURE'; recoveredKatTr = 'Altyapı'; }
+      else if (lastHistoryMsg.includes('Çevre')) { recoveredKat = 'ENVIRONMENT'; recoveredKatTr = 'Çevre ve Atık'; }
+      else if (lastHistoryMsg.includes('Güvenlik')) { recoveredKat = 'SECURITY'; recoveredKatTr = 'Güvenlik ve Acil Durum'; }
+      else if (lastHistoryMsg.includes('Park')) { recoveredKat = 'PARKS'; recoveredKatTr = 'Park ve Yeşil Alanlar'; }
+
+      const userLastMsg = frontendHistory && frontendHistory.length >= 2 ? frontendHistory[frontendHistory.length - 2].content : userText;
+
+      return {
+        kategori: recoveredKat,
+        kategoriTurkce: recoveredKatTr,
+        baslik: `${recoveredKatTr} Bildirimi`,
+        aciklama: userLastMsg || 'Yapay zeka asistanı üzerinden onaylanan bildirim.',
+        adres: {
+          tamAdres: userLastMsg || 'İstanbul',
+          il: 'İstanbul',
+          ilce: 'Merkez',
+          mahalle: '', sokak: '', kapiNo: ''
+        },
+        oncelik: 'MEDIUM',
+        guvenlik_ihlasi: false,
+        siteDisiKonu: false,
+        eksikBilgiSoru: null,
+        asistanMesaji: 'İhbarınız başarıyla onaylandı, sisteme kaydedildi ve yetkili birimlere iletildi. Duyarlılığınız için teşekkür ederiz!',
+        onayBekliyor: false,
+        ihbarOlusturuldu: true,
+      };
+    }
+
+    if (isAskingConfirmation && ['hayır', 'iptal', 'vazgeç', 'istemiyorum', 'yok'].some(w => lower === w || lower.startsWith(w + ' '))) {
+      return {
+        kategori: null,
+        kategoriTurkce: null,
+        baslik: null,
+        aciklama: null,
+        adres: null,
+        oncelik: 'LOW',
+        guvenlik_ihlasi: false,
+        siteDisiKonu: false,
+        eksikBilgiSoru: null,
+        asistanMesaji: 'Anlaşıldı, ihbar kaydı işlemini iptal ettim. Başka bir konuda yardımcı olabilir miyim?',
+        onayBekliyor: false,
+        ihbarOlusturuldu: false,
+      };
+    }
+
+    // 0b. Site dışı konu analizi (spor, maç, magazin, borsa, döviz, siyaset, yemek, hava durumu vb.)
+    const offTopicKeywords = ['maç', 'skor', 'galatasaray', 'fenerbahçe', 'beşiktaş', 'trabzonspor', 'dolar', 'euro', 'borsa', 'bitcoin', 'kripto', 'şiir', 'şarkı', 'yemek tarifi', 'burç', 'fal', 'hava durumu', 'siyaset', 'parti', 'seçim', 'milletvekili', 'magazin', 'dizi', 'sinema'];
+    if (offTopicKeywords.some(kw => lower.includes(kw))) {
+      return {
+        kategori: null,
+        kategoriTurkce: null,
+        baslik: null,
+        aciklama: null,
+        adres: null,
+        oncelik: 'LOW',
+        guvenlik_ihlasi: false,
+        siteDisiKonu: true,
+        eksikBilgiSoru: null,
+        asistanMesaji: 'Bu platform yalnızca belediye, kentsel altyapı ve çevre sorunlerinin bildirilmesi (yol, su, çöp, aydınlatma vb.) amacıyla hizmet vermektedir. Bahsettiğiniz konu platformumuzun kapsamı dışındadır. Mahallenizde çözülmesini istediğiniz kentsel bir sorun varsa yardımcı olmaktan memnuniyet duyarım.',
+        onayBekliyor: false,
+        ihbarOlusturuldu: false,
+      };
+    }
+
     // 1. Platform hakkında genel sorular ve yardım talepleri
     if (lower.includes('ne işe yarar') || lower.includes('nedir') || lower.includes('harita') || lower.includes('nasıl') || lower.includes('yardım') || lower.includes('kimsin') || lower.includes('bilgi')) {
       return {
@@ -804,45 +867,45 @@ export async function parseSinglePromptIssue(
     let katTr: string | null = null;
     let baslik: string | null = null;
 
-    const tokenizer = new natural.WordTokenizer();
-    const tokens = tokenizer.tokenize(lower) || [];
+    // C0 FIX: Türkçe karakterleri (ç, ğ, ı, ö, ş, ü) bozmayan tokenizer + çoklu kelime öbeği (phrase) desteği
+    const tokens = lower.split(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ]+/).filter(Boolean);
 
     // Kök ve negasyon analizi: Bulunan sorunun hemen ardında "değil", "yok", "temiz" var mı?
     const isNegated = (words: string[]) => {
-      const idx = tokens.findIndex((t: string) => words.some((w: string) => t.includes(w)));
+      const idx = tokens.findIndex((t: string) => words.some((w: string) => t.includes(w) || w.includes(t)));
       if (idx === -1) return false;
       const nextWords = tokens.slice(idx + 1, idx + 3);
       return nextWords.some((w: string) => ['değil', 'yok', 'sorunsuz', 'temiz', 'güzel', 'harika'].includes(w));
     };
 
     const checkCategory = (words: string[]) => {
-      const match = tokens.some((t: string) => words.some((w: string) => t.includes(w)));
+      const match = words.some((w: string) => lower.includes(w) || tokens.some((t: string) => t.includes(w)));
       return match && !isNegated(words);
     };
 
-    if (checkCategory(['su', 'boru', 'patla', 'kanalizasyon', 'taşıyor'])) {
+    if (checkCategory(['çukur', 'yol', 'asfalt', 'kaldırım', 'lastik', 'trafik', 'otobüs', 'durak', 'ulaşım'])) {
+      kat = 'TRANSPORTATION';
+      katTr = 'Ulaşım ve Yollar';
+      baslik = 'Yol / Kaldırım / Ulaşım Sorunu';
+    } else if (checkCategory(['su borusu', 'boru patla', 'kanalizasyon', 'rögar taşıyor', 'fosseptik', 'su patla'])) {
       kat = 'WATER_SANITATION';
       katTr = 'Su ve Kanalizasyon';
       baslik = 'Su Borusu / Kanalizasyon Arızası';
-    } else if (checkCategory(['lamba', 'aydınlatma', 'karanlık', 'elektrik'])) {
+    } else if (checkCategory(['lamba', 'aydınlatma', 'karanlık', 'sokak lambası'])) {
       kat = 'LIGHTING';
       katTr = 'Aydınlatma ve Elektrik';
       baslik = 'Sokak Aydınlatma Arızası';
-    } else if (checkCategory(['çukur', 'yol', 'asfalt', 'kaldırım', 'altyapı'])) {
+    } else if (checkCategory(['altyapı', 'kazı', 'elektrik direği', 'kablo', 'istinat'])) {
       kat = 'INFRASTRUCTURE';
-      katTr = 'Altyapı ve Yol';
-      baslik = 'Yol / Kaldırım Hasarı';
-    } else if (checkCategory(['çöp', 'kirlilik', 'atık', 'ağaç', 'park'])) {
+      katTr = 'Altyapı';
+      baslik = 'Altyapı Hasarı';
+    } else if (checkCategory(['çöp', 'kirlilik', 'atık', 'ağaç', 'park', 'koku'])) {
       kat = 'ENVIRONMENT';
-      katTr = 'Çevre ve Parklar';
-      baslik = 'Çevre Kirliliği / Genel Sorun';
-    } else if (checkCategory(['trafik', 'otobüs', 'durak', 'ulaşım'])) {
-      kat = 'TRANSPORTATION';
-      katTr = 'Ulaşım ve Trafik';
-      baslik = 'Ulaşım / Durak Sorunu';
+      katTr = 'Çevre ve Atık';
+      baslik = 'Çevre Kirliliği / Atık Sorunu';
     } else if (checkCategory(['güvenlik', 'tehlike', 'kaza', 'yangın'])) {
       kat = 'SECURITY';
-      katTr = 'Güvenlik ve Risk';
+      katTr = 'Güvenlik ve Acil Durum';
       baslik = 'Acil Güvenlik / Risk Bildirimi';
     }
 

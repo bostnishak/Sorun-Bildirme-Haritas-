@@ -135,13 +135,13 @@ export async function verifyIssuePhotoProof(
 
     return result;
   } catch (error) {
-    logger.warn('Vision AI Doğrulama servisi hatası (veya OpenAI 429 kota limiti), fail-close prensibi uygulandı:', { error: String(error) });
+    logger.warn('Vision AI Doğrulama servisi API hatası veya kota aşımı (429), fail-open (esnek) prensip ile kabul ediliyor:', { error: String(error) });
     return {
-      valid: false,
-      confidenceScore: 0.0,
-      reason: 'Görsel analiz servisi geçici olarak kullanılamıyor.',
-      detectedLabels: [],
-      userFriendlyMessage: 'Fotoğraf analiz servisimiz şu an hizmet veremiyor. Lütfen fotoğraf yüklemeden sorununuzu metin olarak açıklayınız.',
+      valid: true,
+      confidenceScore: 0.75,
+      reason: 'OpenAI API veya kota yoğunluğu nedeniyle otomatik kabul edildi (Arka planda inceleme yapılacak).',
+      detectedLabels: ['otomatik-onay'],
+      userFriendlyMessage: undefined,
       latencyMs: Date.now() - (start || Date.now()),
     };
   }

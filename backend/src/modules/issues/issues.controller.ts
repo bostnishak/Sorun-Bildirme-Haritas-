@@ -364,13 +364,14 @@ export async function assistantSinglePrompt(req: Request, res: Response): Promis
   const schema = z.object({
     message: z.string().max(2000, 'Mesaj en fazla 2000 karakter olabilir.').optional().default(''),
     imageBase64: z.string().max(2_100_000, 'Görsel boyutu çok büyük (max ~1.5 MB).').optional(),
+    history: z.array(z.object({ role: z.string(), content: z.string() })).optional(),
   });
-  const { message, imageBase64 } = schema.parse(req.body);
+  const { message, imageBase64, history } = schema.parse(req.body);
 
   if (!message && !imageBase64) {
     throw new BadRequestError('Lütfen bir mesaj veya fotoğraf gönderin.');
   }
 
-  const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user?.sub);
+  const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user?.sub, history);
   res.status(200).json({ success: true, data: extraction });
 }

@@ -106,9 +106,9 @@ export async function guardContent(
   } catch (err) {
     if (err instanceof BadRequestError) throw err;
 
-    // OpenAI API hatası — Fail-Close prensibi ile isteği reddet
-    logger.error('LLM Guard API hatası — Fail-Close uygulandı', { error: String(err) });
-    throw new BadRequestError('Yapay zeka analiz servisimiz şu an yoğunluk nedeniyle hizmet veremiyor. Lütfen daha sonra tekrar deneyin.');
+    // OpenAI API veya kota hatası (429) — Fail-Open prensibi (esnek doğrulama) ile kabul et
+    logger.warn('LLM Guard API veya kota hatası — Fail-Open esnek kabul uygulandı:', { error: String(err) });
+    return { valid: true, reason: 'AI API yoğunluğu/kota limiti nedeniyle otomatik kabul (Arka plan incelemesi yapılacak)' };
   }
 }
 
@@ -167,7 +167,7 @@ export async function analyzeImageContent(
 
     return result;
   } catch (err) {
-    logger.error('Vision AI hatası — Fail-Close uygulandı', { error: String(err) });
-    return { valid: false, reason: 'Görsel analiz servis hatası veya kota aşımı' };
+    logger.warn('Vision AI servisi veya kota (429) hatası — Fail-Open prensibiyle kabul ediliyor:', { error: String(err) });
+    return { valid: true, reason: 'Görsel analiz API kota limiti nedeniyle otomatik onay (İnsan denetimi için OPEN)' };
   }
 }

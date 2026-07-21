@@ -47,7 +47,7 @@ export class OpenAIProvider implements LLMProvider {
 
   async moderate(text: string): Promise<ModerationResult> {
     const response = await this.openai.moderations.create({
-      model: 'text-moderation-latest',
+      model: 'omni-moderation-latest',
       input: text,
     });
     
