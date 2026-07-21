@@ -1,11 +1,34 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import styles from './Footer.module.css';
 
 export function Footer() {
+  const router = useRouter();
   const currentYear = new Date().getFullYear();
+
+  const handleAnchorNav = (e: React.MouseEvent, targetId: string, view?: 'map' | 'table') => {
+    if (view) {
+      useAppStore.getState().setActiveView(view);
+    }
+    if (typeof window !== 'undefined' && window.location.pathname === '/') {
+      const el = document.getElementById(targetId);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth' });
+        window.history.pushState(null, '', view ? `/?view=${view}#${targetId}` : `/#${targetId}`);
+      }
+    }
+  };
+
+  const handleDirectNav = (e: React.MouseEvent, targetUrl: string) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    router.push(targetUrl);
+  };
 
   return (
     <footer className={styles.footer}>
@@ -49,7 +72,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/?view=map#harita"
-                  onClick={() => useAppStore.getState().setActiveView('map')}
+                  onClick={(e) => handleAnchorNav(e, 'harita', 'map')}
                 >
                   Harita Görünümü
                 </Link>
@@ -57,14 +80,14 @@ export function Footer() {
               <li>
                 <Link
                   href="/?view=table#harita"
-                  onClick={() => useAppStore.getState().setActiveView('table')}
+                  onClick={(e) => handleAnchorNav(e, 'harita', 'table')}
                 >
                   Tablo Görünümü
                 </Link>
               </li>
-              <li><Link href="/my-issues">Bildirimlerim</Link></li>
-              <li><Link href="/register">Kayıt Ol</Link></li>
-              <li><Link href="/login">Giriş Yap</Link></li>
+              <li><Link href="/my-issues" onClick={(e) => handleDirectNav(e, '/my-issues')}>Bildirimlerim</Link></li>
+              <li><Link href="/register" onClick={(e) => handleDirectNav(e, '/register')}>Kayıt Ol</Link></li>
+              <li><Link href="/login" onClick={(e) => handleDirectNav(e, '/login')}>Giriş Yap</Link></li>
             </ul>
           </div>
 
@@ -72,10 +95,24 @@ export function Footer() {
           <div>
             <h4 className={styles.colHeader}>Kurumsal</h4>
             <ul className={styles.linkList}>
-              <li><Link href="/iletisim">İletişim</Link></li>
-              <li><Link href="/#nasil-calisir">Yardım</Link></li>
-              <li><Link href="/iletisim">Basın</Link></li>
-              <li><Link href="/#nasil-calisir">Nasıl Çalışır?</Link></li>
+              <li><Link href="/iletisim" onClick={(e) => handleDirectNav(e, '/iletisim')}>İletişim</Link></li>
+              <li>
+                <Link
+                  href="/#nasil-calisir"
+                  onClick={(e) => handleAnchorNav(e, 'nasil-calisir')}
+                >
+                  Yardım
+                </Link>
+              </li>
+              <li><Link href="/iletisim" onClick={(e) => handleDirectNav(e, '/iletisim')}>Basın</Link></li>
+              <li>
+                <Link
+                  href="/#nasil-calisir"
+                  onClick={(e) => handleAnchorNav(e, 'nasil-calisir')}
+                >
+                  Nasıl Çalışır?
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -83,10 +120,10 @@ export function Footer() {
           <div>
             <h4 className={styles.colHeader}>Yasal & Mevzuat</h4>
             <ul className={styles.linkList}>
-              <li><Link href="/kvkk">KVKK Aydınlatma Metni</Link></li>
-              <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
-              <li><Link href="/kullanim-kosullari">Kullanım Koşulları</Link></li>
-              <li><Link href="/cerez-politikasi">Çerez Politikası</Link></li>
+              <li><Link href="/kvkk" onClick={(e) => handleDirectNav(e, '/kvkk')}>KVKK Aydınlatma Metni</Link></li>
+              <li><Link href="/gizlilik" onClick={(e) => handleDirectNav(e, '/gizlilik')}>Gizlilik Politikası</Link></li>
+              <li><Link href="/kullanim-kosullari" onClick={(e) => handleDirectNav(e, '/kullanim-kosullari')}>Kullanım Koşulları</Link></li>
+              <li><Link href="/cerez-politikasi" onClick={(e) => handleDirectNav(e, '/cerez-politikasi')}>Çerez Politikası</Link></li>
             </ul>
           </div>
         </div>

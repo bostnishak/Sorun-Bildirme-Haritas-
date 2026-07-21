@@ -102,18 +102,8 @@ app.get('/health', async (_req: Request, res: Response) => {
       minioStatus = 'failed';
     }
 
-    // OpenAI Check
-    let openaiStatus = 'ok';
-    try {
-      if (env.OPENAI_API_KEY) {
-        const { OpenAIProvider } = await import('./services/llm/openai.provider');
-        const llm = new OpenAIProvider();
-        // A minimal API ping - listing models is often used for this
-        await llm['openai'].models.list();
-      }
-    } catch {
-      openaiStatus = 'failed';
-    }
+    // OpenAI Check - Canlı ortamda container health check bloklanmaması için sadece yapılandırma kontrolü
+    const openaiStatus = env.OPENAI_API_KEY ? 'ok' : 'unconfigured';
     
     res.status(200).json({
       status: 'healthy',

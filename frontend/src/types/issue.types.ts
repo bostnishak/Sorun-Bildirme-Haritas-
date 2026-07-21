@@ -62,6 +62,10 @@ export interface BoundingBoxQuery {
   maxLng: number;
   maxLat: number;
   zoom: number;
+  category?: string;
+  status?: string;
+  city?: string;
+  district?: string;
 }
 
 export interface ApiResponse<T> {

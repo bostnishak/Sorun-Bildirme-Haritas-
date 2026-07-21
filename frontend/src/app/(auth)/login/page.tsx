@@ -10,7 +10,9 @@ import styles from './page.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, setTokens, setPendingCityZoom } = useAppStore();
+  const setUser = useAppStore(state => state.setUser);
+  const setTokens = useAppStore(state => state.setTokens);
+  const setPendingCityZoom = useAppStore(state => state.setPendingCityZoom);
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

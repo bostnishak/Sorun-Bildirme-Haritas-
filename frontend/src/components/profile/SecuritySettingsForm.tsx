@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import styles from '@/app/profile/Profile.module.css';
 
 export function SecuritySettingsForm() {
-  const { user } = useAppStore();
+  const user = useAppStore((state) => state.user);
   const [step, setStep] = useState<'idle' | 'qr' | 'codes'>('idle');
   const [qrData, setQrData] = useState<{ qrCodeUrl: string; secret: string } | null>(null);
   const [token, setToken] = useState('');
@@ -62,11 +62,13 @@ export function SecuritySettingsForm() {
   const handleDownloadCodes = () => {
     const element = document.createElement('a');
     const file = new Blob([`Etiya Project - İki Adımlı Doğrulama Kurtarma Kodları\n\n${recoveryCodes.join('\n')}\n\nBu kodları güvenli bir yerde saklayınız. Her kod yalnızca bir kez kullanılabilir.`], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
+    element.href = url;
     element.download = 'etiya-kurtarma-kodlari.txt';
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    URL.revokeObjectURL(url);
   };
 
   return (

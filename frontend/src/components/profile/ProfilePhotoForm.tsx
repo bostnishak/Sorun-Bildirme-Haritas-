@@ -4,7 +4,7 @@ import { IconX, IconMinus, IconPlus } from '@/components/ui/Icon';
 import { useAppStore } from '@/store/useAppStore';
 
 export function ProfilePhotoForm({ onClose }: { onClose: () => void }) {
-  const { user } = useAppStore();
+  const user = useAppStore(state => state.user);
   const [imageSrc, setImageSrc] = useState<string | null>(user?.avatarUrl || null);
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });

@@ -12,7 +12,11 @@ type RegisterDto = any;
 
 export function useAuth() {
   const router = useRouter();
-  const { user, isAuthenticated, login, register, logout } = useAppStore();
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const login = useAppStore(state => state.login);
+  const register = useAppStore(state => state.register);
+  const logout = useAppStore(state => state.logout);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

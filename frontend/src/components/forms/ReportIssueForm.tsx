@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import toast from 'react-hot-toast';
 import styles from './ReportIssueForm.module.css';
@@ -25,7 +25,8 @@ interface FormData {
 }
 
 export function ReportIssueForm({ onClose }: { onClose: () => void }) {
-  const { user, isAuthenticated } = useAppStore();
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const [formData, setFormData] = useState<FormData>({
     title: '', description: '', category: '', city: 'İstanbul', district: 'Beykoz', address: '',
   });
@@ -39,6 +40,14 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [aiVoiceSuccess, setAiVoiceSuccess] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const districts = formData.city ? (TR_CITIES_DISTRICTS[formData.city] || []) : [];
 

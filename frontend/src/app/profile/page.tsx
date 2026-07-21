@@ -14,7 +14,10 @@ import styles from './Profile.module.css';
 function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, logout, _hasHydrated, user } = useAppStore();
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const logout = useAppStore(state => state.logout);
+  const _hasHydrated = useAppStore(state => state._hasHydrated);
+  const user = useAppStore(state => state.user);
   
   const tabParam = searchParams.get('tab');
   const initialTab = tabParam === 'photo' ? 'info' : (tabParam || 'info');

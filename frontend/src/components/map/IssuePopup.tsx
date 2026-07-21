@@ -54,7 +54,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function IssuePopup({ issue, onClose }: IssuePopupProps) {
-  const { user: currentUser } = useAppStore();
+  const currentUser = useAppStore(state => state.user);
   const IconComponent = CATEGORY_ICON_MAP[issue.category];
   const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.OPEN;
   const priorityCfg = PRIORITY_CONFIG[issue.priority] || PRIORITY_CONFIG.MEDIUM;

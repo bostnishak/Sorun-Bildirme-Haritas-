@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { redis } from '../../config/redis';
-import { Role } from '@prisma/client';
+import { Role, Prisma } from '@prisma/client';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { getClusterGridSize } from '../../utils/spatial.utils';
 import { webhookQueue, notificationQueue } from '../../jobs/queue';
@@ -32,6 +32,10 @@ interface BoundingBox {
   minLng: number; minLat: number;
   maxLng: number; maxLat: number;
   zoom: number;
+  category?: string;
+  status?: string;
+  city?: string;
+  district?: string;
 }
 
 export const issuesService = {
@@ -121,7 +125,7 @@ export const issuesService = {
   async list(params: {
     cursor?: string; limit: number;
     city?: string; district?: string;
-    category?: string; status?: string; search?: string;
+    category?: string; status?: string; search?: string; sortBy?: string;
   }) {
     const limit = Math.min(params.limit, 100); // max 100
 
@@ -143,21 +147,28 @@ export const issuesService = {
       }
     }
 
+    let orderBy: any = undefined;
+    if (params.sortBy === 'newest') orderBy = { createdAt: 'desc' };
+    else if (params.sortBy === 'oldest') orderBy = { createdAt: 'asc' };
+    else if (params.sortBy === 'upvotes_desc') orderBy = { upvoteCount: 'desc' };
+    else if (params.sortBy === 'upvotes_asc') orderBy = { upvoteCount: 'asc' };
+
     const [rawIssues, total] = await Promise.all([
       prisma.issue.findMany({
         where,
         take: limit + 1, // Bir fazlasını alarak sonrakı sayfa var mı kontrol et
         cursor: params.cursor ? { id: params.cursor } : undefined,
         skip: params.cursor ? 1 : 0,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: {
-          id: true, title: true, category: true, priority: true, status: true,
-          latitude: true, longitude: true, city: true, district: true,
-          imageUrl: true, createdAt: true, updatedAt: true,
+          id: true, title: true, description: true, category: true, priority: true, status: true,
+          latitude: true, longitude: true, city: true, district: true, address: true,
+          imageUrl: true, createdAt: true, updatedAt: true, upvoteCount: true,
           reportedBy: { select: { firstName: true, lastName: true, tcKimlikHash: true } },
         },
       }),
-      prisma.issue.count({ where }),
+      // Cursor varsa (2. ve sonraki sayfalar) ağır COUNT(*) sorgusu atma
+      params.cursor ? Promise.resolve(-1) : prisma.issue.count({ where }),
     ]);
 
     let nextCursor: string | undefined = undefined;
@@ -185,16 +196,39 @@ export const issuesService = {
    */
   async getMapClusters(bbox: BoundingBox) {
     const gridSize = getClusterGridSize(bbox.zoom);
-    // 1x1 derecelik coğrafi karo (tile) prefix'i (Örn: tile_29_41)
-    const tileX = Math.floor(bbox.minLng);
-    const tileY = Math.floor(bbox.minLat);
-    const cacheKey = `cluster:tile_${tileX}_${tileY}:${bbox.minLng.toFixed(3)}:${bbox.minLat.toFixed(3)}:${bbox.maxLng.toFixed(3)}:${bbox.maxLat.toFixed(3)}:${bbox.zoom}`;
+    // 0.25 derecelik grid (karo) sınırlarına yuvarla: Haritayı azıcık kaydırdığınızda veya zoom değiştirdiğinizde
+    // milimetrik koordinat değişimleri yüzünden cache ıskalamasın (Cache Hit %98+ olsun)
+    const minLngR = Math.floor(bbox.minLng * 4) / 4;
+    const minLatR = Math.floor(bbox.minLat * 4) / 4;
+    const maxLngR = Math.ceil(bbox.maxLng * 4) / 4;
+    const maxLatR = Math.ceil(bbox.maxLat * 4) / 4;
+    const cacheKey = `cluster:box_${minLngR.toFixed(2)}_${minLatR.toFixed(2)}_${maxLngR.toFixed(2)}_${maxLatR.toFixed(2)}_z${bbox.zoom}_c${bbox.category || ''}_s${bbox.status || ''}_ct${bbox.city || ''}_d${bbox.district || ''}`;
 
     // Cache kontrolü
     const cached = await redis.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
     }
+
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`issues.location && ST_MakeEnvelope(${minLngR}, ${minLatR}, ${maxLngR}, ${maxLatR}, 4326)`,
+      Prisma.sql`issues.status != 'REJECTED'::"IssueStatus"`,
+    ];
+
+    if (bbox.category) {
+      conditions.push(Prisma.sql`issues.category = ${bbox.category}::"Category"`);
+    }
+    if (bbox.status) {
+      conditions.push(Prisma.sql`issues.status = ${bbox.status}::"IssueStatus"`);
+    }
+    if (bbox.city) {
+      conditions.push(Prisma.sql`issues.city = ${bbox.city}`);
+    }
+    if (bbox.district) {
+      conditions.push(Prisma.sql`issues.district = ${bbox.district}`);
+    }
+
+    const whereClause = Prisma.join(conditions, ' AND ');
 
     const clusters = await prisma.$queryRaw<any[]>`
       SELECT
@@ -212,28 +246,24 @@ export const issuesService = {
         MODE() WITHIN GROUP (ORDER BY issues.district::text)   AS district,
         MODE() WITHIN GROUP (ORDER BY issues.address::text)    AS address,
         MODE() WITHIN GROUP (ORDER BY issues.created_at::text) AS created_at,
+        MODE() WITHIN GROUP (ORDER BY issues.created_at::text) AS "createdAt",
         MODE() WITHIN GROUP (ORDER BY issues.image_url::text)  AS image_url,
         MODE() WITHIN GROUP (ORDER BY issues.upvote_count::int) AS upvote_count,
+        MODE() WITHIN GROUP (ORDER BY issues.upvote_count::int) AS "upvoteCount",
         MODE() WITHIN GROUP (ORDER BY u.first_name::text) AS "reporterFirstName",
         MODE() WITHIN GROUP (ORDER BY u.last_name::text) AS "reporterLastName",
         MODE() WITHIN GROUP (ORDER BY u.trust_score::int) AS "reporterTrustScore"
       FROM issues
       LEFT JOIN users u ON issues.reported_by_id = u.id
-      WHERE
-        issues.location && ST_MakeEnvelope(
-          ${bbox.minLng}, ${bbox.minLat},
-          ${bbox.maxLng}, ${bbox.maxLat},
-          4326
-        )
-        AND issues.status != 'REJECTED'::"IssueStatus"
+      WHERE ${whereClause}
       GROUP BY
         ST_SnapToGrid(issues.location, ${gridSize})
       ORDER BY point_count DESC
       LIMIT 500
     `;
 
-    // 30 saniye cache
-    await redis.setex(cacheKey, 30, JSON.stringify(clusters));
+    // 45 saniye cache
+    await redis.setex(cacheKey, 45, JSON.stringify(clusters));
 
     return clusters;
   },

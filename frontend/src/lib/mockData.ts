@@ -1,4 +1,4 @@
-export const MOCK_ISSUES = [
+const RAW_MOCK_ISSUES = [
   {
     id: '101',
     title: 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
@@ -405,7 +405,30 @@ export const MOCK_ISSUES = [
     longitude: 30.6728,
     upvoteCount: 205, reporterFirstName: "Ayşe", reporterLastName: "Yılmaz", reporterTrustScore: 100,
   }
-];export const MOCK_STATS = {
+];
+
+export const MOCK_ISSUES = RAW_MOCK_ISSUES.map((item, idx) => {
+  const now = Date.now();
+  let hoursAgo = 2;
+  if (item.status === 'IN_REVIEW') {
+    // Genelde 24 - 48 saat olan ihbarlar incelemede (bazı istisnalarla)
+    hoursAgo = 24 + ((idx * 7 + 3) % 24);
+  } else if (item.status === 'RESOLVED') {
+    // 48 - 96 saat arasında çözülmüş bildirimler
+    hoursAgo = 48 + ((idx * 11 + 5) % 48);
+  } else {
+    // OPEN (Yeni bildirimler 1 - 20 saat)
+    hoursAgo = 1 + ((idx * 3) % 20);
+  }
+  const minutesAgo = (idx * 17) % 60;
+  return {
+    ...item,
+    createdAt: new Date(now - (hoursAgo * 60 + minutesAgo) * 60 * 1000).toISOString(),
+    upvoteCount: item.upvoteCount ?? (20 + ((idx * 37) % 300)),
+  };
+});
+
+export const MOCK_STATS = {
   total: MOCK_ISSUES.length,
   open: MOCK_ISSUES.filter(i => i.status === 'OPEN').length,
   inReview: MOCK_ISSUES.filter(i => i.status === 'IN_REVIEW').length,

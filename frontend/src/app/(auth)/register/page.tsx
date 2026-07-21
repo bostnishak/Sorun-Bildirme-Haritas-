@@ -108,7 +108,9 @@ function ScrollSelect({ value, onChange, options, name }: {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser, setTokens, setPendingCityZoom } = useAppStore();
+  const setUser = useAppStore(state => state.setUser);
+  const setTokens = useAppStore(state => state.setTokens);
+  const setPendingCityZoom = useAppStore(state => state.setPendingCityZoom);
 
   const [step, setStep] = useState<'register' | 'verify'>('register');
   const [form, setForm] = useState({

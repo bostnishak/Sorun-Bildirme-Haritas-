@@ -112,7 +112,7 @@ export default function HomePage() {
                 Platform üzerinden bildirilen sorunların anlık istatistikleri.
                 Veriler her 5 dakikada bir güncellenmektedir.
               </p>
-              <Link href="#" className={`btn btn-primary ${styles.statsBtn}`}>
+              <Link href="/?view=table#harita" className={`btn btn-primary ${styles.statsBtn}`}>
                 Detaylı Rapor
                 <IconArrowRight size={15} />
               </Link>

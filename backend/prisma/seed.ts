@@ -604,13 +604,37 @@ async function main() {
     },
   ];
 
-  for (const item of issuesData) {
+  const getRealisticDate = (status: string, index: number): Date => {
+    const now = new Date();
+    if (status === 'IN_REVIEW') {
+      // 24 - 48 saat arasında incelemede olan bildirimler
+      const hoursAgo = 24 + ((index * 5 + 3) % 24);
+      const minutesAgo = (index * 17) % 60;
+      return new Date(now.getTime() - (hoursAgo * 60 + minutesAgo) * 60 * 1000);
+    } else if (status === 'RESOLVED') {
+      // 48 - 96 saat arasında çözülmüş bildirimler
+      const hoursAgo = 50 + ((index * 7 + 11) % 46);
+      const minutesAgo = (index * 23) % 60;
+      return new Date(now.getTime() - (hoursAgo * 60 + minutesAgo) * 60 * 1000);
+    } else {
+      // OPEN (Yeni bildirimler 1 - 18 saat)
+      const hoursAgo = 1 + ((index * 3) % 18);
+      const minutesAgo = (index * 13) % 60;
+      return new Date(now.getTime() - (hoursAgo * 60 + minutesAgo) * 60 * 1000);
+    }
+  };
+
+  for (let index = 0; index < issuesData.length; index++) {
+    const item = issuesData[index];
+    const createdAt = getRealisticDate(item.status, index);
+    const upvotes = (item as any).upvoteCount ?? (18 + ((index * 41 + 13) % 240));
+
     const issueResult = await prisma.$queryRaw<Array<{ id: string }>>`
       INSERT INTO issues (
         id, title, description, category, priority, status,
         location, latitude, longitude, city, district, address,
         exif_verified, llm_guard_passed, reported_by_id, ip_address,
-        created_at, updated_at
+        upvote_count, created_at, updated_at
       ) VALUES (
         uuid_generate_v4(),
         ${item.title}, ${item.description}, ${item.category}::"Category",
@@ -619,7 +643,7 @@ async function main() {
         ${item.latitude}, ${item.longitude}, ${item.city}, ${item.district},
         ${item.address},
         true, true, ${item.reporterId}::uuid, '127.0.0.1',
-        NOW(), NOW()
+        ${upvotes}, ${createdAt}, ${createdAt}
       )
       RETURNING id
     `;
@@ -633,6 +657,7 @@ async function main() {
           issueId,
           authorId: verifiedCitizen.id,
           content: 'Bu sorunun bir an önce incelenmesini rica ediyoruz, çevredeki vatandaşlar şikayetçi.',
+          createdAt: new Date(createdAt.getTime() + 30 * 60 * 1000),
         },
       });
 
@@ -641,6 +666,7 @@ async function main() {
         data: {
           issueId,
           userId: verifiedCitizen.id,
+          createdAt: new Date(createdAt.getTime() + 15 * 60 * 1000),
         },
       });
 
@@ -652,10 +678,12 @@ async function main() {
           toStatus: 'OPEN',
           changedBy: item.reporterId,
           note: 'Sorun ilk kez sisteme bildirildi.',
+          createdAt: createdAt,
         },
       });
 
       if (item.status === 'IN_REVIEW' || item.status === 'RESOLVED') {
+        const inReviewDate = new Date(createdAt.getTime() + 6 * 3600 * 1000);
         await prisma.issueStatusHistory.create({
           data: {
             issueId,
@@ -663,11 +691,13 @@ async function main() {
             toStatus: 'IN_REVIEW',
             changedBy: item.city === 'İstanbul' ? ibbOfficer.id : item.city === 'Ankara' ? abbOfficer.id : izmirOfficer.id,
             note: 'Ekip sahaya yönlendirildi, inceleme başlatıldı.',
+            createdAt: inReviewDate,
           },
         });
       }
 
       if (item.status === 'RESOLVED') {
+        const resolvedDate = new Date(createdAt.getTime() + 28 * 3600 * 1000);
         await prisma.issueStatusHistory.create({
           data: {
             issueId,
@@ -675,6 +705,7 @@ async function main() {
             toStatus: 'RESOLVED',
             changedBy: item.city === 'İstanbul' ? ibbOfficer.id : item.city === 'Ankara' ? abbOfficer.id : izmirOfficer.id,
             note: 'Sorun başarıyla çözüldü ve gerekli onarımlar tamamlandı.',
+            createdAt: resolvedDate,
           },
         });
       }

@@ -48,7 +48,11 @@ export function initSocket(server: HttpServer) {
     if (channel === 'image-processed') {
       try {
         const data = JSON.parse(message);
-        io.emit('image-processed', data);
+        if (data.userId) {
+          io.to(`user:${data.userId}`).emit('image-processed', data);
+        } else {
+          io.emit('image-processed', data);
+        }
       } catch (err) {
         logger.error('image-processed pub/sub parse hatası:', { error: String(err) });
       }

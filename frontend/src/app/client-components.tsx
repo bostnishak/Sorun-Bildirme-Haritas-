@@ -22,7 +22,10 @@ const MapView = dynamic(() => import('@/components/map/MapView').then(m => ({ de
 });
 
 function MapAreaClientInner() {
-  const { activeView, setActiveView, isAuthenticated, setReportModalOpen } = useAppStore();
+  const activeView = useAppStore(state => state.activeView);
+  const setActiveView = useAppStore(state => state.setActiveView);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const setReportModalOpen = useAppStore(state => state.setReportModalOpen);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -94,7 +97,8 @@ export function BigStatsClient() {
 }
 
 export function ReportModalClient() {
-  const { isReportModalOpen, setReportModalOpen } = useAppStore();
+  const isReportModalOpen = useAppStore(state => state.isReportModalOpen);
+  const setReportModalOpen = useAppStore(state => state.setReportModalOpen);
   if (!isReportModalOpen) return null;
   return <ReportIssueForm onClose={() => setReportModalOpen(false)} />;
 }

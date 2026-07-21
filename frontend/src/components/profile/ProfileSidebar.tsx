@@ -20,7 +20,7 @@ interface ProfileSidebarProps {
 }
 
 export function ProfileSidebar({ activeTab, onTabChange, onLogout }: ProfileSidebarProps) {
-  const { user } = useAppStore();
+  const user = useAppStore(state => state.user);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);

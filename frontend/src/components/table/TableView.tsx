@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/useAppStore';
@@ -47,17 +47,99 @@ function shortId(issue: any): string {
 
 const TR_CITIES = Object.keys(TR_CITIES_DISTRICTS);
 
+const TableRowItem = React.memo(({ issue, onSelect, onNavigate }: { issue: any; onSelect: (issue: any) => void; onNavigate: (id: string) => void }) => {
+  const CatIcon = CATEGORY_ICON_MAP[issue.category];
+  const short = shortId(issue);
+  const addressStr = issue.address || `${issue.district}, ${issue.city}`;
+  const formattedDate = format(new Date(issue.createdAt || '2026-07-02T10:00:00Z'), 'dd MMM yyyy, HH:mm', { locale: tr });
+
+  return (
+    <tr
+      style={{ cursor: 'pointer' }}
+      onClick={() => onSelect(issue)}
+    >
+      <td className={styles.idCell}>
+        <span title={`Tam ID: ${issue.id}`} style={{ cursor: 'help' }}>
+          {short}
+        </span>
+      </td>
+      <td className={styles.titleCell}>{issue.title}</td>
+      <td>
+        <span className={styles.categoryBadge} style={{ background: `${CATEGORY_COLORS[issue.category]}12`, color: CATEGORY_COLORS[issue.category] }}>
+          {CatIcon && <CatIcon size={12} />}
+          {CATEGORY_LABELS[issue.category]}
+        </span>
+      </td>
+      <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={addressStr}>
+        {addressStr}
+      </td>
+      <td>
+        <span className={`${styles.statusBadge} ${styles[`status_${issue.status}`]}`}>
+          <span className={styles.statusDot} />
+          {STATUS_LABELS[issue.status]}
+        </span>
+      </td>
+      <td>
+        <span className={`${styles.priorityBadge} ${styles[`priority_${issue.priority}`]}`}>
+          {PRIORITY_LABELS[issue.priority] || issue.priority}
+        </span>
+      </td>
+      <td>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#E11D48', background: 'rgba(225, 29, 72, 0.08)', padding: '3px 8px', borderRadius: '12px', fontSize: '12px' }}>
+          <span>❤️</span>
+          <span>{issue.upvoteCount ?? issue.upvotes ?? 0}</span>
+        </span>
+      </td>
+      <td className={styles.dateCell}>
+        {formattedDate}
+      </td>
+      <td>
+        <button
+          className={styles.moreBtn}
+          title="Detay Sayfasına Git"
+          onClick={e => {
+            e.stopPropagation();
+            onNavigate(String(issue.id));
+          }}
+        >
+          <IconMoreHorizontal size={14} />
+        </button>
+      </td>
+    </tr>
+  );
+});
+TableRowItem.displayName = 'TableRowItem';
+
 export function TableView({ issues: initialIssues }: { issues?: any[] }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { filters, setFilter, clearFilters, selectIssue } = useAppStore();
+  const filters = useAppStore(state => state.filters);
+  const setFilter = useAppStore(state => state.setFilter);
+  const clearFilters = useAppStore(state => state.clearFilters);
+  const selectIssue = useAppStore(state => state.selectIssue);
+
   const { data: queryData, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useIssues(filters as any);
   const rawIssues = queryData?.pages.flatMap(p => p.issues) || initialIssues || MOCK_ISSUES;
   const issues = rawIssues;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [localSearch, setLocalSearch] = useState(filters.search || '');
+
+  useEffect(() => {
+    setLocalSearch(filters.search || '');
+  }, [filters.search]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localSearch !== (filters.search || '')) {
+        setFilter('search', localSearch);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [localSearch, filters.search, setFilter]);
 
   const filtered = useMemo(() => {
-    return issues.filter(issue => {
+    const result = issues.filter(issue => {
       if (filters.city && issue.city !== filters.city) return false;
       if (filters.category && issue.category !== filters.category) return false;
       if (filters.status && issue.status !== filters.status) return false;
@@ -71,6 +153,22 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       }
       return true;
     });
+
+    return result.sort((a, b) => {
+      const sortKey = (filters as any).sortBy || '';
+      if (sortKey === 'newest') {
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      } else if (sortKey === 'oldest') {
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      } else if (sortKey === 'upvotes_desc') {
+        return (b.upvoteCount ?? b.upvotes ?? 0) - (a.upvoteCount ?? a.upvotes ?? 0);
+      } else if (sortKey === 'upvotes_asc') {
+        return (a.upvoteCount ?? a.upvotes ?? 0) - (b.upvoteCount ?? b.upvotes ?? 0);
+      } else {
+        // '' -> Karışık / Varsayılan sıra (sıralama yapma)
+        return 0;
+      }
+    });
   }, [filters, issues]);
 
   // ─── 1D: Refresh Butonu (gerçek invalidate) ───────────────────────────────
@@ -80,7 +178,7 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
     setTimeout(() => setIsRefreshing(false), 800);
   }, [queryClient]);
 
-  // ─── 1B: Premium Excel (.xlsx) ────────────────────────────────────────────
+  // ─── 1B: Premium Excel (.xlsx) ── ExcelJS ile Yönetici Raporu ────────────
   const handleDownloadExcel = useCallback(async () => {
     const dataToExport = filtered.length > 0 ? filtered : issues;
     if (dataToExport.length === 0) {
@@ -89,129 +187,279 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
     }
 
     try {
-      const xlsxModule = await import('xlsx');
-      const XLSX = xlsxModule.default || xlsxModule;
+      const ExcelJS = await import('exceljs');
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Türkiye Sorun Bildirim Haritası';
+      wb.created = new Date();
 
-      // ── SAYFA 1: Ana Tablo ──────────────────────────────────────────────
-      const tableData = dataToExport.map(issue => ({
-        'ID': shortId(issue),
-        'Başlık': issue.title,
-        'Sorun Türü': CATEGORY_LABELS[issue.category] || issue.category,
-        'Şehir': issue.city,
-        'İlçe': issue.district,
-        'Açık Adres': issue.address || `${issue.district}, ${issue.city}`,
-        'Durum': STATUS_LABELS[issue.status] || issue.status,
-        'Öncelik': PRIORITY_LABELS[issue.priority] || issue.priority,
-        'Oluşturma Tarihi': format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy'),
-        'Oluşturma Saati': format(new Date(issue.createdAt || Date.now()), 'HH:mm'),
-        'Destekleyen Sayısı': issue.upvoteCount || 0,
-      }));
+      // ── SAYFA 1: Ana Tablo (Sorun Bildirimleri) ─────────────────────────
+      const ws = wb.addWorksheet('Sorun Bildirimleri', {
+        views: [{ state: 'frozen', ySplit: 1 }]
+      });
 
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(tableData);
-
-      ws['!cols'] = [
-        { wch: 14 }, { wch: 45 }, { wch: 22 }, { wch: 15 },
-        { wch: 18 }, { wch: 40 }, { wch: 15 }, { wch: 12 },
-        { wch: 16 }, { wch: 14 }, { wch: 18 },
+      ws.columns = [
+        { header: 'ID', key: 'id', width: 15 },
+        { header: 'Başlık', key: 'title', width: 45 },
+        { header: 'Sorun Türü', key: 'category', width: 22 },
+        { header: 'Şehir', key: 'city', width: 16 },
+        { header: 'İlçe', key: 'district', width: 18 },
+        { header: 'Açık Adres', key: 'address', width: 42 },
+        { header: 'Durum', key: 'status', width: 16 },
+        { header: 'Öncelik', key: 'priority', width: 14 },
+        { header: 'Oluşturma Tarihi', key: 'date', width: 18 },
+        { header: 'Oluşturma Saati', key: 'time', width: 16 },
+        { header: 'Destekleyen Sayısı', key: 'upvotes', width: 20 },
       ];
 
-      XLSX.utils.book_append_sheet(wb, ws, 'Sorun Bildirimleri');
+      // Başlık Satırını Biçimlendir (Sayfa 1)
+      const headerRow = ws.getRow(1);
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        };
+      });
 
-      // ── SAYFA 2: Analiz & İstatistik ────────────────────────────────────
+      dataToExport.forEach((issue, idx) => {
+        const row = ws.addRow({
+          id: shortId(issue),
+          title: issue.title,
+          category: CATEGORY_LABELS[issue.category] || issue.category,
+          city: issue.city,
+          district: issue.district,
+          address: issue.address || `${issue.district}, ${issue.city}`,
+          status: STATUS_LABELS[issue.status] || issue.status,
+          priority: PRIORITY_LABELS[issue.priority] || issue.priority,
+          date: format(new Date(issue.createdAt || Date.now()), 'dd.MM.yyyy'),
+          time: format(new Date(issue.createdAt || Date.now()), 'HH:mm'),
+          upvotes: issue.upvoteCount ?? issue.upvotes ?? 0,
+        });
+        row.height = 20;
+        const isEven = idx % 2 === 0;
+        row.eachCell((cell, colNum) => {
+          if (isEven) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+          };
+          if (colNum === 1 || colNum === 7 || colNum === 8 || colNum === 9 || colNum === 10 || colNum === 11) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          }
+        });
+      });
+
+      // ── SAYFA 2: Analiz & Grafikler ─────────────────────────────────────
+      const wsAnalytics = wb.addWorksheet('Analiz & Grafikler');
+      wsAnalytics.columns = [
+        { key: 'A', width: 34 },
+        { key: 'B', width: 18 },
+        { key: 'C', width: 18 },
+        { key: 'D', width: 45 },
+        { key: 'E', width: 5 },
+      ];
+
+      // Banner row 1
+      wsAnalytics.mergeCells('A1:D1');
+      const titleCell = wsAnalytics.getCell('A1');
+      titleCell.value = 'TÜRKİYE SORUN BİLDİRİM HARİTASI — YÖNETİCİ ANALİZ VE GRAFİK RAPORU';
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      wsAnalytics.getRow(1).height = 36;
+
+      // Subtitle row 2
+      wsAnalytics.mergeCells('A2:D2');
+      const subCell = wsAnalytics.getCell('A2');
+      subCell.value = `Rapor Tarihi: ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: tr })}  |  Toplam Bildirim: ${dataToExport.length}  |  Kurumsal SLA Takibi`;
+      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      subCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF334155' } };
+      subCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      wsAnalytics.getRow(2).height = 22;
+
       const statusCounts = {
         'Açık': dataToExport.filter(i => i.status === 'OPEN').length,
         'İnceleniyor': dataToExport.filter(i => i.status === 'IN_REVIEW').length,
         'Çözüldü': dataToExport.filter(i => i.status === 'RESOLVED').length,
         'Reddedildi': dataToExport.filter(i => i.status === 'REJECTED').length,
       };
+
       const categoryCounts: Record<string, number> = {};
       dataToExport.forEach(i => {
         const label = CATEGORY_LABELS[i.category] || i.category;
         categoryCounts[label] = (categoryCounts[label] || 0) + 1;
       });
+
       const priorityCounts = {
         'Kritik': dataToExport.filter(i => i.priority === 'CRITICAL').length,
         'Yüksek': dataToExport.filter(i => i.priority === 'HIGH').length,
         'Orta': dataToExport.filter(i => i.priority === 'MEDIUM').length,
         'Düşük': dataToExport.filter(i => i.priority === 'LOW').length,
       };
+
       const cityCounts: Record<string, number> = {};
       dataToExport.forEach(i => {
         cityCounts[i.city] = (cityCounts[i.city] || 0) + 1;
       });
-      const top10Cities = Object.entries(cityCounts)
-        .sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
-      const analyticsRows: any[][] = [
-        ['SORUN BİLDİRİM HARİTASI — ANALİZ RAPORU', '', '', '', ''],
-        [`Rapor Tarihi: ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: tr })}`, '', '', '', ''],
-        [`Toplam Kayıt: ${dataToExport.length}`, '', '', '', ''],
-        [],
-        ['── DURUM DAĞILIMI ──', '', '── KATEGORİ DAĞILIMI ──', '', '── ÖNCELİK DAĞILIMI ──'],
-        ['Durum', 'Adet', 'Kategori', 'Adet', 'Öncelik', 'Adet'],
-        ...(() => {
-          const statusArr = Object.entries(statusCounts);
-          const catArr = Object.entries(categoryCounts);
-          const priArr = Object.entries(priorityCounts);
-          const maxLen = Math.max(statusArr.length, catArr.length, priArr.length);
-          return Array.from({ length: maxLen }, (_, i) => [
-            statusArr[i]?.[0] || '', statusArr[i]?.[1] || '',
-            catArr[i]?.[0] || '', catArr[i]?.[1] || '',
-            priArr[i]?.[0] || '', priArr[i]?.[1] || '',
-          ]);
-        })(),
-        [],
-        ['── TOP 10 ŞEHİR ──', ''],
-        ['Şehir', 'Bildirim Sayısı'],
-        ...top10Cities.map(([city, count]) => [city, count]),
-        [],
-        ['── ÇÖZÜM ORANI ──', ''],
-        ['Çözülen / Toplam', `${statusCounts['Çözüldü']} / ${dataToExport.length}`],
-        ['Çözüm Oranı %', dataToExport.length > 0 ? `%${Math.round(statusCounts['Çözüldü'] / dataToExport.length * 100)}` : '%0'],
-      ];
+      // Row 4: KPI Özet Kartları (A4: Toplam, B4: Açık, C4: İnceleniyor, D4: Çözüldü)
+      const kpiRow = wsAnalytics.getRow(4);
+      kpiRow.height = 32;
 
-      const wsAnalytics = XLSX.utils.aoa_to_sheet(analyticsRows);
-      wsAnalytics['!cols'] = [
-        { wch: 32 }, { wch: 16 }, { wch: 30 }, { wch: 16 }, { wch: 18 }, { wch: 16 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsAnalytics, 'Analiz & Grafikler');
+      const setKpiCell = (col: string, label: string, val: number, bgHex: string, borderHex: string, fontHex: string) => {
+        const cell = wsAnalytics.getCell(`${col}4`);
+        cell.value = `${label}: ${val}`;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgHex } };
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: fontHex } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'medium', color: { argb: borderHex } },
+          bottom: { style: 'medium', color: { argb: borderHex } },
+          left: { style: 'medium', color: { argb: borderHex } },
+          right: { style: 'medium', color: { argb: borderHex } },
+        };
+      };
+
+      setKpiCell('A', 'TOPLAM BİLDİRİM', dataToExport.length, 'FFEFF6FF', 'FF3B82F6', 'FF1E40AF');
+      setKpiCell('B', 'AÇIK (ACİL)', statusCounts['Açık'], 'FFFEE2E2', 'FFEF4444', 'FF991B1B');
+      setKpiCell('C', 'İNCELENİYOR', statusCounts['İnceleniyor'], 'FFFEF3C7', 'FFF59E0B', 'FF92400E');
+      setKpiCell('D', 'ÇÖZÜLDÜ (%' + (dataToExport.length > 0 ? Math.round((statusCounts['Çözüldü'] / dataToExport.length) * 100) : 0) + ')', statusCounts['Çözüldü'], 'FFDCFCE7', 'FF10B981', 'FF065F46');
+
+      let currRow = 6;
+      const addSectionTable = (title: string, dataEntries: [string, number][], barColorHex: string) => {
+        wsAnalytics.mergeCells(`A${currRow}:D${currRow}`);
+        const secCell = wsAnalytics.getCell(`A${currRow}`);
+        secCell.value = title;
+        secCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+        secCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        secCell.alignment = { vertical: 'middle', horizontal: 'left' };
+        wsAnalytics.getRow(currRow).height = 24;
+        currRow++;
+
+        const thRow = wsAnalytics.getRow(currRow);
+        thRow.height = 20;
+        ['Kategori / Durum Adı', 'Adet', 'Oran (%)', 'Görsel Dağılım ve İlerleme Grafiği'].forEach((h, cIdx) => {
+          const c = thRow.getCell(cIdx + 1);
+          c.value = h;
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          c.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+          c.alignment = { vertical: 'middle', horizontal: cIdx === 0 ? 'left' : cIdx === 3 ? 'left' : 'center' };
+          c.border = { bottom: { style: 'thin', color: { argb: 'FF94A3B8' } } };
+        });
+        currRow++;
+
+        const maxVal = Math.max(...dataEntries.map(e => e[1]), 1);
+        dataEntries.forEach(([label, count], eIdx) => {
+          const r = wsAnalytics.getRow(currRow);
+          r.height = 20;
+          const pct = dataToExport.length > 0 ? Math.round((count / dataToExport.length) * 100) : 0;
+          const barLen = Math.round((count / maxVal) * 22);
+          const visualBar = '█'.repeat(barLen) + '░'.repeat(22 - barLen) + `   (%${pct})`;
+
+          r.getCell(1).value = label;
+          r.getCell(2).value = count;
+          r.getCell(3).value = `%${pct}`;
+          r.getCell(4).value = visualBar;
+
+          const isEven = eIdx % 2 === 0;
+          [1, 2, 3, 4].forEach(cIdx => {
+            const cell = r.getCell(cIdx);
+            if (isEven) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+            cell.font = { name: 'Calibri', size: 10, color: { argb: cIdx === 4 ? barColorHex : 'FF1E293B' }, bold: cIdx === 4 || cIdx === 2 };
+            cell.alignment = { vertical: 'middle', horizontal: cIdx === 1 || cIdx === 4 ? 'left' : 'center' };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            };
+          });
+          currRow++;
+        });
+        currRow++; // empty space
+      };
+
+      addSectionTable('── DURUM DAĞILIMI VE İLERLEME ANALİZİ ──', Object.entries(statusCounts), 'FF2563EB');
+      addSectionTable('── KATEGORİ YOĞUNLUK VE ŞİKAYET TÜRLERİ ──', Object.entries(categoryCounts), 'FF0D9488');
+      addSectionTable('── ÖNCELİK VE ACİLİYET DAĞILIMI ──', Object.entries(priorityCounts), 'FFD97706');
+      addSectionTable('── EN FAZLA BİLDİRİM ALAN ŞEHİRLER (TOP 8) ──', topCities, 'FF4F46E5');
 
       // ── SAYFA 3: Özet ───────────────────────────────────────────────────
-      const summaryRows = [
-        ['ÖZET İSTATİSTİKLER', ''],
-        [],
-        ['Toplam Bildirim', dataToExport.length],
-        ['Açık', statusCounts['Açık']],
-        ['İnceleniyor', statusCounts['İnceleniyor']],
-        ['Çözüldü', statusCounts['Çözüldü']],
-        ['Reddedildi', statusCounts['Reddedildi']],
-        [],
-        ['Çözüm Oranı', dataToExport.length > 0 ? `${Math.round(statusCounts['Çözüldü'] / dataToExport.length * 100)}%` : '0%'],
-        ['Rapor Tarihi', format(new Date(), 'dd.MM.yyyy HH:mm')],
-        ['Platform', 'Türkiye Sorun Bildirim Haritası'],
+      const wsSummary = wb.addWorksheet('Özet İstatistikler');
+      wsSummary.columns = [
+        { key: 'A', width: 35 },
+        { key: 'B', width: 28 },
       ];
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-      wsSummary['!cols'] = [{ wch: 30 }, { wch: 24 }];
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'Özet');
 
-      // Dışa aktar - Güvenli Yazma / Blob Fallback
+      wsSummary.mergeCells('A1:B1');
+      const sumTitle = wsSummary.getCell('A1');
+      sumTitle.value = 'STRATEJİK PERFORMANS VE SLA ÖZET METRİKLERİ';
+      sumTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+      sumTitle.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+      sumTitle.alignment = { vertical: 'middle', horizontal: 'center' };
+      wsSummary.getRow(1).height = 32;
+
+      const totalUpvotes = dataToExport.reduce((acc, i) => acc + (i.upvoteCount ?? i.upvotes ?? 0), 0);
+      const avgUpvotes = dataToExport.length > 0 ? Math.round(totalUpvotes / dataToExport.length) : 0;
+      const resRate = dataToExport.length > 0 ? Math.round((statusCounts['Çözüldü'] / dataToExport.length) * 100) : 0;
+      const critRate = dataToExport.length > 0 ? Math.round(((priorityCounts['Kritik'] + priorityCounts['Yüksek']) / dataToExport.length) * 100) : 0;
+
+      const summaryItems = [
+        ['Platform Adı', 'Türkiye Sorun Bildirim Haritası'],
+        ['Raporlama Tarihi', format(new Date(), 'dd.MM.yyyy HH:mm:ss')],
+        ['Toplam Bildirim Sayısı', `${dataToExport.length} Adet`],
+        ['Açık (Müdahale Bekleyen)', `${statusCounts['Açık']} Adet (${Math.round((statusCounts['Açık']/Math.max(dataToExport.length,1))*100)}%)`],
+        ['İnceleniyor (Süreçte)', `${statusCounts['İnceleniyor']} Adet (${Math.round((statusCounts['İnceleniyor']/Math.max(dataToExport.length,1))*100)}%)`],
+        ['Çözülen (Tamamlanan)', `${statusCounts['Çözüldü']} Adet`],
+        ['Genel Çözüm Başarı Oranı', `██████████░░  (%${resRate})`],
+        ['Kritik/Yüksek Öncelik Yoğunluğu', `%${critRate} (Acil Müdahale Oranı)`],
+        ['Toplam Vatandaş Destek (Upvote)', `${totalUpvotes} Destek`],
+        ['Bildirim Başına Ortalama Destek', `${avgUpvotes} Destek/Bildirim`],
+        ['Aktif Şehir Sayısı', `${Object.keys(cityCounts).length} İl`],
+      ];
+
+      summaryItems.forEach(([label, val], sIdx) => {
+        const r = wsSummary.addRow([label, val]);
+        r.height = 24;
+        const isEven = sIdx % 2 === 0;
+        [1, 2].forEach(cIdx => {
+          const cell = r.getCell(cIdx);
+          if (isEven) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          cell.font = { name: 'Calibri', size: 11, bold: cIdx === 2 || sIdx === 6, color: { argb: cIdx === 2 && sIdx === 6 ? 'FF16A34A' : 'FF1E293B' } };
+          cell.alignment = { vertical: 'middle', horizontal: cIdx === 1 ? 'left' : 'right' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          };
+        });
+      });
+
+      // İndirme (Buffer write & Blob link)
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       const fileName = `Sorun_Bildirimleri_${format(new Date(), 'dd_MM_yyyy')}.xlsx`;
-      try {
-        XLSX.writeFile(wb, fileName);
-      } catch (writeErr) {
-        // Tarayıcı kısıtlaması veya SheetJS versiyon farkı varsa güvenli Blob indirici
-        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Excel oluşturma hatası:', err);
       alert('Excel dosyası oluşturulurken bir hata oluştu. Lütfen tekrar deneyiniz.');
@@ -567,6 +815,28 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
     }
   }, [filtered, issues]);
 
+  const handleRowSelect = useCallback((issue: any) => {
+    selectIssue({
+      id: String(issue.id),
+      title: issue.title,
+      category: issue.category,
+      status: issue.status,
+      city: issue.city,
+      district: issue.district,
+      createdAt: issue.createdAt,
+      description: `${issue.title}. İlgili birimlerin inceleme ve müdahale süreci devam etmektedir.`,
+      priority: issue.priority,
+      address: `${issue.district}, ${issue.city}`,
+      latitude: issue.latitude,
+      longitude: issue.longitude,
+      upvotes: issue.upvoteCount,
+    } as any);
+  }, [selectIssue]);
+
+  const handleRowNavigate = useCallback((id: string) => {
+    router.push(`/issues/${id}`);
+  }, [router]);
+
   return (
     <div className={styles.tableView}>
       {/* Stats Row */}
@@ -626,6 +896,19 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
           <option value="REJECTED">Reddedildi</option>
         </select>
 
+        <select
+          className={styles.filterSelect}
+          value={(filters as any).sortBy || ''}
+          onChange={e => setFilter('sortBy' as any, e.target.value)}
+          style={{ fontWeight: 600, color: 'var(--color-primary)', border: '1px solid rgba(29, 78, 216, 0.3)' }}
+        >
+          <option value="">Sıralama Seçiniz</option>
+          <option value="newest">Tarih: En Yeni</option>
+          <option value="oldest">Tarih: En Eski</option>
+          <option value="upvotes_desc">Destek: En Çok</option>
+          <option value="upvotes_asc">Destek: En Az</option>
+        </select>
+
         <div className={styles.searchWrap}>
           <svg className={styles.searchIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -633,8 +916,8 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
           <input
             className={styles.searchInput}
             placeholder="Başlık, şehir veya ilçe ara..."
-            value={filters.search || ''}
-            onChange={e => setFilter('search', e.target.value)}
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
           />
         </div>
 
@@ -712,78 +995,36 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
                 <th>Açık Adres</th>
                 <th>Durum</th>
                 <th>Öncelik</th>
+                <th>Destek</th>
                 <th>Oluşturma Tarihi</th>
                 <th>İşlem</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(issue => (
-                <tr
+              {filtered.slice(0, visibleCount).map(issue => (
+                <TableRowItem
                   key={issue.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => selectIssue({
-                    id: String(issue.id),
-                    title: issue.title,
-                    category: issue.category,
-                    status: issue.status,
-                    city: issue.city,
-                    district: issue.district,
-                    createdAt: issue.createdAt,
-                    description: `${issue.title}. İlgili birimlerin inceleme ve müdahale süreci devam etmektedir.`,
-                    priority: issue.priority,
-                    address: `${issue.district}, ${issue.city}`,
-                    latitude: issue.latitude,
-                    longitude: issue.longitude,
-                    upvotes: issue.upvoteCount,
-                  } as any)}
-                >
-                  {/* 1A: Kısaltılmış ID */}
-                  <td className={styles.idCell}>
-                    <span title={`Tam ID: ${issue.id}`} style={{ cursor: 'help' }}>
-                      {shortId(issue)}
-                    </span>
-                  </td>
-                  <td className={styles.titleCell}>{issue.title}</td>
-                  <td>
-                    <span className={styles.categoryBadge} style={{ background: `${CATEGORY_COLORS[issue.category]}12`, color: CATEGORY_COLORS[issue.category] }}>
-                      {(() => { const CatIcon = CATEGORY_ICON_MAP[issue.category]; return CatIcon ? <CatIcon size={12} /> : null; })()}
-                      {CATEGORY_LABELS[issue.category]}
-                    </span>
-                  </td>
-                  <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={issue.address || `${issue.district}, ${issue.city}`}>
-                    {issue.address || `${issue.district}, ${issue.city}`}
-                  </td>
-                  <td>
-                    <span className={`${styles.statusBadge} ${styles[`status_${issue.status}`]}`}>
-                      <span className={styles.statusDot} />
-                      {STATUS_LABELS[issue.status]}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`${styles.priorityBadge} ${styles[`priority_${issue.priority}`]}`}>
-                      {PRIORITY_LABELS[issue.priority] || issue.priority}
-                    </span>
-                  </td>
-                  <td className={styles.dateCell}>
-                    {format(new Date(issue.createdAt || '2026-07-02T10:00:00Z'), 'dd MMM yyyy, HH:mm', { locale: tr })}
-                  </td>
-                  <td>
-                    <button
-                      className={styles.moreBtn}
-                      title="Detay Sayfasına Git"
-                      onClick={e => {
-                        e.stopPropagation();
-                        router.push(`/issues/${issue.id}`);
-                      }}
-                    >
-                      <IconMoreHorizontal size={14} />
-                    </button>
-                  </td>
-                </tr>
+                  issue={issue}
+                  onSelect={handleRowSelect}
+                  onNavigate={handleRowNavigate}
+                />
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Lokal DOM Sayfalama Butonu */}
+        {filtered.length > visibleCount && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setVisibleCount(prev => prev + 30)}
+              style={{ minWidth: '180px', fontWeight: 600 }}
+            >
+              Daha Fazla Göster (+30)
+            </button>
+          </div>
+        )}
 
         {/* 3E: Daha Fazla Yükle — gerçek pagination */}
         {hasNextPage && (
@@ -801,7 +1042,7 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
                   </svg>
                   Yükleniyor...
                 </span>
-              ) : 'Daha Fazla Yükle'}
+              ) : 'Daha Fazla Yükle (Sunucu)'}
             </button>
           </div>
         )}
@@ -812,7 +1053,7 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
             <span>Aşağı kaydırıldıkça yeni kayıtlar yüklenir</span>
           </div>
           <div className={styles.footerCenter}>
-            {filtered.length} / {issues.length} kayıt gösteriliyor
+            {Math.min(visibleCount, filtered.length)} / {filtered.length} kayıt gösteriliyor (Toplam: {issues.length})
           </div>
           <div className={styles.footerRight}>
             Son güncelleme: Canlı Veri

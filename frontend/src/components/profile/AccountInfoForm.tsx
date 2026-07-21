@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import styles from '@/app/profile/Profile.module.css';
 
 export function AccountInfoForm() {
-  const { user } = useAppStore();
+  const user = useAppStore(state => state.user);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');

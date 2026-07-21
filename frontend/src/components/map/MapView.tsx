@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl';
+import Map, { Source, Layer, NavigationControl, MapRef } from 'react-map-gl';
 import { useRouter } from 'next/navigation';
 // @ts-ignore
 import MapboxLanguage from '@mapbox/mapbox-gl-language';
-import useSupercluster from 'use-supercluster';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { useAppStore } from '@/store/useAppStore';
 import { MOCK_ISSUES } from '@/lib/mockData';
 import { IssuePopup } from './IssuePopup';
@@ -133,6 +133,9 @@ const getCategorySvg = (category: string) => {
   }
 };
 
+const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
+const INTERACTIVE_LAYER_IDS = ['cluster-circle', 'unclustered-point-halo', 'unclustered-point-inner'];
+
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState(TURKEY_CENTER);
@@ -179,19 +182,19 @@ export function MapView() {
   // Zoom eşiği: Kullanıcı biraz bile yakınlaştırsa sağa sola oynatabilsin
   const panThreshold = minZoom + 0.1;
 
-  const onMove = useCallback((evt: any) => {
-    setViewState({
-      ...evt.viewState,
-      pitch: calculatePitch(evt.viewState.zoom),
-      bearing: 0,
-    });
-  }, []);
-
   // NOT: dragPan kontrolü Map prop'u üzerinden yapılıyor (satır 592),
   // useEffect ile çift kontrol React re-render sırasında çelişkiye yol açıyordu — kaldırıldı.
 
 
-  const { clusters, fetchClusters, selectedIssue, selectIssue, filters, user, isAuthenticated, pendingCityZoom, setPendingCityZoom } = useAppStore();
+  const clusters = useAppStore(state => state.clusters);
+  const fetchClusters = useAppStore(state => state.fetchClusters);
+  const selectedIssue = useAppStore(state => state.selectedIssue);
+  const selectIssue = useAppStore(state => state.selectIssue);
+  const filters = useAppStore(state => state.filters);
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const pendingCityZoom = useAppStore(state => state.pendingCityZoom);
+  const setPendingCityZoom = useAppStore(state => state.setPendingCityZoom);
 
   // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
   const handleLoginRedirect = useCallback(() => {
@@ -261,7 +264,7 @@ export function MapView() {
 
   useEffect(() => {
     // Sayfa açılır açılmaz veriyi getir (Mapbox motorunun yüklenmesini beklemeden, paralel olarak)
-    fetchClusters({
+    useAppStore.getState().fetchClusters({
       minLng: TURKEY_BOUNDS[0][0],
       minLat: TURKEY_BOUNDS[0][1],
       maxLng: TURKEY_BOUNDS[1][0],
@@ -276,7 +279,7 @@ export function MapView() {
       if (mapRef.current) {
         const bounds = mapRef.current.getBounds();
         if (bounds) {
-          fetchClusters({
+          useAppStore.getState().fetchClusters({
             minLng: bounds.getWest(),
             minLat: bounds.getSouth(),
             maxLng: bounds.getEast(),
@@ -286,7 +289,7 @@ export function MapView() {
         }
       } else {
         // Harita henüz yüklenmedi — Türkiye sınırlarıyla fallback isteği at
-        fetchClusters({
+        useAppStore.getState().fetchClusters({
           minLng: TURKEY_BOUNDS[0][0],
           minLat: TURKEY_BOUNDS[0][1],
           maxLng: TURKEY_BOUNDS[1][0],
@@ -299,7 +302,7 @@ export function MapView() {
     return () => {
       socket.off('issue-updated', handleIssueUpdate);
     };
-  }, [fetchClusters]);
+  }, []);
 
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
@@ -395,47 +398,53 @@ export function MapView() {
 
       const currentStyle = map.getStyle();
       if (currentStyle && currentStyle.layers) {
-        currentStyle.layers.forEach((layer: any) => {
-          // 'Türkiye' yazısını (ve diğer ülke isimlerini) gizle
-          if (layer.id === 'country-label') {
-            map.setLayoutProperty(layer.id, 'visibility', 'none');
-          }
-
-          if (layer.type === 'symbol' && layer.id.includes('label')) {
-            // Dil ayarı (Türkçe) ve Kısaltmalar
-            if (layer.layout && layer.layout['text-field']) {
-              const currentTextField = JSON.stringify(layer.layout['text-field']);
-              if (!currentTextField.includes('name_tr') || !currentTextField.includes('K.Maraş')) {
-                map.setLayoutProperty(layer.id, 'text-field', finalTextField);
+        setTimeout(() => {
+          try {
+            currentStyle.layers.forEach((layer: any) => {
+              // 'Türkiye' yazısını (ve diğer ülke isimlerini) gizle
+              if (layer.id === 'country-label') {
+                map.setLayoutProperty(layer.id, 'visibility', 'none');
               }
-            }
 
-            // Şehir isimlerinin (Mardin gibi) daha sık ve daha görünür olmasını sağlayan performans/çarpışma ayarı
-            if (layer.id.includes('settlement-major-label') || layer.id.includes('settlement-minor-label') || layer.id === 'place-city-label') {
-              try {
-                // Yazı etrafındaki görünmez çarpışma kutusunu sıfırla ki daha çok şehir sığsın
-                map.setLayoutProperty(layer.id, 'text-padding', 0);
-
-                // Büyükşehirlerin her koşulda (diğer yazılarla hafif üst üste gelse bile) görünmesini zorunlu kıl
-                if (layer.id.includes('major') || layer.id.includes('city')) {
-                  map.setLayoutProperty(layer.id, 'text-allow-overlap', true);
-                  map.setLayoutProperty(layer.id, 'text-ignore-placement', false);
+              if (layer.type === 'symbol' && layer.id.includes('label')) {
+                // Dil ayarı (Türkçe) ve Kısaltmalar
+                if (layer.layout && layer.layout['text-field']) {
+                  const currentTextField = JSON.stringify(layer.layout['text-field']);
+                  if (!currentTextField.includes('name_tr') || !currentTextField.includes('K.Maraş')) {
+                    map.setLayoutProperty(layer.id, 'text-field', finalTextField);
+                  }
                 }
 
-                // Punto Ayarı: Tüm şehirler aynı standart boyutta olsun
-                map.setLayoutProperty(layer.id, 'text-size', [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  4, 12.5, // Uzaktan boyut
-                  10, 17   // Yakından boyut
-                ]);
-              } catch (e) {
-                // Bazı stillerde bu özellikler olmayabilir, sessizce geç
+                // Şehir isimlerinin (Mardin gibi) daha sık ve daha görünür olmasını sağlayan performans/çarpışma ayarı
+                if (layer.id.includes('settlement-major-label') || layer.id.includes('settlement-minor-label') || layer.id === 'place-city-label') {
+                  try {
+                    // Yazı etrafındaki görünmez çarpışma kutusunu sıfırla ki daha çok şehir sığsın
+                    map.setLayoutProperty(layer.id, 'text-padding', 0);
+
+                    // Büyükşehirlerin her koşulda (diğer yazılarla hafif üst üste gelse bile) görünmesini zorunlu kıl
+                    if (layer.id.includes('major') || layer.id.includes('city')) {
+                      map.setLayoutProperty(layer.id, 'text-allow-overlap', true);
+                      map.setLayoutProperty(layer.id, 'text-ignore-placement', false);
+                    }
+
+                    // Punto Ayarı: Tüm şehirler aynı standart boyutta olsun
+                    map.setLayoutProperty(layer.id, 'text-size', [
+                      'interpolate',
+                      ['linear'],
+                      ['zoom'],
+                      4, 12.5, // Uzaktan boyut
+                      10, 17   // Yakından boyut
+                    ]);
+                  } catch (e) {
+                    // Bazı stillerde bu özellikler olmayabilir, sessizce geç
+                  }
+                }
               }
-            }
+            });
+          } catch (err) {
+            console.warn("Async language override error:", err);
           }
-        });
+        }, 150);
       }
     } catch (error) {
       console.warn("Language override error:", error);
@@ -509,6 +518,8 @@ export function MapView() {
 
   }, [isAuthenticated, user?.city]);
 
+  const fetchTimerRef = useRef<any>(null);
+
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
@@ -539,13 +550,16 @@ export function MapView() {
     const b = mapRef.current?.getBounds();
     if (b) {
       setMapBounds(b.toArray().flat() as [number, number, number, number]);
-      fetchClusters({
-        minLng: b.getWest(),
-        minLat: b.getSouth(),
-        maxLng: b.getEast(),
-        maxLat: b.getNorth(),
-        zoom: Math.floor(zoom),
-      });
+      if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+      fetchTimerRef.current = setTimeout(() => {
+        fetchClusters({
+          minLng: b.getWest(),
+          minLat: b.getSouth(),
+          maxLng: b.getEast(),
+          maxLat: b.getNorth(),
+          zoom: Math.floor(zoom),
+        });
+      }, 300);
     }
   }, [fetchClusters, minZoom]);
 
@@ -592,164 +606,75 @@ export function MapView() {
     });
   }, [clusters, filters]);
 
-  const points = useMemo(() => dataToRender.map((item: any) => ({
-    type: 'Feature' as const,
-    properties: {
-      ...item,
-      cluster: false,
-      id: item.id || item.ids?.[0] || item.issueId || '101',
-      issueId: item.id || item.ids?.[0] || item.issueId || '101',
-      category: item.category || item.dominant_category || 'OTHER',
-      status: item.status || item.dominant_status || 'OPEN',
-      priority: item.priority || item.dominant_priority || 'MEDIUM',
-      title: item.title || item.label || 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
-      description: item.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup ekip yönlendirmesi yapılmıştır.',
-      city: item.city || 'İstanbul',
-      district: item.district || 'Merkez',
-      address: item.address || `${item.district || 'Merkez'}, ${item.city || 'İstanbul'}`,
-      createdAt: item.createdAt || item.created_at || new Date().toISOString(),
-      imageUrl: item.imageUrl || item.image_url || '',
-      upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42,
-      original_point_count: Number(item.point_count || 1)
-    },
-    geometry: {
-      type: 'Point' as const,
-      coordinates: [item.lng || item.longitude || 0, item.lat || item.latitude || 0] as [number, number]
-    }
-  })), [dataToRender]);
+  const geoJsonData = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as const,
+      features: dataToRender.map((item: any) => {
+        const rawPointCount = Number(item.point_count || 1);
+        return {
+          type: 'Feature' as const,
+          properties: {
+            ...item,
+            id: item.id || item.ids?.[0] || item.issueId || '101',
+            issueId: item.id || item.ids?.[0] || item.issueId || '101',
+            category: item.category || item.dominant_category || 'OTHER',
+            status: item.status || item.dominant_status || 'OPEN',
+            priority: item.priority || item.dominant_priority || 'MEDIUM',
+            title: item.title || item.label || 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
+            description: item.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup ekip yönlendirmesi yapılmıştır.',
+            city: item.city || 'İstanbul',
+            district: item.district || 'Merkez',
+            address: item.address || `${item.district || 'Merkez'}, ${item.city || 'İstanbul'}`,
+            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+            imageUrl: item.imageUrl || item.image_url || '',
+            upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42,
+            original_point_count: rawPointCount
+          },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [Number(item.lng || item.longitude || 0), Number(item.lat || item.latitude || 0)] as [number, number]
+          }
+        };
+      })
+    };
+  }, [dataToRender]);
 
-  const { clusters: superClusters, supercluster } = useSupercluster({
-    points,
-    bounds: [-180, -85, 180, 85], // Always render all clusters to fix panning pop-in delay
-    zoom: Math.round(clusterZoom),
-    options: { 
-      radius: 75, 
-      maxZoom: 16,
-      map: (props: any) => ({ sum_point_count: props.original_point_count }),
-      reduce: (accumulated: any, props: any) => { accumulated.sum_point_count += props.sum_point_count; }
-    }
-  });
+  const handleMapClick = useCallback((e: any) => {
+    const feature = e.features?.[0];
+    if (!feature) return;
 
-  const renderedMarkers = useMemo(() => {
-    return superClusters.map((cluster: any) => {
-      const [longitude, latitude] = cluster.geometry.coordinates;
-      const {
-        cluster: superclusterIsCluster,
-        sum_point_count,
-        original_point_count,
-        category,
-        status,
-        issueId,
-      } = cluster.properties;
+    if (feature.layer?.id === 'cluster-circle') {
+      const clusterId = feature.properties?.cluster_id;
+      const coords = feature.geometry?.coordinates;
+      if (coords && mapRef.current) {
+        const currentZoom = mapRef.current.getZoom() || 6;
+        const fallbackZoom = Math.min(currentZoom + 2.5, 18);
+        const source: any = mapRef.current.getSource('issues-source');
 
-      const pointCount = superclusterIsCluster ? sum_point_count : original_point_count;
-      const isCluster = superclusterIsCluster || pointCount > 1;
-
-      if (isCluster) {
-        // Logaritmik büyüme: küçük cluster'lar (ör: 2) ile büyükler (ör: 100) arasında devasa fark olmasın
-        const scaleLog = Math.log(pointCount) / Math.log(100); 
-        const size = Math.min(32 + scaleLog * 20, 60); 
-
-        return (
-          <Marker
-            key={`cluster-${cluster.id || issueId || Math.random()}`}
-            longitude={longitude}
-            latitude={latitude}
-            anchor="center"
-            onClick={(e) => {
-              e.originalEvent.stopPropagation();
-              let expansionZoom = Math.floor((mapRef.current?.getZoom() || 6) + 3);
-              if (superclusterIsCluster) {
-                try {
-                  const z = supercluster.getClusterExpansionZoom(cluster.id);
-                  if (typeof z === 'number' && !isNaN(z)) expansionZoom = Math.min(z, 20);
-                } catch (err) {}
-              }
-              mapRef.current?.flyTo({
-                center: [longitude, latitude],
-                zoom: expansionZoom,
-                duration: 500
-              });
-            }}
-          >
-            <div
-              className="custom-leaflet-cluster"
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                borderRadius: '50%',
-                backgroundColor: 'rgba(239, 68, 68, 0.95)',
-                border: '3px solid white',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: `${Math.max(13, size / 3.2)}px`,
-                fontWeight: 'bold',
-                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                backdropFilter: 'blur(4px)'
-              }}
-            >
-              {pointCount}
-            </div>
-          </Marker>
-        );
+        if (clusterId !== undefined && source && typeof source.getClusterExpansionZoom === 'function') {
+          source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+            if (err || !zoom || typeof zoom !== 'number') {
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+            } else {
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: Math.min(zoom, 18), duration: 600 });
+            }
+          });
+        } else {
+          mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+        }
       }
+    } else if (feature.layer?.id === 'unclustered-point-halo' || feature.layer?.id === 'unclustered-point-inner') {
+      selectIssue(feature.properties);
+    }
+  }, [selectIssue]);
 
-      const statusColor = STATUS_COLORS[status] || STATUS_COLORS.OPEN;
+  const handleMouseEnter = useCallback(() => {
+    if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'pointer';
+  }, []);
 
-      return (
-        <Marker
-          key={`issue-${issueId}`}
-          longitude={longitude}
-          latitude={latitude}
-          anchor="bottom"
-          onClick={(e) => {
-            e.originalEvent.stopPropagation();
-            selectIssue(cluster.properties);
-          }}
-        >
-          <div
-            className="custom-individual-marker"
-            style={{
-              width: '32px',
-              height: '32px',
-              position: 'relative',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              transformOrigin: 'bottom center',
-              zIndex: 1
-            }}
-          >
-            {/* ViewBox "0 0 24 24" gives perfect bounds. The anchor="bottom" will sit exactly at the path tip. */}
-            <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMax meet" fill={statusColor} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-            </svg>
-            
-            <span style={{
-              position: 'absolute',
-              top: '6px', // Align with the circular top part of the pin
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2,
-              pointerEvents: 'none' // Don't block clicks on the pin
-            }}>
-              {getCategorySvg(category)}
-            </span>
-          </div>
-        </Marker>
-      );
-    });
-  }, [superClusters, supercluster, selectIssue]);
+  const handleMouseLeave = useCallback(() => {
+    if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
+  }, []);
 
 
 
@@ -761,13 +686,12 @@ export function MapView() {
       <Map
         ref={mapRef}
         onLoad={handleMapLoad}
-        {...viewState}
-        onMove={onMove}
+        initialViewState={viewState}
         onMoveEnd={handleMoveEnd}
 
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-        style={{ width: '100%', height: '100%' }}
+        style={MAP_CONTAINER_STYLE}
         maxBounds={TURKEY_BOUNDS}
         {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
@@ -775,11 +699,15 @@ export function MapView() {
         dragPan={viewState.zoom > panThreshold}
         dragRotate={false}
         pitchWithRotate={false}
-        touchZoomRotate={false}
-        reuseMaps={true}
+        touchZoomRotate={true}
+        reuseMaps={false}
         localIdeographFontFamily="sans-serif"
         optimizeForTerrain={false}
         renderWorldCopies={false}
+        interactiveLayerIds={INTERACTIVE_LAYER_IDS}
+        onClick={handleMapClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <Source id="provinces" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
           {/* Ülke sınırları (admin_level 0) - Sınırların belirgin olması için eklendi */}
@@ -808,7 +736,87 @@ export function MapView() {
             }}
           />
         </Source>
-        {renderedMarkers}
+
+        <Source
+          id="issues-source"
+          type="geojson"
+          data={geoJsonData}
+          cluster={true}
+          clusterRadius={65}
+          clusterMaxZoom={16}
+          clusterProperties={{
+            sum_point_count: ['+', ['case', ['has', 'point_count'], ['to-number', ['get', 'point_count']], ['to-number', ['get', 'original_point_count']]]]
+          }}
+        >
+          {/* Küme Daireleri (GPU WebGL) */}
+          <Layer
+            id="cluster-circle"
+            type="circle"
+            filter={['any', ['has', 'point_count'], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            paint={{
+              'circle-color': [
+                'step',
+                ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['to-number', ['get', 'original_point_count']], 1],
+                '#ef4444', 10,
+                '#dc2626', 50,
+                '#b91c1c'
+              ],
+              'circle-radius': [
+                'step',
+                ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['to-number', ['get', 'original_point_count']], 1],
+                18, 10,
+                24, 50,
+                32
+              ],
+              'circle-stroke-width': 3,
+              'circle-stroke-color': '#ffffff'
+            }}
+          />
+          {/* Küme Sayıları (GPU WebGL) */}
+          <Layer
+            id="cluster-count"
+            type="symbol"
+            filter={['any', ['has', 'point_count'], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            layout={{
+              'text-field': ['to-string', ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['to-number', ['get', 'original_point_count']]]],
+              'text-size': 13,
+              'text-allow-overlap': true
+            }}
+            paint={{
+              'text-color': '#ffffff'
+            }}
+          />
+          {/* Tekil Nokta Dış Halkası (GPU WebGL) */}
+          <Layer
+            id="unclustered-point-halo"
+            type="circle"
+            filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
+            paint={{
+              'circle-radius': 11,
+              'circle-color': [
+                'match',
+                ['get', 'status'],
+                'OPEN', '#ef4444',
+                'IN_REVIEW', '#f59e0b',
+                'RESOLVED', '#10b981',
+                'REJECTED', '#6b7280',
+                '#ef4444'
+              ],
+              'circle-stroke-width': 2.5,
+              'circle-stroke-color': '#ffffff'
+            }}
+          />
+          {/* Tekil Nokta İç Çekirdeği (GPU WebGL) */}
+          <Layer
+            id="unclustered-point-inner"
+            type="circle"
+            filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
+            paint={{
+              'circle-radius': 4.5,
+              'circle-color': '#ffffff'
+            }}
+          />
+        </Source>
       </Map>
 
       {

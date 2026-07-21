@@ -42,7 +42,7 @@ export function CookieBanner() {
         <div className={styles.textWrap}>
           <h4 className={styles.title}>Gizlilik ve Çerez Kullanımı</h4>
           <p className={styles.desc}>
-            Sitemizin doğru çalışması, güvenliğinizin sağlanması ve anonim analizler için zorunlu ve performans çerezleri kullanmaktayız. Detaylı bilgi için <Link href="/cerez-politikasi" className={styles.link}>Çerez Politikası</Link> ve <Link href="/kvkk" className={styles.link}>KVKK Aydınlatma Metni</Link>&apos;ni inceleyebilirsiniz.
+            Sitemizin doğru çalışması, güvenliğinizin sağlanması ve anonim analizler için zorunlu ve performans çerezleri kullanmaktayız. Detaylı bilgi için <a href="/cerez-politikasi" className={styles.link}>Çerez Politikası</a> ve <a href="/kvkk" className={styles.link}>KVKK Aydınlatma Metni</a>&apos;ni inceleyebilirsiniz.
           </p>
         </div>
         <div className={styles.actions}>

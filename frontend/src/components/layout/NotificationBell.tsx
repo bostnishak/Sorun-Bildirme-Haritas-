@@ -11,15 +11,13 @@ import styles from './NotificationBell.module.css';
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user, isAuthenticated } = useAppStore();
-  const {
-    notifications,
-    unreadCount,
-    fetchNotifications,
-    markAsRead,
-    markAllAsRead,
-    addNotification,
-  } = useNotificationStore();
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const notifications = useNotificationStore(state => state.notifications);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+  const fetchNotifications = useNotificationStore(state => state.fetchNotifications);
+  const markAsRead = useNotificationStore(state => state.markAsRead);
+  const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true);
@@ -35,7 +33,7 @@ export function NotificationBell() {
       if (socket) {
         socket.emit('join-user', user.id);
         const handleNotification = (notif: any) => {
-          addNotification(notif);
+          useNotificationStore.getState().addNotification(notif);
         };
         socket.on('notification', handleNotification);
 
@@ -44,7 +42,7 @@ export function NotificationBell() {
         };
       }
     }
-  }, [isAuthenticated, user?.id, fetchNotifications, addNotification]);
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

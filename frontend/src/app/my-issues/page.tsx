@@ -30,7 +30,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function MyIssuesPage() {
   const router = useRouter();
-  const { isAuthenticated, user, _hasHydrated } = useAppStore();
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const user = useAppStore(state => state.user);
+  const _hasHydrated = useAppStore(state => state._hasHydrated);
 
   useEffect(() => {
     if (_hasHydrated && !isAuthenticated) {

@@ -90,6 +90,7 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
     // İşlem bittikten sonra Redis'e publish et (socket io için):
     await redis.publish('image-processed', JSON.stringify({
       issueId,
+      userId: issue.reportedById || (issue as any).userId,
       key,
       url,
       status: newStatus,

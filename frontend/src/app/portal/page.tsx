@@ -13,7 +13,8 @@ import styles from './page.module.css';
 
 export default function PortalPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAppStore();
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
 
   // Yetki kontrolü
   useEffect(() => {

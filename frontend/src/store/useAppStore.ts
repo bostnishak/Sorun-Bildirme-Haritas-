@@ -69,6 +69,10 @@ export interface BoundingBox {
   maxLng: number;
   maxLat: number;
   zoom: number;
+  category?: string;
+  status?: string;
+  city?: string;
+  district?: string;
 }
 
 export interface Stats {
@@ -106,6 +110,7 @@ interface AppStore {
     category: string;
     status: string;
     search: string;
+    sortBy?: string;
   };
 
   // Actions
@@ -137,7 +142,8 @@ interface AppStore {
   setPendingCityZoom: (v: boolean) => void;
 }
 
-const defaultFilters = { city: '', district: '', category: '', status: '', search: '' };
+const defaultFilters = { city: '', district: '', category: '', status: '', search: '', sortBy: '' };
+let latestFetchId = 0;
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -213,30 +219,40 @@ export const useAppStore = create<AppStore>()(
 
       // Map actions — gerçek API
       fetchClusters: async (bbox: BoundingBox, force = false) => {
-        const { isLoadingClusters, currentBbox } = get();
+        const { currentBbox, filters } = get();
 
-        // Aynı bbox için tekrar istek atma
-        if (isLoadingClusters) return;
+        // Aynı veya çok yakın bbox için tekrar istek atma (0.05 derece yaklaşık 5km)
         if (
           !force &&
           currentBbox &&
-          Math.abs(currentBbox.minLng - bbox.minLng) < 0.01 &&
-          Math.abs(currentBbox.minLat - bbox.minLat) < 0.01 &&
-          Math.abs(currentBbox.maxLng - bbox.maxLng) < 0.01 &&
-          Math.abs(currentBbox.maxLat - bbox.maxLat) < 0.01 &&
-          currentBbox.zoom === bbox.zoom
+          Math.abs(currentBbox.minLng - bbox.minLng) < 0.05 &&
+          Math.abs(currentBbox.minLat - bbox.minLat) < 0.05 &&
+          Math.abs(currentBbox.maxLng - bbox.maxLng) < 0.05 &&
+          Math.abs(currentBbox.maxLat - bbox.maxLat) < 0.05 &&
+          Math.abs(currentBbox.zoom - bbox.zoom) < 0.5
         ) return;
 
+        const currentFetchId = ++latestFetchId;
         set({ isLoadingClusters: true, currentBbox: bbox });
 
+        const queryParams: any = { ...bbox };
+        if (filters.category) queryParams.category = filters.category;
+        if (filters.status) queryParams.status = filters.status;
+        if (filters.city) queryParams.city = filters.city;
+        if (filters.district) queryParams.district = filters.district;
+
         try {
-          const response = await issuesApi.getClusters(bbox) as any;
+          const response = await issuesApi.getClusters(queryParams) as any;
+          if (currentFetchId !== latestFetchId) return;
           set({ clusters: response.data ?? [] });
         } catch (err) {
+          if (currentFetchId !== latestFetchId) return;
           console.error('Cluster yükleme hatası:', err);
           set({ clusters: [] });
         } finally {
-          set({ isLoadingClusters: false });
+          if (currentFetchId === latestFetchId) {
+            set({ isLoadingClusters: false });
+          }
         }
       },
 
@@ -265,16 +281,26 @@ export const useAppStore = create<AppStore>()(
       setActiveView: (view) => set({ activeView: view }),
 
       // Filter actions
-      updateFilter: (key, value) =>
+      updateFilter: (key, value) => {
         set((state) => ({
           filters: { ...state.filters, [key]: value || '' },
-        })),
-      setFilter: (key, value) =>
+        }));
+        const { currentBbox } = get();
+        if (currentBbox) get().fetchClusters(currentBbox, true);
+      },
+      setFilter: (key, value) => {
         set((state) => ({
           filters: { ...state.filters, [key]: value || '' },
-        })),
+        }));
+        const { currentBbox } = get();
+        if (currentBbox) get().fetchClusters(currentBbox, true);
+      },
 
-      clearFilters: () => set({ filters: defaultFilters }),
+      clearFilters: () => {
+        set({ filters: defaultFilters });
+        const { currentBbox } = get();
+        if (currentBbox) get().fetchClusters(currentBbox, true);
+      },
       setHasHydrated: (state) => set({ _hasHydrated: state }),
       setPendingCityZoom: (v) => set({ pendingCityZoom: v }),
     }),

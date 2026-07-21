@@ -17,6 +17,7 @@
     "axios": "^1.7.2",
     "cesium": "^1.143.0",
     "date-fns": "^3.6.0",
+    "exceljs": "^4.4.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "mapbox-gl": "^3.4.0",

@@ -44,6 +44,10 @@ const clusterSchema = z.object({
   maxLng: z.string().transform(Number),
   maxLat: z.string().transform(Number),
   zoom: z.string().default('10').transform(Number),
+  category: z.string().optional(),
+  status: z.string().optional(),
+  city: z.string().optional(),
+  district: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({

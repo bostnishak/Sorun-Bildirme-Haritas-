@@ -361,6 +361,12 @@ label {
 
 /* ─── Mobile Global Overrides ──────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* GPU dostu sıfır kasma: Mobilde WebGL üzerinde ağır Gaussian blur hesaplamalarını devre dışı bırak */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   /* Harita kontrolleri mobilden safe-area uyumlu */
   .mapboxgl-ctrl-bottom-right,
   .maplibregl-ctrl-bottom-right {

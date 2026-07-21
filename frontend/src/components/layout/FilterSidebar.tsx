@@ -23,7 +23,9 @@ const MAIN_CATEGORIES = [
 ];
 
 export function FilterSidebar() {
-  const { filters, setFilter, clearFilters } = useAppStore();
+  const filters = useAppStore(state => state.filters);
+  const setFilter = useAppStore(state => state.setFilter);
+  const clearFilters = useAppStore(state => state.clearFilters);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleCategoryClick = (key: string) => {

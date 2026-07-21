@@ -33,7 +33,8 @@ export default function IssueDetailPage() {
   const params = useParams();
   const router = useRouter();
   const issueId = params.id as string;
-  const { isAuthenticated, user } = useAppStore();
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const user = useAppStore(state => state.user);
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
 

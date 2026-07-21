@@ -25,9 +25,13 @@ function getRoleLabel(role?: string): string {
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout, activeView, setActiveView, setReportModalOpen } =
-    useAppStore();
-  const { unreadCount } = useNotificationStore();
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const logout = useAppStore(state => state.logout);
+  const activeView = useAppStore(state => state.activeView);
+  const setActiveView = useAppStore(state => state.setActiveView);
+  const setReportModalOpen = useAppStore(state => state.setReportModalOpen);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -42,10 +46,17 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleDirectNav = (e: React.MouseEvent, url: string) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    router.push(url);
+  };
+
   return (
     <header className={styles.header}>
       {/* Logo */}
-      <Link href="/" className={styles.logo}>
+      <Link href="/" className={styles.logo} onClick={(e) => handleDirectNav(e, '/')}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px' }}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="34" height="34" style={{ filter: 'drop-shadow(0 2px 5px rgba(37,99,235,0.35))' }}>
             <defs>
@@ -78,7 +89,7 @@ export function Header() {
           className={`${styles.viewBtn} ${activeView === 'map' ? styles.viewBtnActive : ''}`}
           onClick={() => {
             setActiveView('map');
-            if (pathname !== '/') router.push('/');
+            if (pathname !== '/') router.push('/?view=map');
           }}
         >
           <IconMap size={15} />
@@ -89,7 +100,7 @@ export function Header() {
           className={`${styles.viewBtn} ${activeView === 'table' ? styles.viewBtnActive : ''}`}
           onClick={() => {
             setActiveView('table');
-            if (pathname !== '/') router.push('/');
+            if (pathname !== '/') router.push('/?view=table');
           }}
         >
           <IconTable size={15} />
@@ -106,7 +117,7 @@ export function Header() {
 
             <div className={styles.desktopOnly}>
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
-                <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı">
+                <Link href="/portal" className={`btn btn-secondary btn-sm ${styles.portalBtn}`} title="Yönetim Portalı" onClick={(e) => handleDirectNav(e, '/portal')}>
                   <span>Yönetim Portalı</span>
                 </Link>
               )}
@@ -160,12 +171,12 @@ export function Header() {
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setIsMobileMenuOpen(false);
-                    router.push('/profile?tab=info');
+                    handleDirectNav(e, '/profile?tab=info');
                   }}
                   onClick={(e) => {
                     e.preventDefault();
                     setIsMobileMenuOpen(false);
-                    router.push('/profile?tab=info');
+                    handleDirectNav(e, '/profile?tab=info');
                   }}
                 >
                   <IconUser size={17} strokeWidth={1.8} />
@@ -178,12 +189,12 @@ export function Header() {
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setIsMobileMenuOpen(false);
-                    router.push('/profile?tab=reports');
+                    handleDirectNav(e, '/profile?tab=reports');
                   }}
                   onClick={(e) => {
                     e.preventDefault();
                     setIsMobileMenuOpen(false);
-                    router.push('/profile?tab=reports');
+                    handleDirectNav(e, '/profile?tab=reports');
                   }}
                 >
                   <IconFileText size={17} strokeWidth={1.8} />
@@ -265,6 +276,7 @@ export function Header() {
               className="btn btn-secondary"
               id="btn-register"
               title="Kayıt Ol"
+              onClick={(e) => handleDirectNav(e, '/register')}
               style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
             >
               <IconUserPlus size={15} />
@@ -275,6 +287,7 @@ export function Header() {
               className="btn btn-primary"
               id="btn-login"
               title="Giriş Yap"
+              onClick={(e) => handleDirectNav(e, '/login')}
               style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
             >
               <IconLogin size={15} />
