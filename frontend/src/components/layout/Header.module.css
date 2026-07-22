@@ -149,6 +149,8 @@
   border: 1px solid transparent;
   transition: all var(--transition-fast);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 .userMenu:hover {
@@ -381,11 +383,27 @@
     width: 42px;
     height: 42px;
     font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .userMenu {
     padding: 0;
     border: none;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+  }
+
+  .userMenu:hover,
+  .userMenu:active,
+  .userMenu:focus {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .userMenuWrapper {
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
   }
 
   .notificationBtn {
@@ -678,25 +696,6 @@
   }
   .userMenuWrapper:hover .userDropdown.isOpen {
     display: flex;
-  }
-
-  .mobileNotificationBadge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    border-radius: 10px;
-    padding: 2px 5px;
-    min-width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    z-index: 10;
   }
 }
 

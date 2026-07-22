@@ -144,12 +144,6 @@ export function Header() {
                   ) : (
                     <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
                   )}
-                  {/* Mobile Notification Badge */}
-                  {unreadCount > 0 && (
-                    <div className={`${styles.mobileNotificationBadge} ${styles.mobileOnly}`}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </div>
-                  )}
                 </div>
                 <div className={styles.userInfo}>
                   <span className={styles.userName}>{user?.firstName} {user?.lastName}</span>
