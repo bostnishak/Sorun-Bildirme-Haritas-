@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Logo } from '@/components/ui/Logo';
 import styles from './page.module.css';
 
 export default function PortalPage() {
@@ -63,8 +64,8 @@ export default function PortalPage() {
       {/* Portal Header */}
       <div className={`${styles.portalHeader} glass`}>
         <div className={styles.portalLogo}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16"/><path d="M2 18h20"/><path d="M12 2v4"/><path d="M4 18v-8h16v8"/><path d="M8 18v-5"/><path d="M12 18v-5"/><path d="M16 18v-5"/><path d="M4 10L12 6l8 4"/></svg>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <Logo className={styles.portalLogoIcon} />
           </span>
           <div>
             <h1 className={styles.portalTitle}>Kurum Yönetim Portalı</h1>

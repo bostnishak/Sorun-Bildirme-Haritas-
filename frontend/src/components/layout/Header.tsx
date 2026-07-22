@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useAppStore } from '@/store/useAppStore';
 import {
-  IconMapPin, IconMap, IconTable, IconPlus,
+  IconMap, IconTable, IconPlus,
   IconLogin, IconUserPlus,
 } from '@/components/ui/Icon';
+import { Logo } from '@/components/ui/Logo';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -17,7 +18,7 @@ export function Header() {
       {/* Logo */}
       <Link href="/" className={styles.logo}>
         <div className={styles.logoIconWrap}>
-          <IconMapPin size={18} className={styles.logoIconSvg} />
+          <Logo size={18} className={styles.logoIconSvg} />
         </div>
         <div className={styles.logoText}>
           <span className={styles.logoName}>Türkiye Sorun Bildirim Haritası</span>

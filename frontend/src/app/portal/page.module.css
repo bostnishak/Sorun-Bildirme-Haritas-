@@ -22,6 +22,11 @@
   font-size: 28px;
 }
 
+.portalLogoIcon {
+  width: 48px;
+  height: 48px;
+}
+
 .portalTitle {
   font-size: 18px;
   font-weight: 700;
@@ -118,4 +123,34 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .portalHeader {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .portalLogoIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .tableCard {
+    margin: 0 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
 }
