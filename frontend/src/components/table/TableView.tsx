@@ -144,11 +144,31 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
       if (filters.category && issue.category !== filters.category) return false;
       if (filters.status && issue.status !== filters.status) return false;
       if (filters.search) {
-        const q = filters.search.toLowerCase();
+        const q = filters.search.toLowerCase().trim();
+        const qNoDash = q.replace(/-/g, '');
+        const short = shortId(issue).toLowerCase();
+        const rawId = String(issue.id || '').toLowerCase();
+        const rawIdNoDash = rawId.replace(/-/g, '');
+        const title = (issue.title || '').toLowerCase();
+        const desc = (issue.description || '').toLowerCase();
+        const city = (issue.city || '').toLowerCase();
+        const district = (issue.district || '').toLowerCase();
+        const address = (issue.address || '').toLowerCase();
+        const statusLabel = (STATUS_LABELS[issue.status] || '').toLowerCase();
+        const catLabel = (CATEGORY_LABELS[issue.category] || '').toLowerCase();
+
         return (
-          issue.title.toLowerCase().includes(q) ||
-          issue.city.toLowerCase().includes(q) ||
-          issue.district.toLowerCase().includes(q)
+          short.includes(q) ||
+          short.replace(/-/g, '').includes(qNoDash) ||
+          rawId.includes(q) ||
+          rawIdNoDash.includes(qNoDash) ||
+          title.includes(q) ||
+          desc.includes(q) ||
+          city.includes(q) ||
+          district.includes(q) ||
+          address.includes(q) ||
+          statusLabel.includes(q) ||
+          catLabel.includes(q)
         );
       }
       return true;
@@ -915,7 +935,7 @@ export function TableView({ issues: initialIssues }: { issues?: any[] }) {
           </svg>
           <input
             className={styles.searchInput}
-            placeholder="Başlık, şehir veya ilçe ara..."
+            placeholder="ID, başlık, detay, adres veya şehir ara..."
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />

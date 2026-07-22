@@ -46,6 +46,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: 'Diğer',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  OPEN: 'Açık', IN_REVIEW: 'İnceleniyor', RESOLVED: 'Çözüldü', REJECTED: 'Reddedildi',
+};
+
+const CATEGORY_PREFIX: Record<string, string> = {
+  WATER_SANITATION: 'SU',
+  TRANSPORTATION: 'UL',
+  ENVIRONMENT: 'CE',
+  INFRASTRUCTURE: 'AT',
+  SECURITY: 'GV',
+  LIGHTING: 'AY',
+  PARKS: 'PK',
+};
+
+function shortId(issue: any): string {
+  const prefix = CATEGORY_PREFIX[issue.category] || 'SB';
+  const rawId = String(issue.id || '');
+  const short = rawId.replace(/-/g, '').substring(0, 8).toUpperCase();
+  return `${prefix}-${short}`;
+}
+
 const TURKEY_CENTER = {
   latitude: 39.0,
   longitude: 35.5, // Daha fazla doğuyu (Van vb.) kapsamak için kaydırıldı
@@ -628,8 +649,29 @@ export function MapView() {
       if (filters.city && city !== filters.city) return false;
       if (filters.district && district !== filters.district) return false;
       if (filters.search) {
-        const q = filters.search.toLowerCase();
-        return title.toLowerCase().includes(q) || city.toLowerCase().includes(q) || district.toLowerCase().includes(q);
+        const q = filters.search.toLowerCase().trim();
+        const qNoDash = q.replace(/-/g, '');
+        const short = shortId(item).toLowerCase();
+        const rawId = String(item.id || '').toLowerCase();
+        const rawIdNoDash = rawId.replace(/-/g, '');
+        const desc = (item.description || '').toLowerCase();
+        const address = (item.address || '').toLowerCase();
+        const statusLabel = (STATUS_LABELS[status] || '').toLowerCase();
+        const catLabel = (CATEGORY_LABELS[category] || '').toLowerCase();
+
+        return (
+          short.includes(q) ||
+          short.replace(/-/g, '').includes(qNoDash) ||
+          rawId.includes(q) ||
+          rawIdNoDash.includes(qNoDash) ||
+          title.toLowerCase().includes(q) ||
+          desc.includes(q) ||
+          city.toLowerCase().includes(q) ||
+          district.toLowerCase().includes(q) ||
+          address.includes(q) ||
+          statusLabel.includes(q) ||
+          catLabel.includes(q)
+        );
       }
       return true;
     });

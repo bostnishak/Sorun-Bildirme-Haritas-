@@ -65,6 +65,18 @@ export function FilterSidebar() {
         </div>
 
       <div className={styles.filters}>
+        {/* Arama Barı (Harita ve Genel Arama) */}
+        <div className={styles.filterGroup}>
+          <label className={styles.label}>Arama (ID, Başlık, Detay, Adres)</label>
+          <input
+            className={styles.select}
+            style={{ paddingRight: '12px', cursor: 'text', backgroundImage: 'none' }}
+            placeholder="Örn: CE-2D37, Bornova, Koku..."
+            value={filters.search || ''}
+            onChange={e => setFilter('search', e.target.value || undefined)}
+          />
+        </div>
+
         {/* Kategori */}
         <div className={styles.filterGroup}>
           <label className={styles.label}>Sorun Türü</label>

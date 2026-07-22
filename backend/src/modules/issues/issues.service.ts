@@ -135,14 +135,39 @@ export const issuesService = {
     if (params.category) where.category = params.category as any;
     if (params.status) where.status = params.status as any;
     if (params.search) {
-      // PostgreSQL Full-Text Search için syntax hatası yaratabilecek özel karakterleri temizle
-      const sanitized = params.search.replace(/[^\w\sğüşıöçĞÜŞİÖÇ0-9]/gi, '').trim();
-      if (sanitized) {
-        const searchQuery = sanitized.split(/\s+/).join(' | ');
+      const cleanSearch = params.search.trim();
+      if (cleanSearch) {
+        // ID / UUID kısmi araması (örn: CE-2D37B7DA veya 2D37B7DA veya sadece 2d37)
+        const rawSearch = cleanSearch.replace(/^([A-Z]{2})-/i, '').replace(/-/g, '');
+        let matchingIds: string[] = [];
+        if (rawSearch.length >= 2) {
+          try {
+            const matchingIdsResult = await prisma.$queryRaw<{ id: string }[]>`
+              SELECT id::text FROM issues 
+              WHERE id::text ILIKE ${'%' + rawSearch + '%'} 
+              LIMIT 100
+            `;
+            matchingIds = matchingIdsResult.map(r => r.id);
+          } catch (e) {
+            // UUID cast veya veritabanı hatası olursa yoksay
+          }
+        }
+
+        const sanitizedWords = cleanSearch.replace(/[^\w\sğüşıöçĞÜŞİÖÇ0-9]/gi, '').trim();
+        const searchQuery = sanitizedWords ? sanitizedWords.split(/\s+/).join(' | ') : undefined;
+
         where.OR = [
-          { title: { search: searchQuery } },
-          { description: { search: searchQuery } },
-          { address: { search: searchQuery } },
+          ...(matchingIds.length > 0 ? [{ id: { in: matchingIds } }] : []),
+          { title: { contains: cleanSearch, mode: 'insensitive' } },
+          { description: { contains: cleanSearch, mode: 'insensitive' } },
+          { address: { contains: cleanSearch, mode: 'insensitive' } },
+          { city: { contains: cleanSearch, mode: 'insensitive' } },
+          { district: { contains: cleanSearch, mode: 'insensitive' } },
+          ...(searchQuery ? [
+            { title: { search: searchQuery } },
+            { description: { search: searchQuery } },
+            { address: { search: searchQuery } },
+          ] : []),
         ];
       }
     }
