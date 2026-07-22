@@ -442,7 +442,7 @@ export function MapView() {
                 map.setLayoutProperty(layer.id, 'visibility', 'none');
               }
 
-              if (layer.type === 'symbol' && layer.id.includes('label')) {
+              if (layer.type === 'symbol' && layer.id.includes('label') && !layer.id.includes('cluster-label') && !layer.id.includes('unclustered-label')) {
                 // Dil ayarı (Türkçe) ve Kısaltmalar
                 if (layer.layout && layer.layout['text-field']) {
                   const currentTextField = JSON.stringify(layer.layout['text-field']);
@@ -659,7 +659,7 @@ export function MapView() {
     const feature = e.features?.[0];
     if (!feature) return;
 
-    if (feature.layer?.id === 'cluster-circle') {
+    if (feature.layer?.id === 'cluster-circle' || feature.layer?.id === 'cluster-label-bg' || feature.layer?.id === 'backend-cluster-label-bg') {
       const clusterId = feature.properties?.cluster_id;
       const coords = feature.geometry?.coordinates;
       if (coords && mapRef.current) {
@@ -679,7 +679,7 @@ export function MapView() {
           mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
         }
       }
-    } else if (feature.layer?.id === 'unclustered-point-halo' || feature.layer?.id === 'unclustered-point-inner') {
+    } else if (feature.layer?.id === 'unclustered-point-halo' || feature.layer?.id === 'unclustered-point-inner' || feature.layer?.id === 'unclustered-label-bg') {
       selectIssue(feature.properties);
     }
   }, [selectIssue]);
@@ -768,7 +768,7 @@ export function MapView() {
           <Layer
             id="cluster-circle"
             type="circle"
-            filter={['any', ['has', 'point_count'], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            filter={['any', ['has', 'cluster'], ['>', ['to-number', ['coalesce', ['get', 'point_count'], 0]], 1], ['>', ['to-number', ['coalesce', ['get', 'original_point_count'], 0]], 1]]}
             paint={{
               'circle-color': [
                 'step',
@@ -792,12 +792,14 @@ export function MapView() {
           <Layer
             id="cluster-label-bg"
             type="symbol"
-            filter={['has', 'point_count']}
+            filter={['any', ['has', 'cluster'], ['>', ['to-number', ['coalesce', ['get', 'point_count'], 0]], 1], ['>', ['to-number', ['coalesce', ['get', 'original_point_count'], 0]], 1]]}
             layout={{
-              'text-field': '{sum_point_count}',
+              'text-field': ['to-string', ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['get', 'original_point_count'], '']],
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
               'text-size': 14,
               'text-allow-overlap': true,
-              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular']
+              'text-ignore-placement': true,
+              'text-anchor': 'center'
             }}
             paint={{
               'text-color': '#ffffff'
@@ -807,12 +809,14 @@ export function MapView() {
           <Layer
             id="backend-cluster-label-bg"
             type="symbol"
-            filter={['all', ['!', ['has', 'point_count']], ['>', ['to-number', ['get', 'original_point_count']], 1]]}
+            filter={['all', ['!', ['has', 'cluster']], ['>', ['to-number', ['coalesce', ['get', 'original_point_count'], 0]], 1]]}
             layout={{
-              'text-field': '{original_point_count}',
+              'text-field': ['to-string', ['coalesce', ['get', 'original_point_count'], ['get', 'point_count'], '']],
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
               'text-size': 14,
               'text-allow-overlap': true,
-              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular']
+              'text-ignore-placement': true,
+              'text-anchor': 'center'
             }}
             paint={{
               'text-color': '#ffffff'
@@ -823,7 +827,7 @@ export function MapView() {
           <Layer
             id="unclustered-point-halo"
             type="circle"
-            filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
+            filter={['all', ['!', ['has', 'cluster']], ['<=', ['to-number', ['coalesce', ['get', 'point_count'], 1]], 1], ['<=', ['to-number', ['coalesce', ['get', 'original_point_count'], 1]], 1]]}
             paint={{
               'circle-radius': 14,
               'circle-color': [
@@ -848,7 +852,7 @@ export function MapView() {
           <Layer
             id="unclustered-label-bg"
             type="symbol"
-            filter={['all', ['!', ['has', 'point_count']], ['<=', ['to-number', ['get', 'original_point_count']], 1]]}
+            filter={['all', ['!', ['has', 'cluster']], ['<=', ['to-number', ['coalesce', ['get', 'point_count'], 1]], 1], ['<=', ['to-number', ['coalesce', ['get', 'original_point_count'], 1]], 1]]}
             layout={{
               'icon-image': [
                 'match',
