@@ -268,6 +268,28 @@ export function MapView() {
     return () => observer.disconnect();
   }, [activeView]);
 
+  // Tarayıcı zoom veya pencere boyutu değiştiğinde (örn: %100 -> %85)
+  // Eğer haritaya zaten genel bakılıyorsa (zoom <= 6.5) Türkiye'yi otomatik merkeze al
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (mapRef.current && activeView === 'map') {
+        const currentZoom = mapRef.current.getMap().getZoom();
+        if (currentZoom <= 6.5) {
+          setViewState(TURKEY_CENTER);
+        }
+      }
+    };
+    
+    window.addEventListener('resize', handleWindowResize);
+    // İlk açılışta da emin olmak için kısa bir süre sonra kontrol et
+    const initialTimer = setTimeout(handleWindowResize, 500);
+    
+    return () => {
+      window.removeEventListener('resize', handleWindowResize);
+      clearTimeout(initialTimer);
+    };
+  }, [activeView]);
+
   // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
   const handleLoginRedirect = useCallback(() => {
     router.push('/login');
