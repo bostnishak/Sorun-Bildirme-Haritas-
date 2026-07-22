@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
-jest.mock('../../../config/database', () => ({
+jest.mock('../../config/database', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -23,12 +23,12 @@ jest.mock('../../../config/database', () => ({
   },
 }));
 
-jest.mock('../../../services/nvi.service', () => ({
+jest.mock('../../services/nvi.service', () => ({
   verifyWithNVI: jest.fn(),
   hashTCKimlik: jest.fn().mockReturnValue('hashed_tc_kimlik'),
 }));
 
-jest.mock('../../../middleware/auth.middleware', () => ({
+jest.mock('../../middleware/auth.middleware', () => ({
   generateAccessToken: jest.fn().mockReturnValue('mock_access_token'),
   generateRefreshToken: jest.fn().mockReturnValue('mock_refresh_token'),
   verifyRefreshToken: jest.fn(),
@@ -84,6 +84,7 @@ describe('authService', () => {
       lastName: 'Yilmaz',
       tcKimlik: '12345678901',
       birthYear: 1995,
+      city: 'İstanbul',
     };
 
     it('başarılı kayıt: user, accessToken, refreshToken döner', async () => {

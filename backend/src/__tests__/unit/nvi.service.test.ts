@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import { validateTCKimlikFormat, verifyWithNVI } from '../../services/nvi.service';
+import { validateTCKimlikFormat, verifyWithNVI, verifyWithNVICore } from '../../services/nvi.service';
 import { BadRequestError, ServiceUnavailableError } from '../../utils/errors';
 
 jest.mock('axios');
@@ -87,13 +87,13 @@ describe('verifyWithNVI()', () => {
     mockAxios.post.mockRejectedValue(timeoutError);
     mockAxios.isAxiosError.mockReturnValue(true);
 
-    await expect(verifyWithNVI(validDto)).rejects.toThrow(ServiceUnavailableError);
+    await expect(verifyWithNVICore(validDto)).rejects.toThrow(ServiceUnavailableError);
   });
 
   it('parse edilemeyen XML yanıtında ServiceUnavailableError fırlatır', async () => {
     mockAxios.post.mockResolvedValue({ data: '<invalid>xml</invalid>' });
 
-    await expect(verifyWithNVI(validDto)).rejects.toThrow(ServiceUnavailableError);
+    await expect(verifyWithNVICore(validDto)).rejects.toThrow(ServiceUnavailableError);
   });
 
   it('XML injection karakterleri sanitize edilir', async () => {
@@ -101,7 +101,7 @@ describe('verifyWithNVI()', () => {
       data: '<TCKimlikNoDogrulaResult>true</TCKimlikNoDogrulaResult>',
     });
 
-    await verifyWithNVI({
+    await verifyWithNVICore({
       ...validDto,
       firstName: 'AH<MET',
       lastName: 'YIL&MAZ',

@@ -74,9 +74,10 @@ const TURKEY_CENTER = {
   pitch: 0,
   bearing: 0
 };
+// Türkiye sınırları — viewport kenarları asla bu koordinatların dışına çıkamaz
 const TURKEY_BOUNDS: [[number, number], [number, number]] = [
-  [25.4, 35.8], // Güneybatı — tam Türkiye sınırı (Yunanistan/Bulgaristan/Suriye dahil etme)
-  [44.9, 42.4]  // Kuzeydoğu — tam Türkiye sınırı (Gürcistan/Ermenistan/İran dahil etme)
+  [25.6, 35.8], // Güneybatı
+  [44.8, 42.2]  // Kuzeydoğu
 ];
 
 const CITY_COORDS: Record<string, { latitude: number; longitude: number; zoom: number; pitch: number; bearing: number }> = {
@@ -204,9 +205,9 @@ export function MapView() {
   }, []);
 
   const calculatePitch = (zoom: number): number => {
-    if (zoom < 15) return 0;
-    if (zoom >= 17) return 65;
-    return Math.round((zoom - 15) * 32.5);
+    if (zoom < 14.5) return 0;
+    if (zoom >= 15.5) return 60;
+    return Math.round((zoom - 14.5) * 60);
   };
 
   const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
@@ -265,6 +266,28 @@ export function MapView() {
     });
     observer.observe(wrapperRef.current);
     return () => observer.disconnect();
+  }, [activeView]);
+
+  // Tarayıcı zoom veya pencere boyutu değiştiğinde (örn: %100 -> %85)
+  // Eğer haritaya zaten genel bakılıyorsa (zoom <= 6.5) Türkiye'yi otomatik merkeze al
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (mapRef.current && activeView === 'map') {
+        const currentZoom = mapRef.current.getMap().getZoom();
+        if (currentZoom <= 6.5) {
+          setViewState(TURKEY_CENTER);
+        }
+      }
+    };
+    
+    window.addEventListener('resize', handleWindowResize);
+    // İlk açılışta da emin olmak için kısa bir süre sonra kontrol et
+    const initialTimer = setTimeout(handleWindowResize, 500);
+    
+    return () => {
+      window.removeEventListener('resize', handleWindowResize);
+      clearTimeout(initialTimer);
+    };
   }, [activeView]);
 
   // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
@@ -385,24 +408,19 @@ export function MapView() {
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
 
-    // Zoom Hassasiyeti: 1x -> 3x
-    try {
-      if (map.scrollZoom) {
-        map.scrollZoom.setWheelZoomRate(3 / 450); // Varsayılan: 1/450
-        map.scrollZoom.setZoomRate(3 / 100);      // Varsayılan: 1/100
-      }
-    } catch (err) {
-      console.warn('Hassasiyet ayarı yapılamadı:', err);
-    }
+    // ── Viewport sınır kilidi: native Mapbox maxBounds ──
+    map.setMaxBounds([
+      [TURKEY_BOUNDS[0][0], TURKEY_BOUNDS[0][1]],
+      [TURKEY_BOUNDS[1][0], TURKEY_BOUNDS[1][1]],
+    ]);
+    try { (map as any).maxBoundsViscosity = 1.0; } catch (_) {}
 
-    // Harita yakınlaştıkça (zoom) otomatik eğim (pitch) verme işlemini doğrudan harita objesine bağla (Performans için React State'i atla)
-    map.on('zoom', (e: any) => {
-      // Eğer zoom değişimi flyTo gibi bir animasyondan geliyorsa (originalEvent yoksa), müdahale etme ki animasyon kesilmesin.
-      if (!e.originalEvent) return;
-      
+    // Harita yakınlaştıkça (zoom) otomatik eğim (pitch) verme işlemini doğrudan harita objesine bağla
+    map.on('zoom', () => {
       const currentZoom = map.getZoom();
       const targetPitch = calculatePitch(currentZoom);
-      if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
+      const currentPitch = map.getPitch();
+      if (Math.abs(currentPitch - targetPitch) > 1) {
         map.setPitch(targetPitch);
       }
     });
@@ -611,30 +629,16 @@ export function MapView() {
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
-    const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
 
-    // Kullanıcı uzaklaştığında (zoom out) haritayı otomatik olarak Türkiye merkezine topla
-    // Sadece PC'de çalışır (Mobildeki geri sekme hatasını önlemek için)
-    if (isDesktop && zoom < panThreshold + 0.3) {
-      const isCentered = Math.abs(e.viewState.longitude - TURKEY_CENTER.longitude) < 0.01 &&
-                         Math.abs(e.viewState.latitude - TURKEY_CENTER.latitude) < 0.01;
-      
-      if (!isCentered) {
-        mapRef.current?.flyTo({
-          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: Math.max(zoom, minZoom),
-          duration: 600,
-          essential: true
-        });
-        return; // Animasyon bitene kadar state ve cluster güncellemelerini durdur
+    // Eğimi native API ile uygula
+    if (mapRef.current) {
+      const map = mapRef.current.getMap();
+      const targetPitch = calculatePitch(zoom);
+      if (Math.abs(map.getPitch() - targetPitch) > 1) {
+        map.setPitch(targetPitch);
       }
     }
 
-    setViewState({
-      ...e.viewState,
-      pitch: calculatePitch(zoom),
-      bearing: 0,
-    });
     setClusterZoom(zoom);
     const b = mapRef.current?.getBounds();
     if (b) {
@@ -648,9 +652,9 @@ export function MapView() {
           maxLat: b.getNorth(),
           zoom: Math.floor(zoom),
         });
-      }, 300);
+      }, 100);
     }
-  }, [fetchClusters, minZoom]);
+  }, [fetchClusters]);
 
   const isInitialMount = useRef(true);
 
@@ -799,7 +803,46 @@ export function MapView() {
     if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
   }, []);
 
+  const handleMove = useCallback((e: any) => {
+    const { zoom } = e.viewState;
 
+    // Gerçek canvas boyutunu al (ekran boyutuna göre doğru hesaplama)
+    const canvas = mapRef.current?.getCanvas();
+    const vpWidth  = canvas ? canvas.clientWidth  : (typeof window !== 'undefined' ? window.innerWidth  : 1024);
+    const vpHeight = canvas ? canvas.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 700);
+
+    // Bu zoom seviyesinde viewport kaç derece geniş/yüksek?
+    const tileSize = 512; // Mapbox varsayılan tile boyutu
+    const degreesPerTile = 360 / Math.pow(2, zoom);
+    const halfLng = (vpWidth  / tileSize) * degreesPerTile / 2;
+    const halfLat = (vpHeight / tileSize) * degreesPerTile / 2;
+
+    const west  = TURKEY_BOUNDS[0][0];
+    const south = TURKEY_BOUNDS[0][1];
+    const east  = TURKEY_BOUNDS[1][0];
+    const north = TURKEY_BOUNDS[1][1];
+
+    const minLng = west  + halfLng;
+    const maxLng = east  - halfLng;
+    const minLat = south + halfLat;
+    const maxLat = north - halfLat;
+
+    // Viewport Türkiye'den geniş ise merkezi kilitle; değilse sınırlar içinde tut
+    const longitude = minLng >= maxLng
+      ? (west + east) / 2
+      : Math.max(minLng, Math.min(maxLng, e.viewState.longitude));
+    const latitude = minLat >= maxLat
+      ? (south + north) / 2
+      : Math.max(minLat, Math.min(maxLat, e.viewState.latitude));
+
+    setViewState({
+      ...e.viewState,
+      longitude,
+      latitude,
+      pitch: calculatePitch(zoom),
+      bearing: 0,
+    });
+  }, []);
 
   return (
     <div
@@ -810,7 +853,8 @@ export function MapView() {
       <Map
         ref={mapRef}
         onLoad={handleMapLoad}
-        initialViewState={viewState}
+        {...viewState}
+        onMove={handleMove}
         onMoveEnd={handleMoveEnd}
 
         mapStyle={mapStyle}
@@ -819,7 +863,7 @@ export function MapView() {
         maxBounds={TURKEY_BOUNDS}
         {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
-        maxZoom={16.5}
+        maxZoom={17}
         dragPan={viewState.zoom > panThreshold}
         dragRotate={false}
         pitchWithRotate={false}
@@ -982,6 +1026,17 @@ export function MapView() {
           />
         </Source>
       </Map>
+
+      {/* Haritayı Ortala (Türkiye'ye Odaklan) Butonu */}
+      <button
+        onClick={() => setViewState(TURKEY_CENTER)}
+        className="absolute bottom-8 right-8 bg-white p-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors z-10 border border-gray-200 flex items-center justify-center group"
+        title="Türkiye'ye Odaklan"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </button>
 
       {
         selectedIssue && (

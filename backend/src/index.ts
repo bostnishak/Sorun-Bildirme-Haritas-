@@ -224,9 +224,11 @@ async function bootstrap() {
   });
 }
 
-bootstrap().catch((err) => {
-  logger.error('Bootstrap hatası:', err);
-  process.exit(1);
-});
+if (!process.env.JEST_WORKER_ID && env.NODE_ENV !== 'test') {
+  bootstrap().catch((err) => {
+    logger.error('Bootstrap hatası:', err);
+    process.exit(1);
+  });
+}
 
 export { app };

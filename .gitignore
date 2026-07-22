@@ -51,3 +51,5 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+.env.local

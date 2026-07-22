@@ -4,13 +4,14 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { jest } from '@jest/globals';
 import { isAuthenticated, requireRole } from '../../middleware/auth.middleware';
 import { UnauthorizedError, ForbiddenError } from '../../utils/errors';
 import { Role } from '@prisma/client';
 
 jest.mock('../../config/env', () => ({
   env: {
-    JWT_SECRET: 'test_secret_at_least_32_characters_long',
+    JWT_ACCESS_SECRET: 'test_secret_at_least_32_characters_long',
     JWT_ACCESS_EXPIRES: '15m',
     JWT_REFRESH_EXPIRES: '7d',
   },
@@ -39,7 +40,7 @@ function signToken(payload: object, secret = 'test_secret_at_least_32_characters
 describe('isAuthenticated middleware', () => {
 
   it('geçerli Bearer token ile req.user set edilir ve next çağrılır', async () => {
-    const token = signToken({ sub: 'user-1', role: Role.CITIZEN });
+    const token = signToken({ sub: 'user-1', role: Role.CITIZEN, type: 'access' });
     const req = makeReq({ authorization: `Bearer ${token}` }) as Request;
     const next = makeNext();
 
@@ -72,7 +73,7 @@ describe('isAuthenticated middleware', () => {
   });
 
   it('süresi dolmuş token: UnauthorizedError fırlatır', async () => {
-    const token = signToken({ sub: 'user-1', role: Role.CITIZEN }, undefined, { expiresIn: '-1s' });
+    const token = signToken({ sub: 'user-1', role: Role.CITIZEN, type: 'access' }, undefined, { expiresIn: '-1s' });
     const req = makeReq({ authorization: `Bearer ${token}` }) as Request;
 
     await expect(isAuthenticated(req, makeRes() as Response, makeNext()))

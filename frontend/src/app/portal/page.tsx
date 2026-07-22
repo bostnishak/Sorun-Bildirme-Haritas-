@@ -17,7 +17,6 @@ export default function PortalPage() {
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const [activeTab, setActiveTab] = useState<'APPROVAL_HUB' | 'OFFICER_DASHBOARD' | 'PERSONNEL'>('OFFICER_DASHBOARD');
 
-  // Yetki kontrolü
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
@@ -49,45 +48,51 @@ export default function PortalPage() {
   return (
     <div className={styles.portal}>
       {/* Portal Header */}
-      <div className={`${styles.portalHeader} glass`}>
+      <div className={`${styles.portalHeader} glass`} style={{ borderBottom: '1px solid var(--color-border)' }}>
         <div className={styles.portalLogo}>
           <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary)' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16"/><path d="M2 18h20"/><path d="M12 2v4"/><path d="M4 18v-8h16v8"/><path d="M8 18v-5"/><path d="M12 18v-5"/><path d="M16 18v-5"/><path d="M4 10L12 6l8 4"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-3" /><path d="M9 9v.01" /><path d="M9 12v.01" /><path d="M9 15v.01" /><path d="M9 18v.01" />
+            </svg>
           </span>
           <div>
             <h1 className={styles.portalTitle}>Kurum Yönetim ve Çözüm Portalı</h1>
             <p className={styles.portalSubtitle}>
-              {user?.institution?.name || (user?.role === 'SUPER_ADMIN' ? '👑 Süper Yönetici Karar ve Denetim Paneli' : '🏢 Kurum Saha Operasyon Masası')} — {user?.institution?.city || user?.city || 'Bölge Sınırları'}
+              {user?.institution?.name || (user?.role === 'SUPER_ADMIN' ? 'Admin Karar ve Denetim Paneli' : 'Kurum Saha Operasyon Masası')} • {user?.institution?.city || user?.city || 'Tüm Bölgeler'}
             </p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {user?.role === 'SUPER_ADMIN' && (
-            <span style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 800, fontSize: '12px', padding: '6px 12px', borderRadius: '20px' }}>
-              👑 Süper Yönetici
+            <span style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Admin
             </span>
           )}
-          <a href="/" className="btn btn-ghost btn-sm">← Ana Sayfaya Dön</a>
+          <a href="/" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Ana Sayfaya Dön
+          </a>
         </div>
       </div>
 
       {/* Stats Summary Bar */}
       <div className={styles.statsGrid}>
         {[
-          { label: 'Toplam İhbar', value: stats?.total ?? 0, color: 'var(--color-primary)' },
-          { label: 'Acil Açık', value: stats?.open_count ?? 0, color: '#ef4444' },
-          { label: 'İncelemede', value: stats?.in_review_count ?? 0, color: '#3b82f6' },
-          { label: 'Resmi Onaylı', value: stats?.resolved_count ?? 0, color: '#10b981' },
-          { label: 'Bu Ay Gelen', value: stats?.this_month ?? 0, color: 'var(--color-primary)' },
+          { label: 'TOPLAM İHBAR', value: stats?.total ?? 0, color: 'var(--color-primary)', bg: '#eff6ff', border: '#bfdbfe' },
+          { label: 'ACİL / AÇIK', value: stats?.open_count ?? 0, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+          { label: 'İNCELEMEDE', value: stats?.in_review_count ?? 0, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+          { label: 'RESMİ ONAYLI', value: stats?.resolved_count ?? 0, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+          { label: 'BU AY GELEN', value: stats?.this_month ?? 0, color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
         ].map(stat => (
-          <div key={stat.label} className={`${styles.statCard} card`}>
+          <div key={stat.label} className={`${styles.statCard} card`} style={{ border: `1px solid ${stat.border}`, background: 'var(--color-surface)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
             <div className={styles.statValue} style={{ color: stat.color }}>{stat.value.toLocaleString('tr')}</div>
-            <div className={styles.statLabel}>{stat.label}</div>
+            <div className={styles.statLabel} style={{ fontWeight: 700, letterSpacing: '0.05em' }}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Admin / Officer Navigation Tabs */}
+      {/* Admin Navigation Tabs */}
       {user?.role === 'SUPER_ADMIN' && (
         <div style={{ padding: '0 24px', marginBottom: '24px' }}>
           <div style={{
@@ -97,6 +102,7 @@ export default function PortalPage() {
             padding: '8px',
             borderRadius: '16px',
             border: '1px solid var(--color-border)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
             overflowX: 'auto'
           }}>
             <button
@@ -107,11 +113,10 @@ export default function PortalPage() {
                 borderRadius: '12px',
                 fontWeight: 700,
                 fontSize: '14px',
-                border: 'none',
+                border: activeTab === 'APPROVAL_HUB' ? '1px solid #bfdbfe' : '1px solid transparent',
                 cursor: 'pointer',
-                background: activeTab === 'APPROVAL_HUB' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'transparent',
-                color: activeTab === 'APPROVAL_HUB' ? '#fff' : 'var(--color-text)',
-                boxShadow: activeTab === 'APPROVAL_HUB' ? '0 4px 14px rgba(245, 158, 11, 0.35)' : 'none',
+                background: activeTab === 'APPROVAL_HUB' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'APPROVAL_HUB' ? '#1d4ed8' : 'var(--color-text-secondary)',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -120,7 +125,8 @@ export default function PortalPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              🛡️ Çözüm & Red Onay Merkezi
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              Çözüm ve Red Onay Merkezi
             </button>
 
             <button
@@ -131,11 +137,10 @@ export default function PortalPage() {
                 borderRadius: '12px',
                 fontWeight: 700,
                 fontSize: '14px',
-                border: 'none',
+                border: activeTab === 'OFFICER_DASHBOARD' ? '1px solid #bfdbfe' : '1px solid transparent',
                 cursor: 'pointer',
-                background: activeTab === 'OFFICER_DASHBOARD' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
-                color: activeTab === 'OFFICER_DASHBOARD' ? '#fff' : 'var(--color-text)',
-                boxShadow: activeTab === 'OFFICER_DASHBOARD' ? '0 4px 14px rgba(59, 130, 246, 0.35)' : 'none',
+                background: activeTab === 'OFFICER_DASHBOARD' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'OFFICER_DASHBOARD' ? '#1d4ed8' : 'var(--color-text-secondary)',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -144,7 +149,8 @@ export default function PortalPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              🏢 Saha Operasyon Masası (Tüm İhbarlar)
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Saha Operasyon Masası
             </button>
 
             <button
@@ -155,11 +161,10 @@ export default function PortalPage() {
                 borderRadius: '12px',
                 fontWeight: 700,
                 fontSize: '14px',
-                border: 'none',
+                border: activeTab === 'PERSONNEL' ? '1px solid #bfdbfe' : '1px solid transparent',
                 cursor: 'pointer',
-                background: activeTab === 'PERSONNEL' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
-                color: activeTab === 'PERSONNEL' ? '#fff' : 'var(--color-text)',
-                boxShadow: activeTab === 'PERSONNEL' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+                background: activeTab === 'PERSONNEL' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'PERSONNEL' ? '#1d4ed8' : 'var(--color-text-secondary)',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -168,7 +173,8 @@ export default function PortalPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              👥 Personel & Kurum Atama
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Personel ve Kurum Atama
             </button>
           </div>
         </div>

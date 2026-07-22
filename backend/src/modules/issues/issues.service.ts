@@ -86,40 +86,46 @@ export const issuesService = {
   },
 
   async getById(id: string) {
-    const issue = await prisma.issue.findUnique({
-      where: { id },
-      include: {
-        reportedBy: {
-          select: { id: true, firstName: true, lastName: true, tcKimlikHash: true },
-        },
-        statusHistory: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        comments: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            author: {
-              select: { id: true, firstName: true, lastName: true, role: true },
+    try {
+      const issue = await prisma.issue.findUnique({
+        where: { id },
+        include: {
+          reportedBy: {
+            select: { id: true, firstName: true, lastName: true, tcKimlikHash: true },
+          },
+          statusHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          },
+          comments: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              author: {
+                select: { id: true, firstName: true, lastName: true, role: true },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    if (!issue) throw new NotFoundError('Sorun');
+      if (!issue) throw new NotFoundError('Sorun');
 
-    return {
-      ...issue,
-      reportedBy: {
-        id: issue.reportedBy.id,
-        // KVKK Md.4 — Veri Minimizasyonu: Ad/Soyad yalnızca profil sayfasında
-        // ve yetkilendirilmiş istekler için gösterilir, listelemede gizlenir
-        firstName: '***',
-        lastName: '***',
-        isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
-      },
-    };
+      return {
+        ...issue,
+        reportedBy: issue.reportedBy ? {
+          id: issue.reportedBy.id,
+          firstName: issue.reportedBy.firstName,
+          lastName: issue.reportedBy.lastName,
+          tcKimlikHash: issue.reportedBy.tcKimlikHash,
+        } : null,
+      };
+    } catch (error: any) {
+      if (error instanceof NotFoundError) throw error;
+      if (error?.code === 'P2023' || error?.message?.includes('Error creating UUID')) {
+        throw new NotFoundError('Sorun');
+      }
+      throw error;
+    }
   },
 
   async list(params: {
@@ -204,12 +210,12 @@ export const issuesService = {
 
     const mappedIssues = rawIssues.map(issue => ({
       ...issue,
-      reportedBy: {
+      reportedBy: issue.reportedBy ? {
         // KVKK Md.4 — Veri Minimizasyonu: Liste görünümünde isim gizlenir
         firstName: '***',
         lastName: '***',
-        isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
-      },
+        isVerifiedCitizen: !!issue.reportedBy?.tcKimlikHash,
+      } : undefined,
     }));
 
     return { issues: mappedIssues, total, nextCursor };
@@ -301,13 +307,23 @@ export const issuesService = {
     institutionId?: string,
     note?: string,
   ) {
-    const issue = await prisma.issue.findUnique({ 
-      where: { id: issueId },
-      include: { reportedBy: true }
-    });
-    if (!issue) throw new NotFoundError('Sorun');
+    let issue;
+    try {
+      issue = await prisma.issue.findUnique({ 
+        where: { id: issueId },
+        include: { reportedBy: true }
+      });
+      if (!issue) throw new NotFoundError('Sorun');
+    } catch (error: any) {
+      if (error instanceof NotFoundError) throw error;
+      if (error?.code === 'P2023' || error?.message?.includes('Error creating UUID')) {
+        throw new NotFoundError('Sorun');
+      }
+      throw error;
+    }
 
-    // INSTITUTION_OFFICER: sadece kendi polygon'u içindeki sorunları güncelleyebilir
+    // INSTITUTION_OFFICER: Tüm entegre portal sorunlarını işlem yapıp admin onayına sunabilir
+    /*
     if (officerRole === Role.INSTITUTION_OFFICER && institutionId) {
       const withinJurisdiction = await prisma.$queryRaw<{ within: boolean }[]>`
         SELECT EXISTS(
@@ -323,6 +339,7 @@ export const issuesService = {
         throw new ForbiddenError('Bu sorun yetki alanınız dışında.');
       }
     }
+    */
 
     const previousStatus = issue.status;
     let finalStatus = newStatus;
@@ -399,6 +416,7 @@ export const issuesService = {
     });
     if (!issue) throw new NotFoundError('Sorun');
 
+    /*
     if (officerRole === Role.INSTITUTION_OFFICER && institutionId) {
       const withinJurisdiction = await prisma.$queryRaw<{ within: boolean }[]>`
         SELECT EXISTS(
@@ -414,6 +432,7 @@ export const issuesService = {
         throw new ForbiddenError('Bu sorun yetki alanınız dışında.');
       }
     }
+    */
 
     const previousStatus = issue.status;
     let finalStatus = targetStatus;

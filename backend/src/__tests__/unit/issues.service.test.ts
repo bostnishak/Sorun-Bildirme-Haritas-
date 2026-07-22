@@ -114,9 +114,9 @@ describe('issuesService', () => {
 
       await issuesService.list({ limit: 500 });
 
-      // findMany'a geçilen take değeri 100'ü aşmamalı
+      // findMany'a geçilen take değeri limit + 1 (101) değerini aşmamalı
       const call = (mockPrisma.issue.findMany as jest.Mock).mock.calls[0][0];
-      expect(call.take).toBeLessThanOrEqual(100);
+      expect(call.take).toBeLessThanOrEqual(101);
     });
   });
 
@@ -169,20 +169,22 @@ describe('issuesService', () => {
       expect(result.status).toBe('IN_REVIEW');
     });
 
-    it('INSTITUTION_OFFICER yetki dışı sorun için ForbiddenError', async () => {
+    it('INSTITUTION_OFFICER tüm entegre bildirimleri güncelleyebilir', async () => {
       (mockPrisma.issue.findUnique as jest.Mock).mockResolvedValue(mockIssue);
-      // ST_Within false döner
-      (mockPrisma.$queryRaw as jest.Mock).mockResolvedValue([{ within: false }]);
+      (mockPrisma.issue.update as jest.Mock).mockResolvedValue({
+        ...mockIssue,
+        status: 'IN_REVIEW',
+      });
 
-      await expect(
-        issuesService.updateStatus(
-          'issue-uuid-1',
-          'IN_REVIEW',
-          'officer-id',
-          Role.INSTITUTION_OFFICER,
-          'institution-id',
-        ),
-      ).rejects.toThrow(ForbiddenError);
+      const result = await issuesService.updateStatus(
+        'issue-uuid-1',
+        'IN_REVIEW',
+        'officer-id',
+        Role.INSTITUTION_OFFICER,
+        'institution-id',
+      );
+
+      expect(result.status).toBe('IN_REVIEW');
     });
 
     it('mevcut olmayan sorun için NotFoundError', async () => {

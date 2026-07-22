@@ -31,7 +31,7 @@ export default function ApprovalHub() {
       await api.post(`/admin/approvals/${issue.id}/decide`, {
         decision: 'APPROVE',
       });
-      toast.success('🎉 Karar başarıyla onaylandı ve vatandaşa/çalışana bildirildi!');
+      toast.success('Karar başarıyla onaylandı ve vatandaşa/çalışana bildirildi.');
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['portal-issues'] });
       queryClient.invalidateQueries({ queryKey: ['portal-stats'] });
@@ -67,7 +67,7 @@ export default function ApprovalHub() {
         decision: 'REQUEST_REVISION',
         adminNote: revisionNote.trim(),
       });
-      toast.success('⚠️ Revizyon talebi çalışana iletildi, durum "İnceleniyor" olarak geri çekildi.');
+      toast.success('Revizyon talebi çalışana iletildi, durum "İnceleniyor" olarak geri çekildi.');
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['portal-issues'] });
       queryClient.invalidateQueries({ queryKey: ['portal-stats'] });
@@ -81,41 +81,46 @@ export default function ApprovalHub() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header Info Banner */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)', color: '#fff', padding: '24px', border: '1px solid #374151' }}>
+      {/* Header Info Card */}
+      <div className="card" style={{ background: 'var(--color-surface)', color: 'var(--color-text)', padding: '24px', border: '1px solid var(--color-border)', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 8px 0', color: '#fbbf24' }}>
-              🛡️ Çözüm & Red Onay Merkezi (Before / After Denetimi)
-            </h3>
-            <p style={{ margin: 0, fontSize: '14px', color: '#d1d5db' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>
+                Çözüm ve Red Onay Merkezi (Karşılaştırmalı Denetim)
+              </h3>
+            </div>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-secondary)' }}>
               Saha çalışanlarının çözüldü veya reddedildi diyerek ilettiği tüm talepler burada karşılaştırmalı olarak denetlenir. Yetersiz kanıtları revizyona iade edebilir veya onaylayıp puanlayabilirsiniz.
             </p>
           </div>
-          <div style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid #fbbf24', padding: '12px 20px', borderRadius: '14px', textAlign: 'center' }}>
-            <div style={{ fontSize: '22px', fontWeight: 800, color: '#fbbf24' }}>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px 22px', borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#d97706' }}>
               {approvals.length}
             </div>
-            <div style={{ fontSize: '12px', color: '#fef3c7', fontWeight: 600 }}>Bekleyen Karar</div>
+            <div style={{ fontSize: '12px', color: '#92400e', fontWeight: 600 }}>Bekleyen Karar</div>
           </div>
         </div>
       </div>
 
       {/* Approvals Grid */}
       {isLoading ? (
-        <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Onay bekleyen talepler yükleniyor...</div>
+        <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>Onay bekleyen talepler yükleniyor...</div>
       ) : error ? (
-        <div className="card" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>Talepler yüklenirken hata oluştu.</div>
+        <div className="card" style={{ padding: '40px', textAlign: 'center', color: '#dc2626', border: '1px solid var(--color-border)' }}>Talepler yüklenirken hata oluştu.</div>
       ) : approvals.length === 0 ? (
-        <div className="card" style={{ padding: '60px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+        <div className="card" style={{ padding: '60px 20px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', marginBottom: '16px' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
           <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 8px 0' }}>Harika! Bekleyen Hiçbir Onay Talebi Yok</h4>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', margin: 0 }}>
             Tüm saha çalışanlarının ilettiği çözümler ve red talepleri incelenip karara bağlanmış durumda.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(480px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 450px), 1fr))', gap: '20px' }}>
           {approvals.map((issue: any) => (
             <div
               key={issue.id}
@@ -125,24 +130,24 @@ export default function ApprovalHub() {
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: '24px',
-                border: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '1px solid #10b98150' : '1px solid #f9731650',
+                border: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '1px solid #a7f3d0' : '1px solid #fed7aa',
                 background: 'var(--color-surface)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
               }}
             >
               <div>
                 {/* Status Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <span style={{
                     fontSize: '12px',
                     fontWeight: 800,
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    background: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#10b98120' : '#f9731620',
-                    color: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#10b981' : '#f97316',
-                    border: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '1px solid #10b981' : '1px solid #f97316',
+                    background: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#ecfdf5' : '#fff7ed',
+                    color: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#059669' : '#ea580c',
+                    border: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '1px solid #6ee7b7' : '1px solid #fdba74',
                   }}>
-                    {issue.status === 'RESOLVED_PENDING_APPROVAL' ? '✅ ÇÖZÜM ONAYI BEKLİYOR' : '❌ RED ONAYI BEKLİYOR'}
+                    {issue.status === 'RESOLVED_PENDING_APPROVAL' ? 'ÇÖZÜM ONAYI BEKLİYOR' : 'RED ONAYI BEKLİYOR'}
                   </span>
                   <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
                     {format(new Date(issue.updated_at || issue.updatedAt || Date.now()), 'dd MMM HH:mm', { locale: tr })}
@@ -152,46 +157,47 @@ export default function ApprovalHub() {
                 <h4 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 6px 0' }}>{issue.title}</h4>
                 <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '0 0 12px 0' }}>{issue.description}</p>
                 
-                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '16px', background: 'var(--color-surface-hover)', padding: '8px 12px', borderRadius: '8px' }}>
-                  📍 <strong>Konum:</strong> {issue.city} / {issue.district} — {issue.address || 'Belirtilmedi'}
+                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '16px', background: 'var(--color-surface-hover)', padding: '8px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <strong>Konum:</strong> {issue.city} / {issue.district} — {issue.address || 'Belirtilmedi'}
                 </div>
 
                 {/* Before vs After Comparison */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ background: 'var(--color-surface-hover)', padding: '10px', borderRadius: '10px', border: '1px dashed var(--color-border)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#ef4444', marginBottom: '6px' }}>📷 ÖNCESİ (İlk İhbar)</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', marginBottom: '6px' }}>ÖNCESİ (İlk İhbar)</div>
                     {issue.imageUrl ? (
                       <a href={issue.imageUrl} target="_blank" rel="noreferrer">
                         <img src={issue.imageUrl} alt="Öncesi" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
                       </a>
                     ) : (
-                      <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>Görsel Yok</div>
+                      <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>Görsel Yok</div>
                     )}
                   </div>
 
                   <div style={{ background: 'var(--color-surface-hover)', padding: '10px', borderRadius: '10px', border: '1px dashed var(--color-border)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginBottom: '6px' }}>
-                      {issue.status === 'RESOLVED_PENDING_APPROVAL' ? '🎉 SONRASI (Saha Kanıtı)' : '❌ RED / KANIT GÖRSELİ'}
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#059669', marginBottom: '6px' }}>
+                      {issue.status === 'RESOLVED_PENDING_APPROVAL' ? 'SONRASI (Saha Kanıtı)' : 'RED / KANIT GÖRSELİ'}
                     </div>
                     {issue.proofImageUrl ? (
                       <a href={issue.proofImageUrl} target="_blank" rel="noreferrer">
                         <img src={issue.proofImageUrl} alt="Sonrası" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #10b981' }} />
                       </a>
                     ) : (
-                      <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>Kanıt Görseli Yüklenmemiş</div>
+                      <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>Kanıt Görseli Yüklenmemiş</div>
                     )}
                   </div>
                 </div>
 
                 {/* Officer Resolution Note */}
-                <div style={{ background: 'rgba(59, 130, 246, 0.08)', borderLeft: '4px solid #3b82f6', padding: '12px', borderRadius: '8px', marginBottom: '18px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', marginBottom: '4px' }}>
-                    👷 SAHA YETKİLİSİ RAPORU / AÇIKLAMASI:
+                <div style={{ background: '#eff6ff', borderLeft: '4px solid #2563eb', padding: '12px', borderRadius: '8px', marginBottom: '18px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', marginBottom: '4px' }}>
+                    SAHA YETKİLİSİ RAPORU VE AÇIKLAMASI:
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--color-text)', fontStyle: 'italic' }}>
                     "{issue.resolutionNote || 'Açıklama girilmedi.'}"
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '6px' }}>
+                  <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '6px' }}>
                     İşlemi Yapan: {issue.assignedOfficer?.firstName || issue.assignedOfficer?.email || 'Yetkili Personel'}
                   </div>
                 </div>
@@ -206,16 +212,16 @@ export default function ApprovalHub() {
                     flex: 1,
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    background: 'transparent',
-                    border: '1px solid #ef4444',
-                    color: '#ef4444',
+                    background: 'var(--color-surface)',
+                    border: '1px solid #fca5a5',
+                    color: '#dc2626',
                     fontWeight: 700,
                     fontSize: '13px',
                     cursor: isProcessing === issue.id ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                   }}
                 >
-                  🔄 Revizyon İste (İade)
+                  Revizyon İste (İade)
                 </button>
                 <button
                   onClick={() => handleApprove(issue)}
@@ -224,17 +230,17 @@ export default function ApprovalHub() {
                     flex: 1.3,
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    background: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#10b981' : '#64748b',
+                    background: issue.status === 'RESOLVED_PENDING_APPROVAL' ? '#059669' : '#475569',
                     color: '#fff',
                     fontWeight: 700,
                     fontSize: '13px',
                     border: 'none',
                     cursor: isProcessing === issue.id ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                    boxShadow: '0 2px 8px rgba(5, 150, 105, 0.2)',
                     transition: 'all 0.2s',
                   }}
                 >
-                  {isProcessing === issue.id ? 'İşleniyor...' : issue.status === 'RESOLVED_PENDING_APPROVAL' ? '✅ Çözümü RESMİ ONAYLA' : '✅ Reddi RESMİ ONAYLA'}
+                  {isProcessing === issue.id ? 'İşleniyor...' : issue.status === 'RESOLVED_PENDING_APPROVAL' ? 'Çözümü Resmi Onayla' : 'Reddi Resmi Onayla'}
                 </button>
               </div>
             </div>
@@ -246,12 +252,13 @@ export default function ApprovalHub() {
       {selectedIssueForRevision && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(4px)',
+          background: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '28px', background: 'var(--color-surface)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 700, color: 'var(--color-text)' }}>
-              ⚠️ Revizyon (İade) Gerekçesi Yazın
+          <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '28px', background: 'var(--color-surface)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '1px solid var(--color-border)' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Revizyon (İade) Gerekçesi Yazın
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
               <strong>"{selectedIssueForRevision.title}"</strong> başvurusu için saha çalışanından ne gibi ek çalışmalar veya kanıtlar istediğinizi belirtin.
@@ -278,9 +285,9 @@ export default function ApprovalHub() {
                 <button
                   type="submit"
                   disabled={isProcessing === selectedIssueForRevision.id}
-                  style={{ padding: '10px 22px', borderRadius: '8px', background: '#ef4444', color: '#fff', fontWeight: 700, border: 'none', cursor: isProcessing === selectedIssueForRevision.id ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '10px 22px', borderRadius: '8px', background: '#dc2626', color: '#fff', fontWeight: 700, border: 'none', cursor: isProcessing === selectedIssueForRevision.id ? 'not-allowed' : 'pointer' }}
                 >
-                  {isProcessing === selectedIssueForRevision.id ? 'Gönderiliyor...' : '🔄 Revizyona İade Et'}
+                  {isProcessing === selectedIssueForRevision.id ? 'Gönderiliyor...' : 'Revizyona İade Et'}
                 </button>
               </div>
             </form>

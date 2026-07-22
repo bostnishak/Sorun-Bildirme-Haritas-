@@ -21,8 +21,8 @@ const createIssueSchema = z.object({
     'WATER_SANITATION', 'TRANSPORTATION', 'ENVIRONMENT',
     'INFRASTRUCTURE', 'SECURITY', 'LIGHTING', 'PARKS',
   ]),
-  latitude: z.string().transform(Number).refine(v => v >= -90 && v <= 90),
-  longitude: z.string().transform(Number).refine(v => v >= -180 && v <= 180),
+  latitude: z.coerce.number().refine(v => v >= -90 && v <= 90),
+  longitude: z.coerce.number().refine(v => v >= -180 && v <= 180),
   city: z.string().min(2).max(100),
   district: z.string().min(2).max(100),
   address: z.string().max(500).optional(),
@@ -30,7 +30,7 @@ const createIssueSchema = z.object({
 
 const listIssuesSchema = z.object({
   cursor: z.string().optional(),
-  limit: z.string().default('50').transform(Number),
+  limit: z.coerce.number().default(50),
   city: z.string().optional(),
   district: z.string().optional(),
   category: z.string().optional(),
@@ -39,11 +39,11 @@ const listIssuesSchema = z.object({
 });
 
 const clusterSchema = z.object({
-  minLng: z.string().transform(Number),
-  minLat: z.string().transform(Number),
-  maxLng: z.string().transform(Number),
-  maxLat: z.string().transform(Number),
-  zoom: z.string().default('10').transform(Number),
+  minLng: z.coerce.number(),
+  minLat: z.coerce.number(),
+  maxLng: z.coerce.number(),
+  maxLat: z.coerce.number(),
+  zoom: z.coerce.number().default(10),
   category: z.string().optional(),
   status: z.string().optional(),
   city: z.string().optional(),

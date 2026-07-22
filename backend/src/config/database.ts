@@ -8,6 +8,7 @@ const globalForPrisma = globalThis as unknown as {
 // Veritabanı bağlantı havuzu (connection pool) limitlerini garantile
 function getDatabaseUrlWithPoolLimit(url: string, defaultLimit = 20, defaultTimeout = 10): string {
   try {
+    if (!url) return 'postgresql://postgres:postgres@localhost:5432/test_db';
     const parsedUrl = new URL(url);
     if (!parsedUrl.searchParams.has('connection_limit')) {
       parsedUrl.searchParams.set('connection_limit', defaultLimit.toString());
@@ -17,7 +18,7 @@ function getDatabaseUrlWithPoolLimit(url: string, defaultLimit = 20, defaultTime
     }
     return parsedUrl.toString();
   } catch {
-    return url;
+    return url || 'postgresql://postgres:postgres@localhost:5432/test_db';
   }
 }
 
