@@ -594,7 +594,9 @@
   }
 }
 
-.footerBrand {}
+.footerBrand {
+  /* Brand container layout */
+}
 
 .footerLogo {
   display: flex;
@@ -635,7 +637,9 @@
   font-style: italic;
 }
 
-.footerCol {}
+.footerCol {
+  /* Footer column layout */
+}
 
 .footerColTitle {
   font-size: 12px;
