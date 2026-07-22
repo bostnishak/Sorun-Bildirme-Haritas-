@@ -23,6 +23,7 @@ const MAIN_CATEGORIES = [
 ];
 
 export function FilterSidebar() {
+  const activeView = useAppStore(state => state.activeView);
   const filters = useAppStore(state => state.filters);
   const setFilter = useAppStore(state => state.setFilter);
   const clearFilters = useAppStore(state => state.clearFilters);
@@ -41,14 +42,16 @@ export function FilterSidebar() {
       {/* Mobile Overlay */}
       {isOpen && <div className={styles.overlay} onClick={() => setIsOpen(false)} />}
       
-      {/* Mobile Toggle Button */}
-      <button 
-        className={`${styles.mobileToggle} ${isOpen ? styles.hidden : ''}`}
-        onClick={() => setIsOpen(true)}
-        aria-label="Menüyü Aç"
-      >
-        <IconMenu size={22} />
-      </button>
+      {/* Mobile Toggle Button (Sadece Harita görünümünde göster) */}
+      {activeView === 'map' && (
+        <button 
+          className={`${styles.mobileToggle} ${isOpen ? styles.hidden : ''}`}
+          onClick={() => setIsOpen(true)}
+          aria-label="Menüyü Aç"
+        >
+          <IconMenu size={22} />
+        </button>
+      )}
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.header}>
