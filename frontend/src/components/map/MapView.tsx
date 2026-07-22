@@ -218,6 +218,7 @@ export function MapView() {
   // useEffect ile çift kontrol React re-render sırasında çelişkiye yol açıyordu — kaldırıldı.
 
 
+  const activeView = useAppStore(state => state.activeView);
   const clusters = useAppStore(state => state.clusters);
   const fetchClusters = useAppStore(state => state.fetchClusters);
   const selectedIssue = useAppStore(state => state.selectedIssue);
@@ -227,6 +228,44 @@ export function MapView() {
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const pendingCityZoom = useAppStore(state => state.pendingCityZoom);
   const setPendingCityZoom = useAppStore(state => state.setPendingCityZoom);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Tablo sekmesinden Harita sekmesine geri dönüldüğünde (veya ekran boyutu/yönü değiştiğinde)
+  // Mapbox GL canvas boyutunun anında %100 oturması ve takılmaması için otomatik resize:
+  useEffect(() => {
+    if (activeView === 'map') {
+      const doResize = () => {
+        try {
+          if (mapRef.current) {
+            mapRef.current.resize();
+          }
+        } catch (_) {}
+      };
+      doResize();
+      const t1 = setTimeout(doResize, 30);
+      const t2 = setTimeout(doResize, 120);
+      const t3 = setTimeout(doResize, 300);
+      const t4 = setTimeout(doResize, 600);
+      return () => {
+        clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
+      };
+    }
+  }, [activeView]);
+
+  // Container boyut değişikliklerini algılayıp haritayı her zaman ekrana sığdır
+  useEffect(() => {
+    if (!wrapperRef.current || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      try {
+        if (mapRef.current && activeView === 'map') {
+          mapRef.current.resize();
+        }
+      } catch (_) {}
+    });
+    observer.observe(wrapperRef.current);
+    return () => observer.disconnect();
+  }, [activeView]);
 
   // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
   const handleLoginRedirect = useCallback(() => {
@@ -764,6 +803,7 @@ export function MapView() {
 
   return (
     <div
+      ref={wrapperRef}
       className={styles.mapWrapper}
     >
 

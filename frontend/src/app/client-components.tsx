@@ -41,7 +41,14 @@ function MapAreaClientInner() {
     <div className={styles.appLayout}>
       <FilterSidebar />
       <main className={styles.mapArea}>
-        {activeView === 'map' ? <MapView /> : <TableView />}
+        <div style={{ display: activeView === 'map' ? 'block' : 'none', width: '100%', height: '100%' }}>
+          <MapView />
+        </div>
+        {activeView === 'table' && (
+          <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+            <TableView />
+          </div>
+        )}
 
         {isAuthenticated && (
           <button
