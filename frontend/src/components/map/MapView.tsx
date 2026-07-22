@@ -259,6 +259,7 @@ export function MapView() {
           mapRef.current?.flyTo({
             center: [coords.longitude, coords.latitude],
             zoom: coords.zoom,
+            pitch: calculatePitch(coords.zoom),
             duration: 3200,
             curve: 1.45,
             essential: true
@@ -334,9 +335,21 @@ export function MapView() {
       console.warn('Hassasiyet ayarı yapılamadı:', err);
     }
 
+    // Harita yakınlaştıkça (zoom) otomatik eğim (pitch) verme işlemini doğrudan harita objesine bağla (Performans için React State'i atla)
+    map.on('zoom', (e: any) => {
+      // Eğer zoom değişimi flyTo gibi bir animasyondan geliyorsa (originalEvent yoksa), müdahale etme ki animasyon kesilmesin.
+      if (!e.originalEvent) return;
+      
+      const currentZoom = map.getZoom();
+      const targetPitch = calculatePitch(currentZoom);
+      if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
+        map.setPitch(targetPitch);
+      }
+    });
+
     // Load category SVG icons as images for map rendering
     const loadIcon = (id: string, pathData: string) => {
-      const svg = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">${pathData}</svg>`;
+      const svg = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">${pathData}</svg>`;
       const img = new Image();
       img.onload = () => {
         if (!map.hasImage(id)) map.addImage(id, img);
@@ -626,29 +639,41 @@ export function MapView() {
     return {
       type: 'FeatureCollection' as const,
       features: dataToRender.map((item: any) => {
-        const rawPointCount = Number(item.point_count || 1);
+        const props = item.properties || item;
+        const rawPointCount = Number(props.point_count || 1);
+        
+        let lng = 0;
+        let lat = 0;
+        if (item.geometry?.coordinates) {
+          lng = item.geometry.coordinates[0];
+          lat = item.geometry.coordinates[1];
+        } else {
+          lng = item.lng ?? item.longitude ?? props.lng ?? props.longitude ?? 0;
+          lat = item.lat ?? item.latitude ?? props.lat ?? props.latitude ?? 0;
+        }
+
         return {
           type: 'Feature' as const,
           properties: {
-            ...item,
-            id: item.id || item.ids?.[0] || item.issueId || '101',
-            issueId: item.id || item.ids?.[0] || item.issueId || '101',
-            category: item.category || item.dominant_category || 'OTHER',
-            status: item.status || item.dominant_status || 'OPEN',
-            priority: item.priority || item.dominant_priority || 'MEDIUM',
-            title: item.title || item.label || 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
-            description: item.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup ekip yönlendirmesi yapılmıştır.',
-            city: item.city || 'İstanbul',
-            district: item.district || 'Merkez',
-            address: item.address || `${item.district || 'Merkez'}, ${item.city || 'İstanbul'}`,
-            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
-            imageUrl: item.imageUrl || item.image_url || '',
-            upvotes: item.upvotes ?? item.upvote_count ?? item.upvoteCount ?? 42,
+            ...props,
+            id: props.id || props.ids?.[0] || props.issueId || '101',
+            issueId: props.id || props.ids?.[0] || props.issueId || '101',
+            category: props.category || props.dominant_category || 'OTHER',
+            status: props.status || props.dominant_status || 'OPEN',
+            priority: props.priority || props.dominant_priority || 'MEDIUM',
+            title: props.title || props.label || 'Tarihi Yarımada Kaldırım ve Yol Göçmesi',
+            description: props.description || 'Bu konumda bildirilen altyapı/çevre sorunu incelenmekte olup ekip yönlendirmesi yapılmıştır.',
+            city: props.city || 'İstanbul',
+            district: props.district || 'Merkez',
+            address: props.address || `${props.district || 'Merkez'}, ${props.city || 'İstanbul'}`,
+            createdAt: props.createdAt || props.created_at || new Date().toISOString(),
+            imageUrl: props.imageUrl || props.image_url || '',
+            upvotes: props.upvotes ?? props.upvote_count ?? props.upvoteCount ?? 42,
             original_point_count: rawPointCount
           },
           geometry: {
             type: 'Point' as const,
-            coordinates: [Number(item.lng || item.longitude || 0), Number(item.lat || item.latitude || 0)] as [number, number]
+            coordinates: [Number(lng), Number(lat)] as [number, number]
           }
         };
       })
@@ -670,13 +695,14 @@ export function MapView() {
         if (clusterId !== undefined && source && typeof source.getClusterExpansionZoom === 'function') {
           source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
             if (err || !zoom || typeof zoom !== 'number') {
-              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
             } else {
-              mapRef.current?.flyTo({ center: coords as [number, number], zoom: Math.min(zoom, 18), duration: 600 });
+              const targetZoom = Math.min(zoom, 18);
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: targetZoom, pitch: calculatePitch(targetZoom), duration: 600 });
             }
           });
         } else {
-          mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, duration: 600 });
+          mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
         }
       }
     } else if (feature.layer?.id === 'unclustered-point-halo' || feature.layer?.id === 'unclustered-point-inner' || feature.layer?.id === 'unclustered-label-bg') {
