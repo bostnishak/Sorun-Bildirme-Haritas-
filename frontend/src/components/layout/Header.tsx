@@ -291,10 +291,9 @@ export function Header() {
               className="btn"
               id="btn-register"
               title="Kayıt Ol"
-              onClick={(e) => handleDirectNav(e, '/register')}
-              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none', background: 'transparent', color: 'var(--color-primary)', border: 'none', boxShadow: 'none' }}
+              style={{ background: 'transparent', color: 'var(--color-primary)', border: 'none', boxShadow: 'none', padding: '0 8px' }}
             >
-              <IconUser size={15} />
+              <IconUser size={18} />
               <span className={styles.desktopOnly}>Kayıt Ol</span>
             </Link>
             <Link
@@ -302,10 +301,9 @@ export function Header() {
               className="btn btn-primary"
               id="btn-login"
               title="Giriş Yap"
-              onClick={(e) => handleDirectNav(e, '/login')}
-              style={{ position: 'relative', zIndex: 50, pointerEvents: 'auto', textDecoration: 'none' }}
+              style={{ padding: '0 12px' }}
             >
-              <IconLogin size={15} />
+              <IconLogin size={18} />
               <span className={styles.desktopOnly}>Giriş Yap</span>
             </Link>
           </div>
