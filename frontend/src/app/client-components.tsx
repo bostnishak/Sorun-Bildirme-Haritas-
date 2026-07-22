@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import {
   IconMessageSquare, IconCheckCircle, IconClock, IconMapPin,
-  IconBuilding, IconUsers, IconZap, IconMail, IconPhone, IconGlobe, IconPlus
+  IconBuilding, IconUsers, IconZap, IconMail, IconGlobe, IconPlus
 } from '@/components/ui/Icon';
 import { MOCK_STATS } from '@/lib/mockData';
 import styles from './page.module.css';
@@ -113,7 +113,6 @@ const CONTACT_DATA = [
     bgLight: 'rgba(29, 78, 216, 0.08)',
     items: [
       { type: 'email', value: 'basin@sorunharitasi.gov.tr', Icon: IconMail },
-      { type: 'phone', value: '+90 (312) 000 00 00', Icon: IconPhone },
       { type: 'web', value: 'sorunharitasi.gov.tr/basin', Icon: IconGlobe },
     ],
   },
@@ -126,7 +125,6 @@ const CONTACT_DATA = [
     bgLight: 'rgba(22, 163, 74, 0.08)',
     items: [
       { type: 'email', value: 'kurum@sorunharitasi.gov.tr', Icon: IconMail },
-      { type: 'phone', value: '+90 (312) 000 00 01', Icon: IconPhone },
     ],
   },
   {
@@ -138,7 +136,6 @@ const CONTACT_DATA = [
     bgLight: 'rgba(124, 58, 237, 0.08)',
     items: [
       { type: 'email', value: 'destek@sorunharitasi.gov.tr', Icon: IconMail },
-      { type: 'phone', value: '+90 (312) 000 00 02', Icon: IconPhone },
     ],
   },
 ];
