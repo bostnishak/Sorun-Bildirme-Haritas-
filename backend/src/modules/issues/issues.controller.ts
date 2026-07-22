@@ -51,8 +51,14 @@ const clusterSchema = z.object({
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED']),
+  status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED', 'RESOLVED_PENDING_APPROVAL', 'REJECTED_PENDING_APPROVAL']),
   note: z.string().max(500).optional(),
+});
+
+const officerSubmitSchema = z.object({
+  status: z.enum(['RESOLVED_PENDING_APPROVAL', 'REJECTED_PENDING_APPROVAL', 'IN_REVIEW']),
+  proofImageUrl: z.string().url().or(z.string().max(500)).optional(),
+  resolutionNote: z.string().max(2000).optional(),
 });
 
 // ─── Controllers ──────────────────────────────────────────────────────────
@@ -229,6 +235,32 @@ export async function updateIssueStatus(req: Request, res: Response): Promise<vo
   res.status(200).json({
     success: true,
     message: 'Sorun durumu güncellendi.',
+    data: issue,
+  });
+}
+
+/**
+ * PATCH /api/v1/issues/:id/officer-submit — Çalışan kanıt foto/rapor yükleyip onaya sunar
+ */
+export async function officerSubmitIssue(req: Request, res: Response): Promise<void> {
+  const parsed = officerSubmitSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError('Geçersiz gönderim bilgileri.');
+  }
+
+  const issue = await issuesService.officerSubmit(
+    req.params.id,
+    parsed.data.status,
+    req.user.sub,
+    req.user.role,
+    req.user.institutionId,
+    parsed.data.proofImageUrl,
+    parsed.data.resolutionNote,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Sorun çözüm kanıtı ve raporu onaya iletildi.',
     data: issue,
   });
 }

@@ -1,5 +1,10 @@
 import { prisma } from '../../config/database';
 import { Role } from '@prisma/client';
+import { NotFoundError, BadRequestError } from '../../utils/errors';
+import { auditService } from '../../services/audit.service';
+import { notificationService } from '../../services/notification.service';
+import { notificationQueue } from '../../jobs/queue';
+import { logger } from '../../utils/logger';
 
 export const adminService = {
 
@@ -203,5 +208,200 @@ export const adminService = {
         totalPages: Math.ceil(total / limit),
       },
     };
+  },
+
+  // ─── Çözüm Onay Merkezi (Approval Hub) ────────────────────────────────────
+  async getApprovals() {
+    const issues = await prisma.issue.findMany({
+      where: {
+        status: {
+          in: ['RESOLVED_PENDING_APPROVAL', 'REJECTED_PENDING_APPROVAL'],
+        },
+      },
+      include: {
+        reportedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        assignedOfficer: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return issues;
+  },
+
+  async decideApproval(
+    issueId: string,
+    decision: 'APPROVE' | 'REQUEST_REVISION',
+    adminId: string,
+    adminNote?: string,
+  ) {
+    const issue = await prisma.issue.findUnique({
+      where: { id: issueId },
+      include: { reportedBy: true, assignedOfficer: true },
+    });
+    if (!issue) throw new NotFoundError('Sorun');
+
+    if (
+      issue.status !== 'RESOLVED_PENDING_APPROVAL' &&
+      issue.status !== 'REJECTED_PENDING_APPROVAL'
+    ) {
+      throw new BadRequestError('Bu sorun onaya sunulmamış veya zaten karara bağlanmış.');
+    }
+
+    const previousStatus = issue.status;
+    let targetStatus: any = 'IN_REVIEW';
+
+    if (decision === 'APPROVE') {
+      targetStatus =
+        previousStatus === 'RESOLVED_PENDING_APPROVAL' ? 'RESOLVED' : 'REJECTED';
+    } else {
+      targetStatus = 'IN_REVIEW';
+    }
+
+    const updated = await prisma.issue.update({
+      where: { id: issueId },
+      data: {
+        status: targetStatus,
+        resolvedAt: targetStatus === 'RESOLVED' ? new Date() : issue.resolvedAt,
+        adminReviewNote: adminNote || (decision === 'APPROVE' ? 'Onaylandı' : 'Revizyon İstendi'),
+        statusHistory: {
+          create: {
+            fromStatus: previousStatus,
+            toStatus: targetStatus,
+            changedBy: adminId,
+            note: adminNote || (decision === 'APPROVE' ? 'Süper Yönetici tarafından onaylandı' : 'Süper Yönetici revizyon istedi'),
+          },
+        },
+      },
+    });
+
+    // Puan & Gamification (Eğer onaylandıysa)
+    if (decision === 'APPROVE') {
+      const scoreChange = targetStatus === 'RESOLVED' ? 10 : -5;
+      const user = await prisma.user.findUnique({
+        where: { id: issue.reportedById },
+        select: { trustScore: true },
+      });
+      if (user) {
+        const newScore = Math.max(0, user.trustScore + scoreChange);
+        await prisma.user.update({
+          where: { id: issue.reportedById },
+          data: { trustScore: newScore },
+        });
+      }
+    }
+
+    // Bildirimler
+    if (decision === 'APPROVE' && issue.reportedById) {
+      await notificationService.createNotification({
+        userId: issue.reportedById,
+        title: 'Başvurunuz Resmi Olarak Karara Bağlandı',
+        message: `"${issue.title}" başlıklı sorununuz "${targetStatus === 'RESOLVED' ? 'Çözüldü' : 'Reddedildi'}" olarak onaylanmıştır.`,
+        type: 'ISSUE_STATUS_CHANGED',
+        link: `/issues/${issueId}`,
+      });
+
+      if (issue.reportedBy?.email) {
+        await notificationQueue.add('send-email', {
+          email: issue.reportedBy.email,
+          subject: `Başvurunuz Sonuçlandı: ${issue.title}`,
+          text: `Sayın ${issue.reportedBy.firstName || 'Vatandaş'},\n\n"${issue.title}" başlıklı sorununuz "${targetStatus === 'RESOLVED' ? 'Çözüldü' : 'Reddedildi'}" olarak resmi onay almıştır.\n\nEtiya Project Ekibi`,
+        });
+      }
+    } else if (decision === 'REQUEST_REVISION' && issue.assignedOfficerId) {
+      await notificationService.createNotification({
+        userId: issue.assignedOfficerId,
+        title: '⚠️ Çözüm Revizyonu İstendi',
+        message: `"${issue.title}" için gönderdiğiniz çözüm admin tarafından revizyona iade edildi. Not: ${adminNote || '-'}`,
+        type: 'ISSUE_STATUS_CHANGED',
+        link: `/issues/${issueId}`,
+      });
+    }
+
+    await auditService.logAction(adminId, 'ADMIN_APPROVAL_DECISION', issueId, 'Issue', {
+      decision,
+      from: previousStatus,
+      to: targetStatus,
+      adminNote,
+    });
+
+    return updated;
+  },
+
+  // ─── Personel ve Çalışan Yönetimi (Personnel Management) ──────────────────
+  async getPersonnel() {
+    const personnel = await prisma.user.findMany({
+      where: {
+        role: {
+          in: [Role.INSTITUTION_OFFICER, Role.SUPER_ADMIN],
+        },
+      },
+      include: {
+        institution: {
+          select: { id: true, name: true, city: true },
+        },
+        _count: {
+          select: { assignedIssues: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return personnel;
+  },
+
+  async searchUsers(query: string) {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+    const q = query.trim();
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { contains: q, mode: 'insensitive' } },
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        institutionId: true,
+        institution: { select: { id: true, name: true } },
+      },
+      take: 20,
+    });
+    return users;
+  },
+
+  async updateUserRole(targetUserId: string, newRole: Role, institutionId?: string | null) {
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) throw new NotFoundError('Kullanıcı');
+
+    if (newRole === Role.INSTITUTION_OFFICER && !institutionId) {
+      throw new BadRequestError('Kurum çalışanı rolü için bir kurum (institutionId) atamanız zorunludur.');
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        role: newRole,
+        institutionId: newRole === Role.INSTITUTION_OFFICER && institutionId ? institutionId : null,
+      },
+      include: {
+        institution: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    logger.info('Kullanıcı rolü güncellendi', { targetUserId, newRole, institutionId });
+    return updated;
   },
 };

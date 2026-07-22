@@ -40,6 +40,8 @@ enum Priority {
 enum IssueStatus {
   OPEN
   IN_REVIEW
+  RESOLVED_PENDING_APPROVAL
+  REJECTED_PENDING_APPROVAL
   RESOLVED
   REJECTED
 }
@@ -85,8 +87,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
 
   // İlişkiler
-  issues        Issue[]
-  upvotes       IssueUpvote[]
+  issues         Issue[]
+  assignedIssues Issue[]        @relation("AssignedIssues")
+  upvotes        IssueUpvote[]
   comments      IssueComment[]
   auditLogs     AuditLog[]
   statusChanges IssueStatusHistory[] @relation("StatusChanges")
@@ -174,6 +177,13 @@ model Issue {
   // Güvenlik
   ipAddress String  @map("ip_address") @db.VarChar(45) // IPv6 için 45
   userAgent String? @map("user_agent") @db.VarChar(500)
+
+  // ─── Çözüm ve Onay Süreci (Proof of Work & Admin Approval) ──────────────
+  proofImageUrl    String? @map("proof_image_url") @db.VarChar(500)
+  resolutionNote   String? @map("resolution_note") @db.Text
+  adminReviewNote  String? @map("admin_review_note") @db.Text
+  assignedOfficerId String? @map("assigned_officer_id") @db.Uuid
+  assignedOfficer  User?   @relation("AssignedIssues", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
 
   // ─── İlişkiler ───────────────────────────────────────────────────────────
   reportedById String @map("reported_by_id") @db.Uuid

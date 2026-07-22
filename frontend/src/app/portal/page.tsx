@@ -1,20 +1,21 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAppStore } from '@/store/useAppStore';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 import styles from './page.module.css';
+
+import OfficerDashboard from '@/components/portal/OfficerDashboard';
+import ApprovalHub from '@/components/portal/ApprovalHub';
+import PersonnelManagement from '@/components/portal/PersonnelManagement';
 
 export default function PortalPage() {
   const router = useRouter();
   const user = useAppStore(state => state.user);
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const [activeTab, setActiveTab] = useState<'APPROVAL_HUB' | 'OFFICER_DASHBOARD' | 'PERSONNEL'>('OFFICER_DASHBOARD');
 
   // Yetki kontrolü
   useEffect(() => {
@@ -25,16 +26,12 @@ export default function PortalPage() {
     if (user?.role !== 'INSTITUTION_OFFICER' && user?.role !== 'SUPER_ADMIN') {
       router.push('/');
     }
+    if (user?.role === 'SUPER_ADMIN') {
+      setActiveTab('APPROVAL_HUB');
+    } else {
+      setActiveTab('OFFICER_DASHBOARD');
+    }
   }, [isAuthenticated, user, router]);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['portal-issues'],
-    queryFn: async () => {
-      const response: any = await api.get('/admin/portal/issues');
-      return response;
-    },
-    enabled: isAuthenticated && (user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN'),
-  });
 
   const { data: stats } = useQuery({
     queryKey: ['portal-stats'],
@@ -42,24 +39,12 @@ export default function PortalPage() {
       const response: any = await api.get('/admin/stats');
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && (user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN'),
   });
 
   if (!isAuthenticated || (user?.role !== 'INSTITUTION_OFFICER' && user?.role !== 'SUPER_ADMIN')) {
     return null;
   }
-
-  const issues = data?.data ?? [];
-
-  const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Açık', IN_REVIEW: 'İnceleniyor', RESOLVED: 'Çözüldü', REJECTED: 'Reddedildi',
-  };
-
-  const CATEGORY_LABELS: Record<string, string> = {
-    WATER_SANITATION: 'Su ve Kanalizasyon', TRANSPORTATION: 'Yol / Ulaşım',
-    ENVIRONMENT: 'Çevre ve Temizlik', INFRASTRUCTURE: 'Altyapı',
-    SECURITY: 'Güvenlik', LIGHTING: 'Aydınlatma', PARKS: 'Park ve Yeşil Alan',
-  };
 
   return (
     <div className={styles.portal}>
@@ -72,21 +57,28 @@ export default function PortalPage() {
           <div>
             <h1 className={styles.portalTitle}>Kurum Yönetim ve Çözüm Portalı</h1>
             <p className={styles.portalSubtitle}>
-              {user?.institution?.name || (user?.role === 'SUPER_ADMIN' ? '🛡️ Süper Yönetici Paneli' : '🏢 Kurum & Çözüm Çalışanı')} — {user?.institution?.city || user?.city || 'Tüm Türkiye'}
+              {user?.institution?.name || (user?.role === 'SUPER_ADMIN' ? '👑 Süper Yönetici Karar ve Denetim Paneli' : '🏢 Kurum Saha Operasyon Masası')} — {user?.institution?.city || user?.city || 'Bölge Sınırları'}
             </p>
           </div>
         </div>
-        <a href="/" className="btn btn-ghost btn-sm">← Ana Sayfaya Dön</a>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {user?.role === 'SUPER_ADMIN' && (
+            <span style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 800, fontSize: '12px', padding: '6px 12px', borderRadius: '20px' }}>
+              👑 Süper Yönetici
+            </span>
+          )}
+          <a href="/" className="btn btn-ghost btn-sm">← Ana Sayfaya Dön</a>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Summary Bar */}
       <div className={styles.statsGrid}>
         {[
-          { label: 'Toplam', value: stats?.total ?? 0, color: 'var(--color-primary)' },
-          { label: 'Açık', value: stats?.open_count ?? 0, color: 'var(--color-open)' },
-          { label: 'İnceleniyor', value: stats?.in_review_count ?? 0, color: 'var(--color-in-review)' },
-          { label: 'Çözüldü', value: stats?.resolved_count ?? 0, color: 'var(--color-resolved)' },
-          { label: 'Bu Ay', value: stats?.this_month ?? 0, color: 'var(--color-primary)' },
+          { label: 'Toplam İhbar', value: stats?.total ?? 0, color: 'var(--color-primary)' },
+          { label: 'Acil Açık', value: stats?.open_count ?? 0, color: '#ef4444' },
+          { label: 'İncelemede', value: stats?.in_review_count ?? 0, color: '#3b82f6' },
+          { label: 'Resmi Onaylı', value: stats?.resolved_count ?? 0, color: '#10b981' },
+          { label: 'Bu Ay Gelen', value: stats?.this_month ?? 0, color: 'var(--color-primary)' },
         ].map(stat => (
           <div key={stat.label} className={`${styles.statCard} card`}>
             <div className={styles.statValue} style={{ color: stat.color }}>{stat.value.toLocaleString('tr')}</div>
@@ -95,106 +87,105 @@ export default function PortalPage() {
         ))}
       </div>
 
-      {/* Issues Table */}
-      <div className={`${styles.tableCard} card`}>
-        <h2 className={styles.tableTitle}>Sorun Listesi</h2>
+      {/* Admin / Officer Navigation Tabs */}
+      {user?.role === 'SUPER_ADMIN' && (
+        <div style={{ padding: '0 24px', marginBottom: '24px' }}>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            background: 'var(--color-surface)',
+            padding: '8px',
+            borderRadius: '16px',
+            border: '1px solid var(--color-border)',
+            overflowX: 'auto'
+          }}>
+            <button
+              onClick={() => setActiveTab('APPROVAL_HUB')}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'APPROVAL_HUB' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'transparent',
+                color: activeTab === 'APPROVAL_HUB' ? '#fff' : 'var(--color-text)',
+                boxShadow: activeTab === 'APPROVAL_HUB' ? '0 4px 14px rgba(245, 158, 11, 0.35)' : 'none',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🛡️ Çözüm & Red Onay Merkezi
+            </button>
 
-        {isLoading ? (
-          <div className={styles.loading}>Yükleniyor...</div>
-        ) : error ? (
-          <div className={styles.errMsg}>Veriler yüklenirken hata oluştu.</div>
-        ) : (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Başlık</th>
-                  <th>Kategori</th>
-                  <th>Öncelik</th>
-                  <th>Durum</th>
-                  <th>Şehir / İlçe</th>
-                  <th>Tarih</th>
-                  <th>İşlem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issues.map((issue: any) => (
-                  <tr key={issue.id}>
-                    <td className={styles.titleCell}>{issue.title}</td>
-                    <td>{CATEGORY_LABELS[issue.category] ?? issue.category}</td>
-                    <td>
-                      <span className={`badge badge-${issue.priority?.toLowerCase()}`}>
-                        {issue.priority}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${issue.status?.toLowerCase().replace('_', '-')}`}>
-                        {STATUS_LABELS[issue.status] ?? issue.status}
-                      </span>
-                    </td>
-                    <td>{issue.city} / {issue.district}</td>
-                    <td>{format(new Date(issue.created_at || issue.createdAt), 'dd MMM, HH:mm', { locale: tr })}</td>
-                    <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <StatusUpdateMenu issueId={issue.id} currentStatus={issue.status} />
-                      <Link
-                        href={`/issues/${issue.id}`}
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          color: '#2563eb',
-                          textDecoration: 'none',
-                          padding: '6px 10px',
-                          border: '1px solid #bfdbfe',
-                          borderRadius: '8px',
-                          background: '#eff6ff',
-                        }}
-                      >
-                        Açıklama Ekle
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <button
+              onClick={() => setActiveTab('OFFICER_DASHBOARD')}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'OFFICER_DASHBOARD' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
+                color: activeTab === 'OFFICER_DASHBOARD' ? '#fff' : 'var(--color-text)',
+                boxShadow: activeTab === 'OFFICER_DASHBOARD' ? '0 4px 14px rgba(59, 130, 246, 0.35)' : 'none',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🏢 Saha Operasyon Masası (Tüm İhbarlar)
+            </button>
+
+            <button
+              onClick={() => setActiveTab('PERSONNEL')}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === 'PERSONNEL' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                color: activeTab === 'PERSONNEL' ? '#fff' : 'var(--color-text)',
+                boxShadow: activeTab === 'PERSONNEL' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              👥 Personel & Kurum Atama
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Main Content View */}
+      <div style={{ padding: '0 24px 40px 24px' }}>
+        {user?.role === 'SUPER_ADMIN' ? (
+          <>
+            {activeTab === 'APPROVAL_HUB' && <ApprovalHub />}
+            {activeTab === 'OFFICER_DASHBOARD' && <OfficerDashboard user={user} />}
+            {activeTab === 'PERSONNEL' && <PersonnelManagement />}
+          </>
+        ) : (
+          <OfficerDashboard user={user} />
         )}
       </div>
     </div>
-  );
-}
-
-function StatusUpdateMenu({ issueId, currentStatus }: { issueId: string; currentStatus: string }) {
-  const queryClient = useQueryClient();
-
-  const updateStatus = async (newStatus: string) => {
-    try {
-      await api.patch(`/issues/${issueId}/status`, { status: newStatus });
-      toast.success('Sorun durumu güncellendi!');
-      queryClient.invalidateQueries({ queryKey: ['portal-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['portal-stats'] });
-    } catch {
-      toast.error('Durum güncellenemedi.');
-    }
-  };
-
-  const options = [
-    { value: 'OPEN', label: 'Açık (Acil)' },
-    { value: 'IN_REVIEW', label: 'İnceleniyor' },
-    { value: 'RESOLVED', label: 'Çözüldü' },
-    { value: 'REJECTED', label: 'Reddedildi' },
-  ].filter(o => o.value !== currentStatus);
-
-  return (
-    <select
-      className="input"
-      style={{ padding: '4px 8px', fontSize: '12px', width: '130px' }}
-      defaultValue=""
-      onChange={e => e.target.value && updateStatus(e.target.value)}
-    >
-      <option value="">Güncelle...</option>
-      {options.map(o => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </select>
   );
 }

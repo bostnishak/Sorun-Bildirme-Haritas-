@@ -52,6 +52,38 @@ router.post(
   adminController.testInstitutionWebhook,
 );
 
+// ─── Çözüm Onay Merkezi (Approval Hub Routes) ───────────────────────────────
+router.get(
+  '/approvals',
+  requireRole('SUPER_ADMIN'),
+  adminController.getApprovals,
+);
+
+router.post(
+  '/approvals/:id/decide',
+  requireRole('SUPER_ADMIN'),
+  adminController.decideApproval,
+);
+
+// ─── Personel Yönetimi (Personnel Management Routes) ────────────────────────
+router.get(
+  '/personnel',
+  requireRole('SUPER_ADMIN'),
+  adminController.getPersonnel,
+);
+
+router.get(
+  '/users/search',
+  requireRole('SUPER_ADMIN'),
+  adminController.searchUsers,
+);
+
+router.patch(
+  '/users/:id/role',
+  requireRole('SUPER_ADMIN'),
+  adminController.updateUserRole,
+);
+
 // GET /api/v1/admin/ai-logs — AI Moderation logs
 router.get(
   '/ai-logs',

@@ -93,6 +93,14 @@ router.patch(
   issuesController.updateIssueStatus,
 );
 
+// PATCH /api/v1/issues/:id/officer-submit — Çalışan kanıt foto/rapor yükleyip onaya sunar
+router.patch(
+  '/:id/officer-submit',
+  isAuthenticated,
+  requireRole('INSTITUTION_OFFICER', 'SUPER_ADMIN'),
+  issuesController.officerSubmitIssue,
+);
+
 // DELETE /api/v1/issues/:id — Sadece admin
 router.delete(
   '/:id',

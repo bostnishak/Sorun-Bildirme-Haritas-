@@ -325,17 +325,24 @@ export const issuesService = {
     }
 
     const previousStatus = issue.status;
+    let finalStatus = newStatus;
+    if (officerRole === Role.INSTITUTION_OFFICER && newStatus === 'RESOLVED') {
+      finalStatus = 'RESOLVED_PENDING_APPROVAL';
+    } else if (officerRole === Role.INSTITUTION_OFFICER && newStatus === 'REJECTED') {
+      finalStatus = 'REJECTED_PENDING_APPROVAL';
+    }
 
     // Durum güncelle
     const updated = await prisma.issue.update({
       where: { id: issueId },
       data: {
-        status: newStatus,
-        resolvedAt: newStatus === 'RESOLVED' ? new Date() : issue.resolvedAt,
+        status: finalStatus,
+        assignedOfficerId: finalStatus === 'IN_REVIEW' || !issue.assignedOfficerId ? officerId : issue.assignedOfficerId,
+        resolvedAt: finalStatus === 'RESOLVED' ? new Date() : issue.resolvedAt,
         statusHistory: {
           create: {
             fromStatus: previousStatus,
-            toStatus: newStatus,
+            toStatus: finalStatus,
             changedBy: officerId,
             note,
           },
@@ -368,9 +375,96 @@ export const issuesService = {
     // Admin Audit Log
     if (officerRole === Role.SUPER_ADMIN || officerRole === Role.INSTITUTION_OFFICER) {
       await auditService.logAction(officerId, 'UPDATE_ISSUE_STATUS', issueId, 'Issue', {
-        previousStatus,
-        newStatus,
+        from: previousStatus,
+        to: newStatus,
         note,
+      });
+    }
+
+    return updated;
+  },
+
+  async officerSubmit(
+    issueId: string,
+    targetStatus: any,
+    officerId: string,
+    officerRole: Role,
+    institutionId?: string,
+    proofImageUrl?: string,
+    resolutionNote?: string,
+  ) {
+    const issue = await prisma.issue.findUnique({
+      where: { id: issueId },
+      include: { reportedBy: true },
+    });
+    if (!issue) throw new NotFoundError('Sorun');
+
+    if (officerRole === Role.INSTITUTION_OFFICER && institutionId) {
+      const withinJurisdiction = await prisma.$queryRaw<{ within: boolean }[]>`
+        SELECT EXISTS(
+          SELECT 1
+          FROM issues i
+          JOIN institutions inst ON inst.id = ${institutionId}::uuid
+          WHERE i.id = ${issueId}::uuid
+          AND ST_Within(i.location, inst.boundary)
+        ) AS within
+      `;
+
+      if (!withinJurisdiction[0]?.within) {
+        throw new ForbiddenError('Bu sorun yetki alanınız dışında.');
+      }
+    }
+
+    const previousStatus = issue.status;
+    let finalStatus = targetStatus;
+    if (officerRole === Role.INSTITUTION_OFFICER && targetStatus === 'RESOLVED') {
+      finalStatus = 'RESOLVED_PENDING_APPROVAL';
+    } else if (officerRole === Role.INSTITUTION_OFFICER && targetStatus === 'REJECTED') {
+      finalStatus = 'REJECTED_PENDING_APPROVAL';
+    }
+
+    const updated = await prisma.issue.update({
+      where: { id: issueId },
+      data: {
+        status: finalStatus,
+        proofImageUrl: proofImageUrl || issue.proofImageUrl,
+        resolutionNote: resolutionNote || issue.resolutionNote,
+        assignedOfficerId: officerId,
+        resolvedAt: finalStatus === 'RESOLVED' ? new Date() : issue.resolvedAt,
+        statusHistory: {
+          create: {
+            fromStatus: previousStatus,
+            toStatus: finalStatus,
+            changedBy: officerId,
+            note: resolutionNote || `Çözüm/Red onaya sunuldu`,
+          },
+        },
+      },
+    });
+
+    if (finalStatus !== previousStatus && (finalStatus === 'RESOLVED' || finalStatus === 'REJECTED')) {
+      const scoreChange = finalStatus === 'RESOLVED' ? 10 : -5;
+      const user = await prisma.user.findUnique({ where: { id: issue.reportedById }, select: { trustScore: true } });
+      if (user) {
+        const newScore = Math.max(0, user.trustScore + scoreChange);
+        await prisma.user.update({
+          where: { id: issue.reportedById },
+          data: { trustScore: newScore },
+        });
+      }
+    }
+
+    await webhookQueue.add('status-changed', {
+      issueId,
+      newStatus: finalStatus,
+      previousStatus,
+    });
+
+    if (officerRole === Role.SUPER_ADMIN || officerRole === Role.INSTITUTION_OFFICER) {
+      await auditService.logAction(officerId, 'OFFICER_SUBMIT_ISSUE', issueId, 'Issue', {
+        from: previousStatus,
+        to: finalStatus,
+        proofImageUrl,
       });
     }
 
@@ -379,7 +473,7 @@ export const issuesService = {
       await notificationQueue.add('send-email', {
         email: issue.reportedBy.email,
         subject: `Bildirdiğiniz Sorunun Durumu Güncellendi: ${issue.title}`,
-        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${newStatus}" olarak güncellenmiştir.\n\nNot: ${note || '-'}\n\nEtiya Project Ekibi`,
+        text: `Sayın ${issue.reportedBy.firstName},\n\nBildirdiğiniz "${issue.title}" başlıklı sorunun durumu "${finalStatus}" olarak güncellenmiştir.\n\nNot: ${resolutionNote || '-'}\n\nEtiya Project Ekibi`,
       });
     }
 
@@ -388,7 +482,7 @@ export const issuesService = {
       await notificationService.createNotification({
         userId: issue.reportedById,
         title: 'Başvurunuzun Durumu Güncellendi',
-        message: `"${issue.title}" başlıklı sorununuz "${newStatus}" durumuna getirildi.${note ? ` Not: ${note}` : ''}`,
+        message: `"${issue.title}" başlıklı sorununuz "${finalStatus}" durumuna getirildi.${resolutionNote ? ` Not: ${resolutionNote}` : ''}`,
         type: 'ISSUE_STATUS_CHANGED',
         link: `/issues/${issueId}`,
       });
@@ -406,8 +500,8 @@ export const issuesService = {
       logger.warn('[Socket] Emit başarısız, issue güncellendi:', { error: (e as Error).message });
     }
 
-    logger.info('Sorun durumu güncellendi', {
-      issueId, previousStatus, newStatus, officerId,
+    logger.info('Sorun onaya sunuldu / güncellendi', {
+      issueId, previousStatus, finalStatus, officerId,
     });
 
     return updated;
