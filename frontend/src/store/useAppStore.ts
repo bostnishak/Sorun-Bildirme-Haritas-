@@ -221,15 +221,16 @@ export const useAppStore = create<AppStore>()(
       fetchClusters: async (bbox: BoundingBox, force = false) => {
         const { currentBbox, filters } = get();
 
-        // Aynı veya çok yakın bbox için tekrar istek atma (0.05 derece yaklaşık 5km)
+        // Yakın mesafe eşiği: Şehir düzeyinde (zoom>=10) çok daha hassas, uzakta daha toleranslı
+        const threshold = bbox.zoom >= 10 ? 0.01 : 0.05;
         if (
           !force &&
           currentBbox &&
-          Math.abs(currentBbox.minLng - bbox.minLng) < 0.05 &&
-          Math.abs(currentBbox.minLat - bbox.minLat) < 0.05 &&
-          Math.abs(currentBbox.maxLng - bbox.maxLng) < 0.05 &&
-          Math.abs(currentBbox.maxLat - bbox.maxLat) < 0.05 &&
-          Math.abs(currentBbox.zoom - bbox.zoom) < 0.5
+          Math.abs(currentBbox.minLng - bbox.minLng) < threshold &&
+          Math.abs(currentBbox.minLat - bbox.minLat) < threshold &&
+          Math.abs(currentBbox.maxLng - bbox.maxLng) < threshold &&
+          Math.abs(currentBbox.maxLat - bbox.maxLat) < threshold &&
+          currentBbox.zoom === bbox.zoom
         ) return;
 
         const currentFetchId = ++latestFetchId;
