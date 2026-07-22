@@ -183,21 +183,21 @@ export function MapView() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const userAgent = navigator.userAgent.toLowerCase();
-      const isTouchDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
-                            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-      
+      const isTouchDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
       const isMobileWidth = window.innerWidth <= 768;
       const isRealMobileOrTablet = isTouchDevice || isMobileWidth;
-      
+
       // Mobilde 4.4 zoom ile başla — tüm Türkiye (Edirne'den Kars'a) kesilmeden ekrana sığsın (Ölçek düzeltildi)
       const initialZ = isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom;
-      
+
       // PC'de minZoom 5.6, mobilde 4.4 olacak
       setMinZoom(isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom);
-      
+
       setViewState(prev => ({ ...prev, zoom: initialZ }));
       setClusterZoom(initialZ);
-      
+
       // Tüm cihazlarda aynı sıkı Türkiye sınırı — çevre ülkelere gidiş engellendi
       setActiveBounds(TURKEY_BOUNDS);
       setIsDesktop(!isRealMobileOrTablet);
@@ -205,12 +205,15 @@ export function MapView() {
   }, []);
 
   const calculatePitch = (zoom: number): number => {
-    if (zoom < 14.5) return 0;
-    if (zoom >= 15.5) return 60;
-    return Math.round((zoom - 14.5) * 60);
+    // Biraz daha erken (15.0) açı almaya başla, 18.0'da maksimum açıya (55) ulaş
+    if (zoom < 15.0) return 0;
+    if (zoom >= 18.0) return 55;
+    
+    // 15.0 ile 18.0 arasında 0'dan 55 dereceye yumuşak geçiş
+    return Math.round(((zoom - 15.0) / 3) * 55);
   };
 
-  const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
+  const [mapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
 
   // Zoom eşiği: Kullanıcı biraz bile yakınlaştırsa sağa sola oynatabilsin
   const panThreshold = minZoom + 0.1;
@@ -241,7 +244,7 @@ export function MapView() {
           if (mapRef.current) {
             mapRef.current.resize();
           }
-        } catch (_) {}
+        } catch (_) { }
       };
       doResize();
       const t1 = setTimeout(doResize, 30);
@@ -262,33 +265,40 @@ export function MapView() {
         if (mapRef.current && activeView === 'map') {
           mapRef.current.resize();
         }
-      } catch (_) {}
+      } catch (_) { }
     });
     observer.observe(wrapperRef.current);
     return () => observer.disconnect();
   }, [activeView]);
 
-  // Tarayıcı zoom veya pencere boyutu değiştiğinde (örn: %100 -> %85)
+  // Tarayıcı zoom veya pencere boyutu değiştiğinde
   // Eğer haritaya zaten genel bakılıyorsa (zoom <= 6.5) Türkiye'yi otomatik merkeze al
   useEffect(() => {
     const handleWindowResize = () => {
       if (mapRef.current && activeView === 'map') {
         const currentZoom = mapRef.current.getMap().getZoom();
         if (currentZoom <= 6.5) {
-          setViewState(TURKEY_CENTER);
+          mapRef.current.flyTo({
+            center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+            zoom: minZoom,
+            pitch: 0,
+            bearing: 0,
+            duration: 1200,
+            essential: true
+          });
         }
       }
     };
-    
+
     window.addEventListener('resize', handleWindowResize);
     // İlk açılışta da emin olmak için kısa bir süre sonra kontrol et
     const initialTimer = setTimeout(handleWindowResize, 500);
-    
+
     return () => {
       window.removeEventListener('resize', handleWindowResize);
       clearTimeout(initialTimer);
     };
-  }, [activeView]);
+  }, [activeView, minZoom]);
 
   // Giriş yapılmamış masaüstü kullanıcıları /login'e yönlendir
   const handleLoginRedirect = useCallback(() => {
@@ -299,7 +309,7 @@ export function MapView() {
   const cityZoomDoneRef = useRef(false);
   useEffect(() => {
     if (cityZoomDoneRef.current) return;
-    
+
     // Yalnızca pendingCityZoom açıksa VEYA (giriş yapılmış, şehri belli ve mobilde ise ilk açılışta)
     const shouldAnimate = pendingCityZoom || (isAuthenticated && Boolean(user?.city) && !isDesktop);
     if (!shouldAnimate) return;
@@ -316,7 +326,7 @@ export function MapView() {
       if (pendingCityZoom) setPendingCityZoom(false);
       return;
     }
-    
+
     let pollTimer: NodeJS.Timeout;
     let t1: NodeJS.Timeout;
     let t2: NodeJS.Timeout;
@@ -326,7 +336,7 @@ export function MapView() {
         pollTimer = setTimeout(runAnimation, 200);
         return;
       }
-      
+
       cityZoomDoneRef.current = true;
 
       // Mobilde: Önce tüm Türkiye'yi (kesilmeyen 4.4 ölçekte) göster, sonra şehre smooth zoom at
@@ -347,7 +357,7 @@ export function MapView() {
             curve: 1.45,
             essential: true
           });
-          
+
           if (pendingCityZoom) setPendingCityZoom(false);
         }, 1100);
       }, 300);
@@ -413,17 +423,9 @@ export function MapView() {
       [TURKEY_BOUNDS[0][0], TURKEY_BOUNDS[0][1]],
       [TURKEY_BOUNDS[1][0], TURKEY_BOUNDS[1][1]],
     ]);
-    try { (map as any).maxBoundsViscosity = 1.0; } catch (_) {}
+    try { (map as any).maxBoundsViscosity = 1.0; } catch (_) { }
 
-    // Harita yakınlaştıkça (zoom) otomatik eğim (pitch) verme işlemini doğrudan harita objesine bağla
-    map.on('zoom', () => {
-      const currentZoom = map.getZoom();
-      const targetPitch = calculatePitch(currentZoom);
-      const currentPitch = map.getPitch();
-      if (Math.abs(currentPitch - targetPitch) > 1) {
-        map.setPitch(targetPitch);
-      }
-    });
+    // Native map.on('zoom') pitch hesaplaması React state ile çakıştığı ve "kasmaya" neden olduğu için tamamen kaldırıldı.
 
     // Load category SVG icons as images for map rendering
     const loadIcon = (id: string, pathData: string) => {
@@ -541,31 +543,7 @@ export function MapView() {
                     map.setLayoutProperty(layer.id, 'text-field', finalTextField);
                   }
                 }
-
-                // Şehir isimlerinin (Mardin gibi) daha sık ve daha görünür olmasını sağlayan performans/çarpışma ayarı
-                if (layer.id.includes('settlement-major-label') || layer.id.includes('settlement-minor-label') || layer.id === 'place-city-label') {
-                  try {
-                    // Yazı etrafındaki görünmez çarpışma kutusunu sıfırla ki daha çok şehir sığsın
-                    map.setLayoutProperty(layer.id, 'text-padding', 0);
-
-                    // Büyükşehirlerin her koşulda (diğer yazılarla hafif üst üste gelse bile) görünmesini zorunlu kıl
-                    if (layer.id.includes('major') || layer.id.includes('city')) {
-                      map.setLayoutProperty(layer.id, 'text-allow-overlap', true);
-                      map.setLayoutProperty(layer.id, 'text-ignore-placement', false);
-                    }
-
-                    // Punto Ayarı: Tüm şehirler aynı standart boyutta olsun
-                    map.setLayoutProperty(layer.id, 'text-size', [
-                      'interpolate',
-                      ['linear'],
-                      ['zoom'],
-                      4, 12.5, // Uzaktan boyut
-                      10, 17   // Yakından boyut
-                    ]);
-                  } catch (e) {
-                    // Bazı stillerde bu özellikler olmayabilir, sessizce geç
-                  }
-                }
+                // WebGL'i çökerten etiket zorlama kodu kaldırıldı.
               }
             });
           } catch (err) {
@@ -582,33 +560,7 @@ export function MapView() {
       const b = map.getBounds();
       if (b) setMapBounds(b.toArray().flat() as [number, number, number, number]);
     } catch (_) { }
-    try {
-      map.addSource('mapbox-satellite', {
-        type: 'raster',
-        url: 'mapbox://mapbox.satellite'
-      });
-      const layers = map.getStyle().layers as any[];
-      const firstRoadLayer = layers.find(
-        (l: any) => l.type === 'line' && l.id && (l.id.includes('road') || l.id.includes('bridge'))
-      );
-      map.addLayer({
-        id: 'satellite-raster',
-        type: 'raster',
-        source: 'mapbox-satellite',
-        minzoom: 11, // HAYATİ PERFORMANS DOKUNUŞU: Başlangıçta görünmeyen uydu haritası boş yere indirilmez!
-        paint: {
-          'raster-opacity': [
-            'interpolate', ['exponential', 1.8], ['zoom'],
-            11, 0,
-            12, 0.08,
-            13, 0.45,
-            14, 1
-          ]
-        }
-      }, firstRoadLayer?.id ?? undefined);
-    } catch (err) {
-      console.warn('Satellite layer error:', err);
-    }
+    // Performans için uydu haritası (satellite-raster) geçici olarak iptal edildi.
     try {
       map.addLayer({
         id: 'sky',
@@ -623,19 +575,65 @@ export function MapView() {
       console.warn('Sky layer error:', err);
     }
 
-  }, []);
+    try {
+      // 1. Önce uydu kaynağını ekle
+      if (!map.getSource('mapbox-satellite')) {
+        map.addSource('mapbox-satellite', {
+          type: 'raster',
+          url: 'mapbox://mapbox.satellite',
+          tileSize: 256
+        });
+      }
+
+      // 2. Yollardan veya etiketlerden önceki ilk katmanı bul (böylece yollar/yazılar uydunun üstünde kalır)
+      const layers = map.getStyle().layers;
+      let targetLayerId = layers.find((layer: any) => layer.id.includes('road-label'))?.id;
+      if (!targetLayerId) {
+        targetLayerId = layers.find((layer: any) => layer.type === 'symbol' && layer.layout && layer.layout['text-field'])?.id;
+      }
+
+      // 3. Uydu katmanını pürüzsüz geçişle (fade-in) ekle
+      if (!map.getLayer('seamless-satellite')) {
+        map.addLayer({
+          id: 'seamless-satellite',
+          type: 'raster',
+          source: 'mapbox-satellite',
+          paint: {
+            'raster-opacity': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              14.5, 0.0, // 14.5 zoom seviyesine kadar tamamen görünmez (aydınlık vektör harita)
+              16.5, 1.0  // 16.5 zoom seviyesine gelindiğinde tamamen görünür (gerçekçi binalar/uydu)
+            ]
+          }
+        }, targetLayerId);
+      }
+    } catch (err) {
+      console.warn('Seamless satellite layer error:', err);
+    }
+  }, [fetchClusters]);
 
   const fetchTimerRef = useRef<any>(null);
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
+    const prevZoom = lastZoomRef.current; // MoveStart'ta kaydedilen zoom
 
-    // Eğimi native API ile uygula
+    // Eğimi react-map-gl (setViewState) zaten hallediyor, native setPitch kasmaya sebep olduğu için kaldırıldı.
     if (mapRef.current) {
-      const map = mapRef.current.getMap();
-      const targetPitch = calculatePitch(zoom);
-      if (Math.abs(map.getPitch() - targetPitch) > 1) {
-        map.setPitch(targetPitch);
+      
+      // Kullanıcı hareketini (scroll vb.) BİTİRDİĞİNDE zoom seviyesi 8.5 veya altındaysa
+      // VE kullanıcı UZAKLAŞTIRIYORSA (prevZoom > zoom) ortala. (Yakınlaştırırken geri çekmesin)
+      if (prevZoom > zoom && zoom <= 8.5 && zoom > minZoom + 0.1) {
+        mapRef.current.flyTo({
+          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+          zoom: minZoom,
+          pitch: 0,
+          bearing: 0,
+          duration: 1500,
+          essential: true
+        });
       }
     }
 
@@ -726,7 +724,7 @@ export function MapView() {
       features: dataToRender.map((item: any) => {
         const props = item.properties || item;
         const rawPointCount = Number(props.point_count || 1);
-        
+
         let lng = 0;
         let lat = 0;
         if (item.geometry?.coordinates) {
@@ -803,27 +801,34 @@ export function MapView() {
     if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
   }, []);
 
+  const lastZoomRef = useRef<number>(TURKEY_CENTER.zoom);
+
+  const handleMoveStart = useCallback((e: any) => {
+    // Hareketin (scroll, drag vb.) başındaki zoom değerini kaydet
+    lastZoomRef.current = e.viewState.zoom;
+  }, []);
+
   const handleMove = useCallback((e: any) => {
     const { zoom } = e.viewState;
 
     // Gerçek canvas boyutunu al (ekran boyutuna göre doğru hesaplama)
     const canvas = mapRef.current?.getCanvas();
-    const vpWidth  = canvas ? canvas.clientWidth  : (typeof window !== 'undefined' ? window.innerWidth  : 1024);
+    const vpWidth = canvas ? canvas.clientWidth : (typeof window !== 'undefined' ? window.innerWidth : 1024);
     const vpHeight = canvas ? canvas.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 700);
 
     // Bu zoom seviyesinde viewport kaç derece geniş/yüksek?
     const tileSize = 512; // Mapbox varsayılan tile boyutu
     const degreesPerTile = 360 / Math.pow(2, zoom);
-    const halfLng = (vpWidth  / tileSize) * degreesPerTile / 2;
+    const halfLng = (vpWidth / tileSize) * degreesPerTile / 2;
     const halfLat = (vpHeight / tileSize) * degreesPerTile / 2;
 
-    const west  = TURKEY_BOUNDS[0][0];
+    const west = TURKEY_BOUNDS[0][0];
     const south = TURKEY_BOUNDS[0][1];
-    const east  = TURKEY_BOUNDS[1][0];
+    const east = TURKEY_BOUNDS[1][0];
     const north = TURKEY_BOUNDS[1][1];
 
-    const minLng = west  + halfLng;
-    const maxLng = east  - halfLng;
+    const minLng = west + halfLng;
+    const maxLng = east - halfLng;
     const minLat = south + halfLat;
     const maxLat = north - halfLat;
 
@@ -854,6 +859,7 @@ export function MapView() {
         ref={mapRef}
         onLoad={handleMapLoad}
         {...viewState}
+        onMoveStart={handleMoveStart}
         onMove={handleMove}
         onMoveEnd={handleMoveEnd}
 
@@ -1029,7 +1035,16 @@ export function MapView() {
 
       {/* Haritayı Ortala (Türkiye'ye Odaklan) Butonu */}
       <button
-        onClick={() => setViewState(TURKEY_CENTER)}
+        onClick={() => {
+          mapRef.current?.flyTo({
+            center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+            zoom: minZoom,
+            pitch: 0,
+            bearing: 0,
+            duration: 1200,
+            essential: true
+          });
+        }}
         className="absolute bottom-8 right-8 bg-white p-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors z-10 border border-gray-200 flex items-center justify-center group"
         title="Türkiye'ye Odaklan"
       >
