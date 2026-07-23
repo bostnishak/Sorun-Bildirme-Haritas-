@@ -189,17 +189,28 @@ export function MapView() {
       const isMobileWidth = window.innerWidth <= 768;
       const isRealMobileOrTablet = isTouchDevice || isMobileWidth;
 
-      // Mobilde 4.4 zoom ile başla — tüm Türkiye (Edirne'den Kars'a) kesilmeden ekrana sığsın (Ölçek düzeltildi)
-      const initialZ = isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom;
+      // Mobilde tam Türkiye haritasının (Edirne'den Kars'a) enlemesine ekrana sığması için zoom'u 3.8'e düşürüyoruz.
+      // (Önceki 4.4 değeri, portre ekranlarda sağdan/soldan kırpılmasına neden oluyordu)
+      const mobileZoom = 3.8;
+      const targetZ = isRealMobileOrTablet ? mobileZoom : TURKEY_CENTER.zoom;
 
-      // PC'de minZoom 5.6, mobilde 4.4 olacak
-      setMinZoom(isRealMobileOrTablet ? 4.4 : TURKEY_CENTER.zoom);
+      // Girişte animasyon olması için (haritanın "canlı" durması için) ilk zoom'u 1.5 başlatıyoruz.
+      // Animasyon sonrasında hedef zoom değerine (targetZ) ulaşacak.
+      setMinZoom(1.5);
 
-      setViewState(prev => ({ ...prev, zoom: initialZ }));
-      setClusterZoom(initialZ);
+      setViewState(prev => ({ ...prev, zoom: 1.5 }));
+      setClusterZoom(1.5);
 
-      // Tüm cihazlarda aynı sıkı Türkiye sınırı — çevre ülkelere gidiş engellendi
-      setActiveBounds(TURKEY_BOUNDS);
+      // Mobilde (portre ekran), dikeyde çok fazla alan görüneceği için sıkı TURKEY_BOUNDS haritanın
+      // zorla (force) yakınlaşmasına (zoom in) sebep olur. Bu mantık hatasını önlemek için mobilde
+      // dikeyde (Kuzey-Güney) daha esnek bir sınır tanımlıyoruz.
+      const MOBILE_BOUNDS: [[number, number], [number, number]] = [
+        [10.0, 15.0], // Çok daha güneye ve batıya inebilsin (Zoom out yapabilmek için gerekli)
+        [60.0, 65.0]  // Çok daha kuzeye ve doğuya çıkabilsin
+      ];
+
+      // Tüm cihazlarda esnek/sıkı sınırları ayarla
+      setActiveBounds(isRealMobileOrTablet ? MOBILE_BOUNDS : TURKEY_BOUNDS);
       setIsDesktop(!isRealMobileOrTablet);
     }
   }, []);
@@ -213,7 +224,7 @@ export function MapView() {
     return Math.round(((zoom - 15.0) / 3) * 55);
   };
 
-  const [mapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
+  const [mapStyle] = useState<string>('mapbox://styles/mapbox/outdoors-v12');
 
   // Zoom eşiği: Kullanıcı biraz bile yakınlaştırsa sağa sola oynatabilsin
   const panThreshold = minZoom + 0.1;
@@ -535,6 +546,13 @@ export function MapView() {
                 map.setLayoutProperty(layer.id, 'visibility', 'none');
               }
 
+              // İl sınırlarını (admin-1) belirginleştirarak "parçalı" görüntü ver
+              if (layer.id.includes('admin-1') && layer.type === 'line') {
+                map.setPaintProperty(layer.id, 'line-color', '#718096'); // Koyu gri belirgin sınır
+                map.setPaintProperty(layer.id, 'line-width', ['interpolate', ['linear'], ['zoom'], 3, 0.5, 10, 2]);
+                map.setPaintProperty(layer.id, 'line-dasharray', [3, 3]); // Kesikli çizgi
+              }
+
               if (layer.type === 'symbol' && layer.id.includes('label') && !layer.id.includes('cluster-label') && !layer.id.includes('unclustered-label')) {
                 // Dil ayarı (Türkçe) ve Kısaltmalar
                 if (layer.layout && layer.layout['text-field']) {
@@ -612,6 +630,28 @@ export function MapView() {
     } catch (err) {
       console.warn('Seamless satellite layer error:', err);
     }
+
+    // ── GİRİŞ ANİMASYONU (Canlı Yükleme Etkisi) ──
+    setTimeout(() => {
+      const isMobile = window.innerWidth <= 768 || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+      const targetZ = isMobile ? 3.8 : 5.6;
+
+      if (map) {
+        map.flyTo({
+          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+          zoom: targetZ,
+          duration: 2500, // 2.5 saniyelik yumuşak giriş
+          essential: true,
+          pitch: 0
+        });
+
+        // Animasyon bittikten sonra minZoom kilidini hedef değere çek (kullanıcı uzaya çıkamasın)
+        setTimeout(() => {
+          setMinZoom(targetZ);
+        }, 2600);
+      }
+    }, 100);
+
   }, [fetchClusters]);
 
   const fetchTimerRef = useRef<any>(null);
@@ -938,9 +978,9 @@ export function MapView() {
               'circle-radius': [
                 'step',
                 ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['to-number', ['get', 'original_point_count']], 1],
-                18, 10,
-                24, 50,
-                32
+                isDesktop ? 18 : 12, 10,
+                isDesktop ? 24 : 16, 50,
+                isDesktop ? 32 : 22
               ],
               'circle-stroke-width': 3,
               'circle-stroke-color': '#ffffff'
@@ -954,7 +994,7 @@ export function MapView() {
             layout={{
               'text-field': ['to-string', ['coalesce', ['get', 'sum_point_count'], ['get', 'point_count'], ['get', 'original_point_count'], '']],
               'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-size': 14,
+              'text-size': isDesktop ? 14 : 11,
               'text-allow-overlap': true,
               'text-ignore-placement': true,
               'text-anchor': 'center'
@@ -971,7 +1011,7 @@ export function MapView() {
             layout={{
               'text-field': ['to-string', ['coalesce', ['get', 'original_point_count'], ['get', 'point_count'], '']],
               'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-size': 14,
+              'text-size': isDesktop ? 14 : 11,
               'text-allow-overlap': true,
               'text-ignore-placement': true,
               'text-anchor': 'center'
@@ -987,7 +1027,7 @@ export function MapView() {
             type="circle"
             filter={['all', ['!', ['has', 'cluster']], ['<=', ['to-number', ['coalesce', ['get', 'point_count'], 1]], 1], ['<=', ['to-number', ['coalesce', ['get', 'original_point_count'], 1]], 1]]}
             paint={{
-              'circle-radius': 14,
+              'circle-radius': isDesktop ? 14 : 10,
               'circle-color': [
                 'match',
                 ['get', 'category'],
@@ -1025,7 +1065,7 @@ export function MapView() {
                 'PARKS', 'icon-parks',
                 'icon-other'
               ],
-              'icon-size': 0.65,
+              'icon-size': isDesktop ? 0.65 : 0.5,
               'icon-allow-overlap': true,
               'icon-anchor': 'center'
             }}
@@ -1045,7 +1085,7 @@ export function MapView() {
             essential: true
           });
         }}
-        className="absolute bottom-8 right-8 bg-white p-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors z-10 border border-gray-200 flex items-center justify-center group"
+        className="absolute bottom-28 right-4 md:bottom-8 md:right-8 bg-white p-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors z-[60] border border-gray-200 flex items-center justify-center group"
         title="Türkiye'ye Odaklan"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">

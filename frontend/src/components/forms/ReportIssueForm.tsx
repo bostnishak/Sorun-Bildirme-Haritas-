@@ -28,7 +28,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
   const user = useAppStore(state => state.user);
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const [formData, setFormData] = useState<FormData>({
-    title: '', description: '', category: '', city: 'İstanbul', district: 'Beykoz', address: '',
+    title: '', description: '', category: '', city: 'İstanbul', district: 'Fatih', address: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<FormData & { image?: string }>>({});
@@ -386,7 +386,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
 
       onClose();
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Bildirim gönderilirken bir hata oluştu.';
+      const errorMsg = error?.error?.message || error?.message || 'Bildirim gönderilirken bir hata oluştu.';
       toast.error(errorMsg, { id: toastId, duration: 5000 });
     } finally {
       setIsSubmitting(false);

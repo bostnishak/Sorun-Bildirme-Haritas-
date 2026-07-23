@@ -988,3 +988,15 @@
   background: white;
   border-color: var(--color-text-muted);
 }
+
+/* ─── Mobile Hero Section Crop ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .heroSection {
+    /* Mobilde haritanın üstünde (Rusya) ve altında (Mısır) kalan gereksiz boşlukları
+       kesmek için (kullanıcının isteği üzerine Karadeniz ve KKTC yazılarında kırpmak için)
+       harita kapsayıcısının dikey boyunu %100'den %55'e düşürüyoruz. 
+       Böylece harita yatay (landscape) bir dikdörtgen haline geliyor ve 
+       tam Türkiye haritası mükemmel şekilde ekrana oturuyor. */
+    height: 62dvh !important;
+  }
+}
