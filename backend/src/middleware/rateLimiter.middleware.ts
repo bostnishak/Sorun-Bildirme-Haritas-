@@ -24,9 +24,9 @@ export const globalLimiter = new RateLimiterRedis({
 export const authLimiter = new RateLimiterRedis({
   storeClient: redis,
   keyPrefix: 'rl_auth',
-  points: 10,
-  duration: 3600,
-  blockDuration: 3600,
+  points: 100,
+  duration: 60,
+  blockDuration: 60,
 });
 
 /**
