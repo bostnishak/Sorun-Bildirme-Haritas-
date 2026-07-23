@@ -1,0 +1,61 @@
+Git durumu kontrol ediliyor... 
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 1 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   frontend/src/app/page.module.css
+	modified:   frontend/src/components/forms/ReportIssueForm.tsx
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   frontend/src/components/map/MapView.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   git-guncelle.bat
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git-log.txt
+
+ 
+Pull islemi deneni... 
+error: Pulling is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+ 
+Birlesme (Merge) durumu kontrol ediliyor... 
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 1 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   frontend/src/app/page.module.css
+	modified:   frontend/src/components/forms/ReportIssueForm.tsx
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   frontend/src/components/map/MapView.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   git-guncelle.bat
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git-log.txt
+
