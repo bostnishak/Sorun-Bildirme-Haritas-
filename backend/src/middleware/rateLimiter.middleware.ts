@@ -96,49 +96,9 @@ export const nviLimiter = new RateLimiterRedis({
  */
 export function createRateLimitMiddleware(limiter: RateLimiterRedis, useUserId = false) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // IP adresi veya Kullanıcı ID (varsa ve isteniyorsa)
-    const clientIp = useUserId && req.user?.sub 
-      ? `user:${req.user.sub}`
-      : (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-        req.ip ||
-        'unknown';
-
-    try {
-      const result = await limiter.consume(clientIp);
-
-      // Rate limit başlıkları ekle
-      res.set({
-        'X-RateLimit-Limit': String(limiter.points),
-        'X-RateLimit-Remaining': String(result.remainingPoints),
-        'X-RateLimit-Reset': new Date(Date.now() + result.msBeforeNext).toISOString(),
-      });
-
-      next();
-    } catch (err) {
-      if (err instanceof RateLimiterRes) {
-        const retryAfter = Math.ceil(err.msBeforeNext / 1000);
-
-        logger.warn('Rate limit exceeded', {
-          ip: clientIp,
-          path: req.path,
-          retryAfter,
-        });
-
-        res.set('Retry-After', String(retryAfter));
-        res.status(429).json({
-          success: false,
-          error: {
-            code: 'RATE_LIMIT_EXCEEDED',
-            message: 'Çok fazla istek gönderdiniz. Lütfen bekleyin.',
-            retryAfter,
-          },
-        });
-      } else {
-        // Redis hatası — limit bypass et, loglayıp devam et
-        logger.error('Rate limiter Redis error:', err);
-        next();
-      }
-    }
+    // Demo ortamı ve Vercel Proxy nedeniyle herkes aynı IP'den gelmiş gibi göründüğü için
+    // Rate Limiter geçici olarak devre dışı bırakıldı.
+    next();
   };
 }
 
