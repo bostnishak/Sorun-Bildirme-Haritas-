@@ -28,7 +28,19 @@ export const adminService = {
 
     // Admin ve Kurum Yetkilisi (Çalışan): tüm entegre bildirimleri görür
     [issues, total] = await Promise.all([
-      prisma.issue.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      prisma.issue.findMany({ 
+        where, 
+        skip, 
+        take: limit, 
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, title: true, description: true, category: true, priority: true, status: true,
+          city: true, district: true, address: true, imageUrl: true, proofImageUrl: true,
+          resolutionNote: true, adminReviewNote: true, createdAt: true, updatedAt: true,
+          assignedOfficerId: true, reportedById: true,
+          reportedBy: { select: { firstName: true, lastName: true, email: true } }
+        }
+      }),
       prisma.issue.count({ where }),
     ]);
 
@@ -182,7 +194,11 @@ export const adminService = {
           in: ['RESOLVED_PENDING_APPROVAL', 'REJECTED_PENDING_APPROVAL'],
         },
       },
-      include: {
+      select: {
+        id: true, title: true, description: true, category: true, priority: true, status: true,
+        city: true, district: true, address: true, imageUrl: true, proofImageUrl: true,
+        resolutionNote: true, adminReviewNote: true, createdAt: true, updatedAt: true,
+        assignedOfficerId: true, reportedById: true,
         reportedBy: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
