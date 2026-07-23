@@ -1,16 +1,17 @@
 @echo off
 echo.
 echo ========================================================
-echo Gozden kacan syntax hatasi (Conflict Marker) temizlenip gonderiliyor...
+echo .env dosyasi GitHub takip listesinden temizleniyor...
 echo ========================================================
 echo.
 
-git add frontend/src/components/map/MapView.tsx
-git commit -m "fix: MapView.tsx icerisindeki ikinci conflict marker kalintisi temizlendi (Build Hatasi Cozuldu)"
+git rm -r --cached .env
+git add .gitignore
+git commit -m "chore: Guvenlik acigini onlemek icin .env dosyasi git'ten kaldirildi"
 git push origin main
 echo.
 
 echo ========================================================
-echo HATALAR TAMAMEN TEMIZLENDI!
+echo TEMIZLIK TAMAMLANDI! Artik sifreleriniz asla GitHub'a gitmeyecek.
 echo ========================================================
 pause

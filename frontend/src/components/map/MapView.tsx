@@ -933,11 +933,6 @@ export function MapView() {
   }, []);
 
   const handleMove = useCallback((e: any) => {
-<<<<<<< HEAD
-=======
-    const { zoom, longitude, latitude } = e.viewState;
-
->>>>>>> 614c6f7f76c2f13c09b51d967f45c12655e14a7b
     setViewState({
       ...e.viewState,
       pitch: calculatePitch(e.viewState.zoom),

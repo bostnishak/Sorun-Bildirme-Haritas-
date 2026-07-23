@@ -2,7 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redis } from '../../config/redis';
 import { prisma } from '../../config/database';
 import nodemailer from 'nodemailer';
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { env } from '../../config/env';
@@ -103,7 +103,7 @@ async function generatePDFReport(
   institution: any,
   date: Date,
 ): Promise<Buffer> {
-  let browser: puppeteer.Browser | null = null;
+  let browser: Browser | null = null;
   try {
     browser = await puppeteer.launch({
       headless: true,
