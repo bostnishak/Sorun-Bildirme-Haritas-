@@ -10,10 +10,10 @@ build/
 dist/
 *.tsbuildinfo
 
-# Environment variables (Private Repo olduğu için paylaşıma açıldı)
-# .env
-# .env.local
-# *.env
+# Environment variables (Güvenlik gereği GİZLENDİ)
+.env
+.env.local
+*.env
 !.env.example
 
 
