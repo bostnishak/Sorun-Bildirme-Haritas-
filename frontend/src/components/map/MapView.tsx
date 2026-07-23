@@ -171,13 +171,20 @@ const INTERACTIVE_LAYER_IDS = ['cluster-circle', 'cluster-label-bg', 'unclustere
 
 export function MapView() {
   const mapRef = useRef<MapRef>(null);
+  const user = useAppStore(state => state.user);
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const _hasHydrated = useAppStore(state => state._hasHydrated);
+
   const [viewState, setViewState] = useState(TURKEY_CENTER);
   const [clusterZoom, setClusterZoom] = useState(TURKEY_CENTER.zoom);
   const [minZoom, setMinZoom] = useState(TURKEY_CENTER.zoom); // PC için 5.6 olarak başlatıyoruz
+  const minZoomRef = useRef(TURKEY_CENTER.zoom); // Her zaman güncel minZoom'u okumak için ref
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
 
   const [activeBounds, setActiveBounds] = useState<[[number, number], [number, number]]>(TURKEY_BOUNDS);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const hasAnimated = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -194,12 +201,16 @@ export function MapView() {
       const mobileZoom = 3.8;
       const targetZ = isRealMobileOrTablet ? mobileZoom : TURKEY_CENTER.zoom;
 
-      // Girişte animasyon olması için (haritanın "canlı" durması için) ilk zoom'u 1.5 başlatıyoruz.
-      // Animasyon sonrasında hedef zoom değerine (targetZ) ulaşacak.
-      setMinZoom(1.5);
-
-      setViewState(prev => ({ ...prev, zoom: 1.5 }));
-      setClusterZoom(1.5);
+      // SADECE MOBİLDE GİRİŞ ANİMASYONU OLSUN (PC'de animasyon kaldırıldı, direkt yüklensin)
+      if (isRealMobileOrTablet) {
+        setMinZoom(1.5); minZoomRef.current = 1.5;
+        setViewState(prev => ({ ...prev, zoom: 1.5 }));
+        setClusterZoom(1.5);
+      } else {
+        setMinZoom(targetZ); minZoomRef.current = targetZ;
+        setViewState(prev => ({ ...prev, zoom: targetZ }));
+        setClusterZoom(targetZ);
+      }
 
       // Mobilde (portre ekran), dikeyde çok fazla alan görüneceği için sıkı TURKEY_BOUNDS haritanın
       // zorla (force) yakınlaşmasına (zoom in) sebep olur. Bu mantık hatasını önlemek için mobilde
@@ -219,7 +230,7 @@ export function MapView() {
     // Biraz daha erken (15.0) açı almaya başla, 18.0'da maksimum açıya (55) ulaş
     if (zoom < 15.0) return 0;
     if (zoom >= 18.0) return 55;
-    
+
     // 15.0 ile 18.0 arasında 0'dan 55 dereceye yumuşak geçiş
     return Math.round(((zoom - 15.0) / 3) * 55);
   };
@@ -239,8 +250,6 @@ export function MapView() {
   const selectedIssue = useAppStore(state => state.selectedIssue);
   const selectIssue = useAppStore(state => state.selectIssue);
   const filters = useAppStore(state => state.filters);
-  const user = useAppStore(state => state.user);
-  const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const pendingCityZoom = useAppStore(state => state.pendingCityZoom);
   const setPendingCityZoom = useAppStore(state => state.setPendingCityZoom);
 
@@ -428,6 +437,7 @@ export function MapView() {
 
   const handleMapLoad = useCallback((e: any) => {
     const map = e.target;
+    setIsMapLoaded(true);
 
     // ── Viewport sınır kilidi: native Mapbox maxBounds ──
     map.setMaxBounds([
@@ -630,51 +640,78 @@ export function MapView() {
     } catch (err) {
       console.warn('Seamless satellite layer error:', err);
     }
+  }, [fetchClusters]);
 
-    // ── GİRİŞ ANİMASYONU (Canlı Yükleme Etkisi) ──
-    setTimeout(() => {
+  // ── GİRİŞ ANİMASYONU (Mobil için yumuşak geçiş, PC için anında atlama) ──
+  // Uygulama hydrate olduktan ve harita yüklendikten sonra çalışır
+  useEffect(() => {
+    if (isMapLoaded && _hasHydrated && !hasAnimated.current) {
+      hasAnimated.current = true;
       const isMobile = window.innerWidth <= 768 || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
       const targetZ = isMobile ? 3.8 : 5.6;
 
-      if (map) {
-        map.flyTo({
-          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: targetZ,
-          duration: 2500, // 2.5 saniyelik yumuşak giriş
-          essential: true,
-          pitch: 0
-        });
+      if (mapRef.current) {
+        let targetCenter = [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude] as [number, number];
+        let finalZoom = targetZ;
 
-        // Animasyon bittikten sonra minZoom kilidini hedef değere çek (kullanıcı uzaya çıkamasın)
-        setTimeout(() => {
-          setMinZoom(targetZ);
-        }, 2600);
+        if (isMobile) {
+          if (isAuthenticated && user?.city && CITY_COORDS[user.city]) {
+            targetCenter = [CITY_COORDS[user.city].longitude, CITY_COORDS[user.city].latitude];
+            finalZoom = 8; // Şehre daha yakından bakması için
+          }
+
+          mapRef.current.flyTo({
+            center: targetCenter,
+            zoom: finalZoom,
+            duration: 2500, // 2.5 saniyelik yumuşak giriş
+            essential: true,
+            pitch: 0
+          });
+
+          // Animasyon bittikten sonra minZoom kilidini mobil varsayılan değerine çek (kullanıcı uzaya çıkamasın)
+          setTimeout(() => {
+            setMinZoom(targetZ); minZoomRef.current = targetZ;
+            setViewState(prev => ({
+              ...prev,
+              longitude: targetCenter[0],
+              latitude: targetCenter[1],
+              zoom: finalZoom
+            }));
+          }, 2600);
+        } else {
+          // PC için şehre zıplama kaldırıldı, direkt Türkiye haritası açılsın (100x görünüm)
+          setMinZoom(targetZ); minZoomRef.current = targetZ;
+          setViewState(prev => ({
+            ...prev,
+            longitude: targetCenter[0],
+            latitude: targetCenter[1],
+            zoom: finalZoom
+          }));
+        }
       }
-    }, 100);
-
-  }, [fetchClusters]);
+    }
+  }, [isMapLoaded, _hasHydrated, isAuthenticated, user?.city]);
 
   const fetchTimerRef = useRef<any>(null);
 
   const handleMoveEnd = useCallback((e: any) => {
     const zoom = e.viewState.zoom;
     const prevZoom = lastZoomRef.current; // MoveStart'ta kaydedilen zoom
+    const currentMinZoom = minZoomRef.current; // Her zaman güncel minZoom (stale closure önlenir)
 
-    // Eğimi react-map-gl (setViewState) zaten hallediyor, native setPitch kasmaya sebep olduğu için kaldırıldı.
-    if (mapRef.current) {
-      
-      // Kullanıcı hareketini (scroll vb.) BİTİRDİĞİNDE zoom seviyesi 8.5 veya altındaysa
-      // VE kullanıcı UZAKLAŞTIRIYORSA (prevZoom > zoom) ortala. (Yakınlaştırırken geri çekmesin)
-      if (prevZoom > zoom && zoom <= 8.5 && zoom > minZoom + 0.1) {
-        mapRef.current.flyTo({
-          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: minZoom,
-          pitch: 0,
-          bearing: 0,
-          duration: 1500,
-          essential: true
-        });
-      }
+    // 85x Ortalama Mantığı:
+    // Harita açıldığında minZoom seviyesindedir. Kullanıcı yakınlaştı (örn zoom 8 veya 10).
+    // Uzaklaştırmaya başladı — zoom minZoom + 1.0 veya altına düştüğünde (yani %85'e gelince)
+    // smooth olarak Türkiye merkezine geri çekilir.
+    if (mapRef.current && prevZoom !== undefined && prevZoom > zoom && zoom <= currentMinZoom + 1.0 && zoom > currentMinZoom - 0.1) {
+      mapRef.current.flyTo({
+        center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
+        zoom: currentMinZoom,
+        duration: 1500,
+        essential: true,
+        pitch: 0,
+        bearing: 0
+      });
     }
 
     setClusterZoom(zoom);
@@ -849,36 +886,7 @@ export function MapView() {
   }, []);
 
   const handleMove = useCallback((e: any) => {
-    const { zoom } = e.viewState;
-
-    // Gerçek canvas boyutunu al (ekran boyutuna göre doğru hesaplama)
-    const canvas = mapRef.current?.getCanvas();
-    const vpWidth = canvas ? canvas.clientWidth : (typeof window !== 'undefined' ? window.innerWidth : 1024);
-    const vpHeight = canvas ? canvas.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 700);
-
-    // Bu zoom seviyesinde viewport kaç derece geniş/yüksek?
-    const tileSize = 512; // Mapbox varsayılan tile boyutu
-    const degreesPerTile = 360 / Math.pow(2, zoom);
-    const halfLng = (vpWidth / tileSize) * degreesPerTile / 2;
-    const halfLat = (vpHeight / tileSize) * degreesPerTile / 2;
-
-    const west = TURKEY_BOUNDS[0][0];
-    const south = TURKEY_BOUNDS[0][1];
-    const east = TURKEY_BOUNDS[1][0];
-    const north = TURKEY_BOUNDS[1][1];
-
-    const minLng = west + halfLng;
-    const maxLng = east - halfLng;
-    const minLat = south + halfLat;
-    const maxLat = north - halfLat;
-
-    // Viewport Türkiye'den geniş ise merkezi kilitle; değilse sınırlar içinde tut
-    const longitude = minLng >= maxLng
-      ? (west + east) / 2
-      : Math.max(minLng, Math.min(maxLng, e.viewState.longitude));
-    const latitude = minLat >= maxLat
-      ? (south + north) / 2
-      : Math.max(minLat, Math.min(maxLat, e.viewState.latitude));
+    const { zoom, longitude, latitude } = e.viewState;
 
     setViewState({
       ...e.viewState,
