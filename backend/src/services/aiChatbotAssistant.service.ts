@@ -891,6 +891,9 @@ export async function parseSinglePromptIssue(
 
     if (frontendHistory && frontendHistory.length > 0) {
       for (let i = frontendHistory.length - 1; i >= 0; i--) {
+        // Asistan kendi söylediği kelimelerden (örn: "aydınlatma sorununu bildir") tetiklenmesin diye sadece 'user' rolüne bak
+        if (frontendHistory[i].role !== 'user') continue;
+        
         const msg = frontendHistory[i].content;
         if (!historyCategory) {
           if (msg.includes('Aydınlatma ve Elektrik') || msg.toLowerCase().includes('lamba') || msg.toLowerCase().includes('aydınlatma')) { historyCategory = 'LIGHTING'; historyCategoryTr = 'Aydınlatma ve Elektrik'; }
