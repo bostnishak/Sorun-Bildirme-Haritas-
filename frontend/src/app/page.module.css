@@ -8,7 +8,8 @@
 
 /* ─── Hero Section (full viewport) ───────────────────────────────────────── */
 .heroSection {
-  height: 100dvh;
+  height: 100vh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -63,7 +64,7 @@
   position: fixed;
   left: 24px;
   bottom: 86px;
-  z-index: 9999;
+  z-index: 999999 !important;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -99,7 +100,7 @@
     padding: 0;
     justify-content: center;
     border-radius: 50%;
-    z-index: 9999 !important;
+    z-index: 999999 !important;
   }
 
   .issueReportFabText {

@@ -308,8 +308,15 @@ export const useAppStore = create<AppStore>()(
     {
       name: 'etiya-project-store',
       partialize: (state) => ({
-        // Sadece user ve token'ları persist et
-        user: state.user,
+        // Sadece ID, rol ve isim (maskelenmemiş public/ui bilgileri) gibi temel yetki bilgilerini persist et.
+        // Hassas veriler (email, telefon, soyad vb.) LocalStorage'a açıkça yazılmasın.
+        user: state.user ? {
+          id: state.user.id,
+          firstName: state.user.firstName,
+          role: state.user.role,
+          avatarUrl: state.user.avatarUrl,
+          isVerified: state.user.isVerified,
+        } as any : null,
         isAuthenticated: state.isAuthenticated,
         activeView: state.activeView,
       }),

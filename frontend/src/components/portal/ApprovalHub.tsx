@@ -204,7 +204,7 @@ export default function ApprovalHub() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
                 <button
                   onClick={() => handleOpenRevisionModal(issue)}
                   disabled={isProcessing === issue.id}

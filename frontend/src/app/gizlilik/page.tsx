@@ -50,8 +50,8 @@ export default function GizlilikPage() {
           </h2>
           <ul className={styles.list}>
             <li><strong>Kayıt Verileri:</strong> Ad, soyad, e-posta, cep telefonu, doğum yılı ve T.C. Kimlik Numarası (SHA-256 geri döndürülemez özet olarak saklanır).</li>
-            <li><strong>Sorun Bildirimleri:</strong> Başlık, açıklama, fotoğraf, EXIF konum koordinatları ve kategori bilgisi.</li>
-            <li><strong>Yapay Zeka ve Görsel Verileri:</strong> Yüklenen fotoğraflar, üçüncü kişi gizliliği için otomatik yüz/plaka bulanıklaştırma işlemine tabi tutulur.</li>
+            <li><strong>Sorun Bildirimleri ve Konum:</strong> Başlık, açıklama, fotoğraf, EXIF konum koordinatları, kategori bilgisi ve (izin vermeniz halinde) <strong>Cihazınızın Canlı GPS Konumu</strong>.</li>
+            <li><strong>Yapay Zeka, Görsel ve Ses Verileri:</strong> Yüklenen fotoğraflar, üçüncü kişi gizliliği için otomatik yüz/plaka bulanıklaştırma işlemine tabi tutulur. Mikrofon (Sesli İhbar) kullanımında ise <strong>sesiniz hiçbir şekilde kaydedilmez</strong>, yalnızca cihazınızda anlık olarak metne dökülerek işlenir (Biyometrik veri statüsünde değildir).</li>
             <li><strong>Teknik Veriler:</strong> 5651 Sayılı Kanun uyarınca IP adresi, tarayıcı türü, zaman damgası ve oturum kayıtları.</li>
           </ul>
         </div>

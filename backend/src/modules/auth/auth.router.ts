@@ -23,6 +23,9 @@ router.post('/logout', isAuthenticated, authController.logout);
 // GET /api/v1/auth/me — Mevcut kullanıcı bilgisi
 router.get('/me', isAuthenticated, authController.getMe);
 
+// GET /api/v1/auth/me/export — Kullanıcı tüm verilerini indir (GDPR/KVKK)
+router.get('/me/export', isAuthenticated, authController.exportMyData);
+
 // DELETE /api/v1/auth/me — Kullanıcı hesabı sil (KVKK)
 router.delete('/me', isAuthenticated, authController.deleteMyAccount);
 

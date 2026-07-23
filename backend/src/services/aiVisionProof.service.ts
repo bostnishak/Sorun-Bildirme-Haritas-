@@ -22,6 +22,7 @@ export interface VisionProofResult {
   detectedLabels: string[];
   userFriendlyMessage?: string;
   latencyMs?: number;
+  isQuarantined?: boolean;
 }
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -34,24 +35,25 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   PARKS: 'Kırık park bankı/oyuncakları, kurumuş/devrilmiş ağaçlar veya zarar görmüş yeşil alan.',
 };
 
-const VISION_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (Etiya Project) platformunun yüksek hassasiyetli Bilgisayarlı Görü (Computer Vision) kanıt denetçisisin.
-Görevin, kullanıcının yüklediği fotoğrafı analiz ederek, bildirilen sorun kategorisi ve başlığıyla eşleşip eşleşmediğini ve gerçekten bir belediye/altyapı/çevre sorunu kanıtı olup olmadığını doğrulamaktır.
+const VISION_SYSTEM_PROMPT = `Sen Türkiye Sorun Bildirim Haritası (Etiya Project) platformunun yüksek hassasiyetli Bilgisayarlı Görü (Computer Vision) kanıt denetçisi ve sahte/manipüle görüntü uzmanısın.
+Görevin, kullanıcının yüklediği fotoğrafı analiz ederek, bildirilen sorun kategorisi ve başlığıyla eşleşip eşleşmediğini, gerçek dünyada çekilmiş canlı bir kentsel/belediye arızası olup olmadığını denetlemektir.
 
-KESİNLİKLE REDDETMEN GEREKEN DURUMLAR (valid: false, confidenceScore < 0.40):
-1. Tarihi fotoğraflar, eski portreler, asker/şahıs portreleri, selfie, oda içi mobilya, evcil hayvan, ekran görüntüsü (screenshot), meme, oyun görüntüsü.
-2. Tamamen karanlık, siyah ekran, bomboş veya ne olduğu anlaşılamayan fotoğraflar.
-3. Bildirilen kategoriyle tamamen çelişen görseller veya kentsel/belediye arızası barındırmayan normal manzaralar.
+KESİNLİKLE REDDETMEN GEREKEN SAHTE VEYA UYGUNSUZ DURUMLAR (valid: false, confidenceScore < 0.40):
+1. Ekran Çekimleri ve Dijital Kopya: Bir bilgisayar/telefon ekranından çekilmiş fotoğraflar (moire deseni, piksel ızgarası), internetten indirilmiş stok fotoğraflar (watermark/filigran), meme'ler, oyun içi görüntüler, yapay zeka (AI) üretimi görseller.
+2. Alakasız ve Kişisel Görseller: Tarihi fotoğraflar, asker/şahıs portreleri, selfie, ev içi mobilya/dekorasyon, evcil hayvan, yemek tabakları, belgeler veya kentsel altyapı ile ilgisi olmayan manzaralar.
+3. Kategori-Görsel Uyuşmazlığı: Bildirilen kategoriyle (Örn: SU_KANALİZASYON) tamamen çelişen görseller (Örn: sadece sağlam bir asfalt yokuşu) veya hiçbir arıza, kırık, çukur, taşkın, çöp vb. barındırmayan normal ve sorunsuz kentsel manzaralar.
+4. Aşırı Bulanık veya Karartılmış: Ne olduğu anlaşılamayacak kadar bulanık, simsiyah veya parlamış fotoğraflar.
 
 KABUL ETME KURALI:
-Sadece fotoğrafta bildirilen kentsel arıza veya tehlike (çukur, çöp yığını, su kaçağı, bozuk rögar, kırık lamba, yangın vb.) net bir şekilde görülüyorsa kabul et (valid: true, confidenceScore >= 0.70).
+Sadece ve sadece fotoğrafta bildirilen kentsel arıza veya tehlike (çukur, çöp yığını, su kaçağı, bozuk rögar, kırık lamba, yangın, hasarlı park aleti vb.) net bir şekilde ve gerçek dünya ortamında görülüyorsa kabul et (valid: true, confidenceScore >= 0.70).
 
 YANIT FORMATI (SADECE geçerli JSON döndür):
 {
   "valid": boolean,
   "confidenceScore": number (0.0 ile 1.0 arası sayı),
-  "reason": "Tespit edilen durum hakkında kısa analiz",
-  "detectedLabels": ["asfalt", "çukur", ...],
-  "userFriendlyMessage": "Reddedildiyse kullanıcıya gösterilecek net Türkçe açıklama: Örn: Yüklediğiniz fotoğraf bir kentsel sorun kanıtı değildir. Lütfen arızayı net gösteren bir fotoğraf yükleyin."
+  "reason": "Tespit edilen durum, sahte/gerçek olma durumu ve kategori eşleşmesi hakkında net teknik analiz",
+  "detectedLabels": ["asfalt", "çukur", "gerçek-fotoğraf", ...],
+  "userFriendlyMessage": "Reddedildiyse kullanıcıya gösterilecek net Türkçe açıklama: Örn: Yüklediğiniz fotoğraf bir ekran görüntüsü veya kentsel sorun kanıtı değildir. Lütfen sorunu yerinde ve net gösteren orijinal bir fotoğraf yükleyiniz."
 }`;
 
 /**
@@ -135,12 +137,13 @@ export async function verifyIssuePhotoProof(
 
     return result;
   } catch (error) {
-    logger.warn('Vision AI Doğrulama servisi API hatası veya kota aşımı (429), fail-open (esnek) prensip ile kabul ediliyor:', { error: String(error) });
+    logger.warn('Vision AI Doğrulama servisi API hatası veya kota aşımı (429), fail-open kabul ancak IN_REVIEW karantinaya alınıyor:', { error: String(error) });
     return {
       valid: true,
       confidenceScore: 0.75,
-      reason: 'OpenAI API veya kota yoğunluğu nedeniyle otomatik kabul edildi (Arka planda inceleme yapılacak).',
-      detectedLabels: ['otomatik-onay'],
+      isQuarantined: true,
+      reason: 'OpenAI API veya kota yoğunluğu (429) nedeniyle otomatik karantina (İnsan/Yetkili onayı bekliyor - IN_REVIEW).',
+      detectedLabels: ['otomatik-karantina'],
       userFriendlyMessage: undefined,
       latencyMs: Date.now() - (start || Date.now()),
     };

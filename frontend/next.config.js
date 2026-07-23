@@ -11,13 +11,23 @@ const nextConfig = {
         port: '9000',
       },
       {
+        protocol: 'http',
+        hostname: '92.5.71.25',
+        port: '9005',
+      },
+      {
+        protocol: 'http',
+        hostname: '92.5.71.25',
+        port: '3001',
+      },
+      {
         protocol: 'https',
         hostname: 'etiya-project.tr',
       },
     ],
   },
   async rewrites() {
-    const defaultBackendUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'http://etiya-project-api:3001';
+    const defaultBackendUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'http://92.5.71.25:3001';
     const backendUrl = process.env.BACKEND_URL || defaultBackendUrl;
     return [
       {

@@ -62,9 +62,13 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
       issue.category
     );
 
-    const newStatus = aiAnalysis.valid ? 'OPEN' : 'REJECTED';
+    const newStatus = aiAnalysis.isQuarantined
+      ? 'IN_REVIEW'
+      : (aiAnalysis.valid ? 'OPEN' : 'REJECTED');
     
-    if (aiAnalysis.valid) {
+    if (aiAnalysis.isQuarantined) {
+      logger.warn(`[ImageWorker] AI Kota/429 hatası -> IN_REVIEW karantinaya alındı`, { reason: aiAnalysis.reason });
+    } else if (aiAnalysis.valid) {
       logger.info(`[ImageWorker] AI görseli ONAYLADI -> OPEN`);
     } else {
       logger.warn(`[ImageWorker] AI görseli REDDETTİ -> REJECTED`, { reason: aiAnalysis.reason });
@@ -82,8 +86,11 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
         imageBlurred: blurResult.wasModified,
         imageProcessed: true,
         status: newStatus,
-        llmGuardPassed: issue.llmGuardPassed && aiAnalysis.valid,
+        llmGuardPassed: issue.llmGuardPassed && aiAnalysis.valid && !aiAnalysis.isQuarantined,
         llmGuardReason: aiAnalysis.reason,
+        ...(aiAnalysis.isQuarantined ? {
+          adminReviewNote: 'Yapay Zeka arka plan görsel analizinde kota/API hatası oluştu. İhbar doğrudan haritada açılmadı, IN_REVIEW karantinaya alındı.'
+        } : {}),
       },
     });
 

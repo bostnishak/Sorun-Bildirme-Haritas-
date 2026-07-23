@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { StatsBar } from '@/components/layout/StatsBar';
-import { MapAreaClient, BigStatsClient, ReportModalClient, ContactSectionClient } from './client-components';
+import { MapAreaClient, BigStatsClient, ReportModalClient, ContactSectionClient, IssueReportFabClient } from './client-components';
 import {
   IconMapPin, IconBarChart, IconShield, IconUsers, IconZap,
   IconMail, IconPhone, IconBuilding, IconGlobe, IconFileText,
@@ -178,7 +178,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Report Modal */}
+      {/* Report Modal & Global FAB */}
+      <IssueReportFabClient />
       <ReportModalClient />
     </div>
   );

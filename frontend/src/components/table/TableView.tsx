@@ -3,14 +3,14 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@/store/useAppStore';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './TableView.module.css';
 import { useIssues, issueKeys } from '@/hooks/useIssues';
+import { useAppStore } from '@/store/useAppStore';
 import {
   CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_ICON_MAP,
-  IconMessageSquare,
+  IconMessageSquare, IconHeart,
   IconAlertCircle, IconClock, IconCheckCircle, IconMoreHorizontal,
 } from '@/components/ui/Icon';
 import { TR_CITIES_DISTRICTS } from '@/lib/turkeyCities';
@@ -86,7 +86,7 @@ const TableRowItem = React.memo(({ issue, onSelect, onNavigate }: { issue: any; 
       </td>
       <td>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#E11D48', background: 'rgba(225, 29, 72, 0.08)', padding: '3px 8px', borderRadius: '12px', fontSize: '12px' }}>
-          <span>❤️</span>
+          <IconHeart size={14} color="#E11D48" />
           <span>{issue.upvoteCount ?? issue.upvotes ?? 0}</span>
         </span>
       </td>

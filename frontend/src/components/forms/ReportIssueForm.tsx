@@ -181,13 +181,13 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
     } catch (err: any) {
       const errName = err?.name || '';
       if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-        toast.error('⚠️ Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
+        toast.error('Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
         return;
       } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
-        toast.error('⚠️ Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
+        toast.error('Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
         return;
       } else {
-        toast.error('⚠️ Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
+        toast.error('Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [Mikrofon Çarpı] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
         return;
       }
     }
@@ -200,7 +200,7 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
 
       setIsRecording(true);
       setAiVoiceSuccess(false);
-      const toastId = toast.loading('🎙️ Dinliyorum... Konuşun (Speech to Text)');
+      const toastId = toast.loading('Dinliyorum... Konuşun (Speech to Text)');
 
       let finalTranscript = '';
 
@@ -222,11 +222,11 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
         toast.dismiss(toastId);
         if (micStream) micStream.getTracks().forEach(track => track.stop());
         if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-          toast.error('⚠️ Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" seçin.');
+          toast.error('Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [Mikrofon Çarpı] simgesine tıklayıp "İzin Ver" seçin.');
         } else if (e.error === 'no-speech') {
           // Konuşma algılanmadı, sessizce kapan
         } else {
-          toast.error(`⚠️ Ses tanıma hatası (${e.error}).`);
+          toast.error(`Ses tanıma hatası (${e.error}).`);
         }
       };
 
@@ -624,14 +624,9 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* Hint */}
-          <p className={styles.hint}>
-            Yeni bir sorun ekliyorsanız <strong>Kaydet</strong>'e, düzenleme yapıyorsanız <strong>Güncelle</strong>'ye tıklayın.
-          </p>
-
           {/* Submit */}
           <div className={styles.actions}>
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={isSubmitting}>
               İptal
             </button>
             <button
@@ -640,14 +635,15 @@ export function ReportIssueForm({ onClose }: { onClose: () => void }) {
               className="btn btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? '⏳ Kaydediliyor...' : 'Kaydet'}
-            </button>
-            <button
-              type="button"
-              className={styles.updateBtn}
-              disabled={isSubmitting}
-            >
-              Güncelle
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Kaydediliyor...
+                </>
+              ) : 'Kaydet'}
             </button>
           </div>
         </form>

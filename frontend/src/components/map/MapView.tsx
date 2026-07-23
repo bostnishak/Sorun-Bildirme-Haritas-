@@ -9,6 +9,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useAppStore } from '@/store/useAppStore';
 import { MOCK_ISSUES } from '@/lib/mockData';
 import { IssuePopup } from './IssuePopup';
+import { ClusterLeavesModal } from './ClusterLeavesModal';
 import { initSocket } from '@/lib/socket';
 import styles from './MapView.module.css';
 
@@ -175,6 +176,7 @@ export function MapView() {
   const [clusterZoom, setClusterZoom] = useState(TURKEY_CENTER.zoom);
   const [minZoom, setMinZoom] = useState(TURKEY_CENTER.zoom); // PC için 5.6 olarak başlatıyoruz
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null);
+  const [clusterLeaves, setClusterLeaves] = useState<any[] | null>(null);
 
   const [activeBounds, setActiveBounds] = useState<[[number, number], [number, number]]>(TURKEY_BOUNDS);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -254,39 +256,42 @@ export function MapView() {
     }
   }, [activeView]);
 
-  // Container boyut değişikliklerini algılayıp haritayı her zaman ekrana sığdır
+  // Container veya pencere boyutu değiştiğinde harita canvas'ını debounced (150ms gecikmeli) yenile
+  // NOT: Mobilde sayfayı kaydırırken adres çubuğunun gizlenmesi/açılması sürekli resize tetiklediği için
+  // anlık map.resize() yapmak beyaz ekrana ve harita döngüsüne yol açıyordu. Yalnızca genişlik değiştiğinde
+  // veya yükseklik 120px'den fazla değiştiğinde (ör. ekran çevrildiğinde) resize tetiklenir.
   useEffect(() => {
-    if (!wrapperRef.current || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => {
-      try {
-        if (mapRef.current && activeView === 'map') {
-          mapRef.current.resize();
-        }
-      } catch (_) {}
-    });
-    observer.observe(wrapperRef.current);
-    return () => observer.disconnect();
-  }, [activeView]);
+    let timer: any = null;
+    let lastWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    let lastHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
 
-  // Tarayıcı zoom veya pencere boyutu değiştiğinde (örn: %100 -> %85)
-  // Eğer haritaya zaten genel bakılıyorsa (zoom <= 6.5) Türkiye'yi otomatik merkeze al
-  useEffect(() => {
-    const handleWindowResize = () => {
-      if (mapRef.current && activeView === 'map') {
-        const currentZoom = mapRef.current.getMap().getZoom();
-        if (currentZoom <= 6.5) {
-          setViewState(TURKEY_CENTER);
-        }
+    const doResize = () => {
+      if (typeof window === 'undefined') return;
+      const currentWidth = window.innerWidth;
+      const currentHeight = window.innerHeight;
+
+      // Sadece genişlik değiştiğinde VEYA yükseklik 120px'den fazla değiştiğinde (ekran döndürme vb) çalış
+      if (currentWidth === lastWidth && Math.abs(currentHeight - lastHeight) < 120) {
+        return;
       }
+
+      lastWidth = currentWidth;
+      lastHeight = currentHeight;
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        try {
+          if (mapRef.current && activeView === 'map') {
+            mapRef.current.resize();
+          }
+        } catch (_) {}
+      }, 200);
     };
-    
-    window.addEventListener('resize', handleWindowResize);
-    // İlk açılışta da emin olmak için kısa bir süre sonra kontrol et
-    const initialTimer = setTimeout(handleWindowResize, 500);
-    
+
+    window.addEventListener('resize', doResize);
     return () => {
-      window.removeEventListener('resize', handleWindowResize);
-      clearTimeout(initialTimer);
+      window.removeEventListener('resize', doResize);
+      if (timer) clearTimeout(timer);
     };
   }, [activeView]);
 
@@ -319,7 +324,6 @@ export function MapView() {
     
     let pollTimer: NodeJS.Timeout;
     let t1: NodeJS.Timeout;
-    let t2: NodeJS.Timeout;
 
     const runAnimation = () => {
       if (!mapRef.current) {
@@ -329,28 +333,19 @@ export function MapView() {
       
       cityZoomDoneRef.current = true;
 
-      // Mobilde: Önce tüm Türkiye'yi (kesilmeyen 4.4 ölçekte) göster, sonra şehre smooth zoom at
+      // Mobilde: Doğrudan kullanıcının şehrine smooth zoom at (çift zıplama/ortalama engellendi)
       t1 = setTimeout(() => {
         mapRef.current?.flyTo({
-          center: [TURKEY_CENTER.longitude, TURKEY_CENTER.latitude],
-          zoom: 4.4,
-          duration: 800,
+          center: [coords.longitude, coords.latitude],
+          zoom: coords.zoom,
+          pitch: calculatePitch(coords.zoom),
+          duration: 2500,
+          curve: 1.45,
           essential: true
         });
-
-        t2 = setTimeout(() => {
-          mapRef.current?.flyTo({
-            center: [coords.longitude, coords.latitude],
-            zoom: coords.zoom,
-            pitch: calculatePitch(coords.zoom),
-            duration: 3200,
-            curve: 1.45,
-            essential: true
-          });
-          
-          if (pendingCityZoom) setPendingCityZoom(false);
-        }, 1100);
-      }, 300);
+        
+        if (pendingCityZoom) setPendingCityZoom(false);
+      }, 400);
     };
 
     runAnimation();
@@ -358,7 +353,6 @@ export function MapView() {
     return () => {
       clearTimeout(pollTimer);
       clearTimeout(t1);
-      clearTimeout(t2);
     };
   }, [pendingCityZoom, isAuthenticated, user?.city, setPendingCityZoom, isDesktop]);
 
@@ -771,22 +765,78 @@ export function MapView() {
 
     if (feature.layer?.id === 'cluster-circle' || feature.layer?.id === 'cluster-label-bg' || feature.layer?.id === 'backend-cluster-label-bg') {
       const clusterId = feature.properties?.cluster_id;
+      const pointCount = Number(feature.properties?.point_count || feature.properties?.original_point_count || 0);
       const coords = feature.geometry?.coordinates;
       if (coords && mapRef.current) {
         const currentZoom = mapRef.current.getZoom() || 6;
-        const fallbackZoom = Math.min(currentZoom + 2.5, 18);
         const source: any = mapRef.current.getSource('issues-source');
+
+        const extractLeavesFromFeature = (f: any): any[] => {
+          const p = f?.properties || f || {};
+          let ids = p.ids;
+          if (typeof ids === 'string') {
+            try { ids = JSON.parse(ids); } catch (_) {}
+          }
+          if (Array.isArray(ids) && ids.length > 1) {
+            return ids.map((id: string, idx: number) => ({
+              ...p,
+              id,
+              issueId: id,
+              title: idx === 0 ? (p.title || `İhbar #${id}`) : `Aynı Konum İhbarı #${id.substring(0, 8)}`,
+              description: p.description || 'Bu konumdaki kümelenmiş bildirim detayı.',
+            }));
+          }
+          const cnt = Number(p.point_count || p.original_point_count || 1);
+          if (cnt > 1 && (!ids || ids.length <= 1)) {
+            return Array.from({ length: cnt }).map((_, idx) => ({
+              ...p,
+              id: p.id ? `${p.id}-${idx + 1}` : `küme-ihbar-${idx + 1}`,
+              issueId: p.id ? `${p.id}-${idx + 1}` : `küme-ihbar-${idx + 1}`,
+              title: idx === 0 ? (p.title || 'Kümelenmiş Bildirim #1') : `Kümelenmiş Yakın Bildirim #${idx + 1}`,
+            }));
+          }
+          return [p];
+        };
 
         if (clusterId !== undefined && source && typeof source.getClusterExpansionZoom === 'function') {
           source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
-            if (err || !zoom || typeof zoom !== 'number') {
-              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
-            } else {
+            if ((!err && zoom && typeof zoom === 'number' && zoom > 16) || currentZoom >= 14.5) {
+              if (typeof source.getClusterLeaves === 'function') {
+                source.getClusterLeaves(clusterId, 100, 0, (lErr: any, leaves: any[]) => {
+                  if (!lErr && leaves && leaves.length > 0) {
+                    const issuesList = leaves.flatMap(extractLeavesFromFeature).filter((l: any) => l && l.id);
+                    if (issuesList.length > 0) {
+                      setClusterLeaves(issuesList);
+                      return;
+                    }
+                  }
+                });
+              }
+            } else if (!err && zoom && typeof zoom === 'number') {
               const targetZoom = Math.min(zoom, 18);
               mapRef.current?.flyTo({ center: coords as [number, number], zoom: targetZoom, pitch: calculatePitch(targetZoom), duration: 600 });
+            } else {
+              const fallbackZoom = Math.min(currentZoom + 2.5, 18);
+              mapRef.current?.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
             }
           });
+        } else if (clusterId !== undefined && source && typeof source.getClusterLeaves === 'function') {
+          source.getClusterLeaves(clusterId, 100, 0, (lErr: any, leaves: any[]) => {
+            if (!lErr && leaves && leaves.length > 0) {
+              const issuesList = leaves.flatMap(extractLeavesFromFeature).filter((l: any) => l && l.id);
+              if (issuesList.length > 0) {
+                setClusterLeaves(issuesList);
+                return;
+              }
+            }
+          });
+        } else if (pointCount > 1 && currentZoom >= 14.5) {
+          const leavesList = extractLeavesFromFeature(feature);
+          if (leavesList.length > 0) {
+            setClusterLeaves(leavesList);
+          }
         } else {
+          const fallbackZoom = Math.min(currentZoom + 2.5, 18);
           mapRef.current.flyTo({ center: coords as [number, number], zoom: fallbackZoom, pitch: calculatePitch(fallbackZoom), duration: 600 });
         }
       }
@@ -804,42 +854,9 @@ export function MapView() {
   }, []);
 
   const handleMove = useCallback((e: any) => {
-    const { zoom } = e.viewState;
-
-    // Gerçek canvas boyutunu al (ekran boyutuna göre doğru hesaplama)
-    const canvas = mapRef.current?.getCanvas();
-    const vpWidth  = canvas ? canvas.clientWidth  : (typeof window !== 'undefined' ? window.innerWidth  : 1024);
-    const vpHeight = canvas ? canvas.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 700);
-
-    // Bu zoom seviyesinde viewport kaç derece geniş/yüksek?
-    const tileSize = 512; // Mapbox varsayılan tile boyutu
-    const degreesPerTile = 360 / Math.pow(2, zoom);
-    const halfLng = (vpWidth  / tileSize) * degreesPerTile / 2;
-    const halfLat = (vpHeight / tileSize) * degreesPerTile / 2;
-
-    const west  = TURKEY_BOUNDS[0][0];
-    const south = TURKEY_BOUNDS[0][1];
-    const east  = TURKEY_BOUNDS[1][0];
-    const north = TURKEY_BOUNDS[1][1];
-
-    const minLng = west  + halfLng;
-    const maxLng = east  - halfLng;
-    const minLat = south + halfLat;
-    const maxLat = north - halfLat;
-
-    // Viewport Türkiye'den geniş ise merkezi kilitle; değilse sınırlar içinde tut
-    const longitude = minLng >= maxLng
-      ? (west + east) / 2
-      : Math.max(minLng, Math.min(maxLng, e.viewState.longitude));
-    const latitude = minLat >= maxLat
-      ? (south + north) / 2
-      : Math.max(minLat, Math.min(maxLat, e.viewState.latitude));
-
     setViewState({
       ...e.viewState,
-      longitude,
-      latitude,
-      pitch: calculatePitch(zoom),
+      pitch: calculatePitch(e.viewState.zoom),
       bearing: 0,
     });
   }, []);
@@ -864,11 +881,11 @@ export function MapView() {
         {...({ maxBoundsViscosity: 1.0 } as any)}
         minZoom={minZoom}
         maxZoom={17}
-        dragPan={viewState.zoom > panThreshold}
+        dragPan={true}
         dragRotate={false}
         pitchWithRotate={false}
         touchZoomRotate={true}
-        reuseMaps={false}
+        reuseMaps={true}
         localIdeographFontFamily="sans-serif"
         optimizeForTerrain={false}
         renderWorldCopies={false}
@@ -1041,6 +1058,16 @@ export function MapView() {
       {
         selectedIssue && (
           <IssuePopup issue={selectedIssue} onClose={() => selectIssue(null)} />
+        )
+      }
+
+      {
+        clusterLeaves && (
+          <ClusterLeavesModal
+            issues={clusterLeaves}
+            onClose={() => setClusterLeaves(null)}
+            onSelectIssue={(issue) => selectIssue(issue)}
+          />
         )
       }
     </div>

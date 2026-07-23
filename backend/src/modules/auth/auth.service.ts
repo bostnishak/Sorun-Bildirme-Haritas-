@@ -50,37 +50,39 @@ export const authService = {
     let tcKimlikHash: string | undefined = undefined;
 
     if (dto.tcKimlik && dto.birthYear) {
-      try {
-        const nviResult = await verifyWithNVI({
-          tcKimlik: dto.tcKimlik,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          birthYear: dto.birthYear,
-        });
-
-        if (typeof nviResult === 'object' && nviResult.bypassed) {
-          throw new ServiceUnavailableError('NVİ servisi devre dışı (Circuit Open)');
-        }
-
-        if (!nviResult) {
-          throw new BadRequestError(
-            'Kimlik bilgileri doğrulanamadı. ' +
-            'T.C. Kimlik, Ad, Soyad ve Doğum Yılı bilgilerini kontrol edin.',
-          );
-        }
-
-        isVerified = true;
-        tcKimlikHash = hashTCKimlik(dto.tcKimlik);
-        logger.info('NVİ doğrulaması başarılı', { email: dto.email });
-      } catch (err) {
-        // NVİ servisi erişilemez durumdaysa kaydı bloklama,
-        // kullanıcıya sonradan kimlik doğrulama imkânı sun
-        if (err instanceof BadRequestError) throw err;
-        logger.warn('NVİ servisine ulaşılamadı, e-posta ile devam ediliyor', {
-          email: dto.email,
-          error: (err as Error).message,
-        });
+      // 1.1. NVİ & TC Kimlik Hash Çakışması Ön Kontrolü:
+      const tcHash = hashTCKimlik(dto.tcKimlik);
+      const existingWithSameTc = await prisma.user.findFirst({
+        where: { tcKimlikHash: tcHash },
+      });
+      if (existingWithSameTc) {
+        throw new ConflictError('Bu T.C. Kimlik numarası zaten başka bir hesaba bağlı.');
       }
+
+      // 1.4. NVI SOAP Kesintilerinde Kayıt Katmanı Fail-Open Zafiyetinin Engellenmesi:
+      const nviResult = await verifyWithNVI({
+        tcKimlik: dto.tcKimlik,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        birthYear: dto.birthYear,
+      });
+
+      if (typeof nviResult === 'object' && nviResult.bypassed) {
+        throw new ServiceUnavailableError(
+          'NVİ servisi şu an geçici olarak devre dışı (Circuit Open). Lütfen daha sonra tekrar deneyiniz veya TC Kimlik numarası girmeden e-posta ile kayıt olun.'
+        );
+      }
+
+      if (!nviResult) {
+        throw new BadRequestError(
+          'Kimlik bilgileri doğrulanamadı. ' +
+          'T.C. Kimlik, Ad, Soyad ve Doğum Yılı bilgilerini kontrol edin.',
+        );
+      }
+
+      isVerified = true;
+      tcKimlikHash = tcHash;
+      logger.info('NVİ doğrulaması başarılı', { email: dto.email });
     }
 
     // Kullanıcı oluştur
@@ -334,6 +336,30 @@ export const authService = {
     });
 
     logger.info('Kullanıcı hesabı ve bağlı tüm veriler kalıcı olarak silindi (KVKK).', { userId });
+  },
+
+  async exportUserData(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        issues: {
+          select: { id: true, title: true, category: true, status: true, city: true, district: true, createdAt: true, resolvedAt: true }
+        },
+        comments: {
+          select: { id: true, content: true, createdAt: true, issueId: true }
+        },
+        upvotes: {
+          select: { id: true, issueId: true, createdAt: true }
+        },
+      }
+    });
+    
+    if (!user) throw new NotFoundError('Kullanıcı bulunamadı.');
+
+    // KVKK gereği şifre, hash gibi hassas sistem verileri dışa aktarılmaz
+    const { passwordHash, tcKimlikHash, twoFactorSecret, recoveryCodes, avatarKey, ...safeUserData } = user;
+    
+    return safeUserData;
   },
   async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string; city?: string; district?: string }) {
     const user = await prisma.user.update({

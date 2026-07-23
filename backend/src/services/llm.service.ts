@@ -38,6 +38,7 @@ Yanıtını SADECE JSON formatında ver, başka hiçbir şey yazma:
 export interface LLMGuardResult {
   valid: boolean;
   reason: string;
+  isQuarantined?: boolean;
 }
 
 export const LLMGuardSchema = z.object({
@@ -106,9 +107,9 @@ export async function guardContent(
   } catch (err) {
     if (err instanceof BadRequestError) throw err;
 
-    // OpenAI API veya kota hatası (429) — Fail-Open prensibi (esnek doğrulama) ile kabul et
-    logger.warn('LLM Guard API veya kota hatası — Fail-Open esnek kabul uygulandı:', { error: String(err) });
-    return { valid: true, reason: 'AI API yoğunluğu/kota limiti nedeniyle otomatik kabul (Arka plan incelemesi yapılacak)' };
+    // OpenAI API veya kota hatası (429) — Fail-Open prensibi ile kabul et ancak admin onayı (Karantina) durumuna al
+    logger.warn('LLM Guard API veya kota hatası — Fail-Open kabul, ancak IN_REVIEW karantina uygulanıyor:', { error: String(err) });
+    return { valid: true, isQuarantined: true, reason: 'AI API yoğunluğu/kota limiti nedeniyle otomatik kabul ve karantina (Admin onayı bekliyor)' };
   }
 }
 
@@ -167,7 +168,7 @@ export async function analyzeImageContent(
 
     return result;
   } catch (err) {
-    logger.warn('Vision AI servisi veya kota (429) hatası — Fail-Open prensibiyle kabul ediliyor:', { error: String(err) });
-    return { valid: true, reason: 'Görsel analiz API kota limiti nedeniyle otomatik onay (İnsan denetimi için OPEN)' };
+    logger.warn('Vision AI servisi veya kota (429) hatası — Fail-Open kabul ve IN_REVIEW karantinaya alınıyor:', { error: String(err) });
+    return { valid: true, isQuarantined: true, reason: 'Görsel analiz API kota limiti nedeniyle otomatik karantina (İnsan/Yetkili denetimi için IN_REVIEW)' };
   }
 }

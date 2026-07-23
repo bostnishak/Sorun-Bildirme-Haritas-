@@ -2,6 +2,8 @@ import axios from 'axios';
 import pRetry from 'p-retry';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { isWithinTurkey } from '../utils/spatial.utils';
+import { BadRequestError } from '../utils/errors';
 
 export interface StructuredAddress {
   city: string;
@@ -261,6 +263,11 @@ async function geocodeWithNominatim(lat: number, lng: number): Promise<Structure
  * Çoklu sağlayıcılı (Fallback destekli) Yüksek Hassasiyetli Tersine Konum Bulma servisi
  */
 export async function reverseGeocodeHighPrecision(lat: number, lng: number): Promise<StructuredAddress> {
+  // 3.1. Türkiye coğrafi ön kontrolü
+  if (!isWithinTurkey(lat, lng)) {
+    throw new BadRequestError('Konsolide coğrafi kodlama sadece Türkiye coğrafi sınırları içindeki koordinatlar için çalışır.');
+  }
+
   // 1. Mapbox'ı dene
   const mapboxRes = await geocodeWithMapbox(lat, lng);
   if (mapboxRes) return mapboxRes;

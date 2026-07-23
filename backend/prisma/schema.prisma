@@ -263,6 +263,7 @@ model AuditLog {
   @@index([actorId])
   @@index([action])
   @@index([targetId])
+  @@index([createdAt(sort: Desc)])
   @@map("audit_logs")
 }
 
@@ -279,7 +280,8 @@ model AiModerationLog {
 
   @@index([issueId])
   @@index([layer])
-  @@index([createdAt])
+  @@index([createdAt(sort: Desc)])
+  @@index([passed, createdAt(sort: Desc)])
   @@map("ai_moderation_logs")
 }
 

@@ -5,12 +5,13 @@ import { BadRequestError } from '../../utils/errors';
 import { handleUpload } from '../../middleware/upload.middleware';
 import { validateExifLocation } from '../../services/exif.service';
 // Removed guardContent as enforceDynamicModeration replaces it
-import { enforceDynamicModeration } from '../../services/aiModeration.service';
+import { enforceDynamicModeration, runAsyncSemanticGuardrailForIssue } from '../../services/aiModeration.service';
 import { reverseGeocodeHighPrecision, searchAddressForward } from '../../services/geocoding.service';
 import { verifyIssuePhotoProof } from '../../services/aiVisionProof.service';
 import { parseSinglePromptIssue } from '../../services/aiChatbotAssistant.service';
 import { imageProcessingQueue } from '../../jobs/queue';
 import { logger } from '../../utils/logger';
+import { isWithinTurkey } from '../../utils/spatial.utils';
 
 // ─── Validation Schemas ────────────────────────────────────────────────────
 
@@ -78,6 +79,11 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
   }
   const data = parsed.data;
 
+  // 3.2. Türkiye coğrafi ön kontrolü (fotoğraf olsun ya da olmasın)
+  if (!isWithinTurkey(data.latitude, data.longitude)) {
+    throw new BadRequestError('İhbar koordinatları Türkiye coğrafi sınırları dışında olamaz.');
+  }
+
   // 3. Dinamik AI Moderasyon Katmanı (Regex + OpenAI API + Zod)
   await enforceDynamicModeration(`${data.title}\n${data.description}`);
   
@@ -139,6 +145,9 @@ export async function createIssue(req: Request, res: Response): Promise<void> {
     exifDistance: exifResult?.distanceMeters,
     llmGuardPassed, // Gerçek LLM sonucu kaydediliyor
   });
+
+  // 6b. Asenkron Semantik Guardrail & Kota Karantinasını Anında Çalıştır (Haritada yayınlanmadan önce yakala)
+  runAsyncSemanticGuardrailForIssue(issue.id, `${data.title}\n${data.description}`).catch(() => {});
 
   // 7. Görsel işleme kuyruguğuna ekle
   // Güvenlik: Buffer Base64 olarak Redis'e yazılmıyor;

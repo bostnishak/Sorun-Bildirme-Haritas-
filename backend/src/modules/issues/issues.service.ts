@@ -2,7 +2,7 @@ import { prisma } from '../../config/database';
 import { redis } from '../../config/redis';
 import { Role, Prisma } from '@prisma/client';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
-import { getClusterGridSize } from '../../utils/spatial.utils';
+import { getClusterGridSize, isWithinTurkey } from '../../utils/spatial.utils';
 import { webhookQueue, notificationQueue } from '../../jobs/queue';
 import { auditService } from '../../services/audit.service';
 import { notificationService } from '../../services/notification.service';
@@ -41,6 +41,11 @@ interface BoundingBox {
 export const issuesService = {
 
   async create(dto: CreateIssueDto) {
+    // 3.2. Fotoğrafsız İhbarlarda Türkiye Coğrafi Sınır Denetimi:
+    if (!isWithinTurkey(dto.latitude, dto.longitude)) {
+      throw new BadRequestError('İhbar koordinatları Türkiye coğrafi sınırları dışında olamaz.');
+    }
+
     const issue = await prisma.$queryRaw<any[]>`
       INSERT INTO issues (
         id, title, description, category, priority, status,
@@ -281,8 +286,8 @@ export const issuesService = {
         MODE() WITHIN GROUP (ORDER BY issues.image_url::text)  AS image_url,
         MODE() WITHIN GROUP (ORDER BY issues.upvote_count::int) AS upvote_count,
         MODE() WITHIN GROUP (ORDER BY issues.upvote_count::int) AS "upvoteCount",
-        MODE() WITHIN GROUP (ORDER BY u.first_name::text) AS "reporterFirstName",
-        MODE() WITHIN GROUP (ORDER BY u.last_name::text) AS "reporterLastName",
+        MODE() WITHIN GROUP (ORDER BY LEFT(u.first_name::text, 1) || '***') AS "reporterFirstName",
+        MODE() WITHIN GROUP (ORDER BY LEFT(u.last_name::text, 1) || '***') AS "reporterLastName",
         MODE() WITHIN GROUP (ORDER BY u.trust_score::int) AS "reporterTrustScore"
       FROM issues
       LEFT JOIN users u ON issues.reported_by_id = u.id
@@ -323,7 +328,6 @@ export const issuesService = {
     }
 
     // INSTITUTION_OFFICER: Tüm entegre portal sorunlarını işlem yapıp admin onayına sunabilir
-    /*
     if (officerRole === Role.INSTITUTION_OFFICER && institutionId) {
       const withinJurisdiction = await prisma.$queryRaw<{ within: boolean }[]>`
         SELECT EXISTS(
@@ -339,7 +343,6 @@ export const issuesService = {
         throw new ForbiddenError('Bu sorun yetki alanınız dışında.');
       }
     }
-    */
 
     const previousStatus = issue.status;
     let finalStatus = newStatus;
@@ -367,18 +370,20 @@ export const issuesService = {
       },
     });
 
-    // Görev 3.2: Gamification (Trust Score)
+    // Görev 3.2 / 1.2: Gamification (Trust Score) Atomik Güncelleme
     if (newStatus !== previousStatus && (newStatus === 'RESOLVED' || newStatus === 'REJECTED')) {
       const scoreChange = newStatus === 'RESOLVED' ? 10 : -5;
-      
-      // Kullanıcının mevcut skorunu al ve 0'ın altına düşmesini engelle
-      const user = await prisma.user.findUnique({ where: { id: issue.reportedById }, select: { trustScore: true } });
-      if (user) {
-        const newScore = Math.max(0, user.trustScore + scoreChange);
+      if (scoreChange > 0) {
         await prisma.user.update({
           where: { id: issue.reportedById },
-          data: { trustScore: newScore }
+          data: { trustScore: { increment: scoreChange } },
         });
+      } else {
+        await prisma.$executeRaw`
+          UPDATE users
+          SET trust_score = GREATEST(0, trust_score + (${scoreChange})::int)
+          WHERE id = ${issue.reportedById}::uuid
+        `;
       }
     }
 
@@ -416,7 +421,6 @@ export const issuesService = {
     });
     if (!issue) throw new NotFoundError('Sorun');
 
-    /*
     if (officerRole === Role.INSTITUTION_OFFICER && institutionId) {
       const withinJurisdiction = await prisma.$queryRaw<{ within: boolean }[]>`
         SELECT EXISTS(
@@ -432,7 +436,6 @@ export const issuesService = {
         throw new ForbiddenError('Bu sorun yetki alanınız dışında.');
       }
     }
-    */
 
     const previousStatus = issue.status;
     let finalStatus = targetStatus;
@@ -463,13 +466,17 @@ export const issuesService = {
 
     if (finalStatus !== previousStatus && (finalStatus === 'RESOLVED' || finalStatus === 'REJECTED')) {
       const scoreChange = finalStatus === 'RESOLVED' ? 10 : -5;
-      const user = await prisma.user.findUnique({ where: { id: issue.reportedById }, select: { trustScore: true } });
-      if (user) {
-        const newScore = Math.max(0, user.trustScore + scoreChange);
+      if (scoreChange > 0) {
         await prisma.user.update({
           where: { id: issue.reportedById },
-          data: { trustScore: newScore },
+          data: { trustScore: { increment: scoreChange } },
         });
+      } else {
+        await prisma.$executeRaw`
+          UPDATE users
+          SET trust_score = GREATEST(0, trust_score + (${scoreChange})::int)
+          WHERE id = ${issue.reportedById}::uuid
+        `;
       }
     }
 
@@ -546,20 +553,27 @@ export const issuesService = {
       throw new BadRequestError('Bu sorunu zaten desteklediniz.');
     }
 
-    const [upvote] = await prisma.$transaction([
-      prisma.issueUpvote.create({
-        data: {
-          issueId,
-          userId
-        }
-      }),
-      prisma.issue.update({
-        where: { id: issueId },
-        data: { upvoteCount: { increment: 1 } }
-      })
-    ]);
+    try {
+      const [upvote] = await prisma.$transaction([
+        prisma.issueUpvote.create({
+          data: {
+            issueId,
+            userId
+          }
+        }),
+        prisma.issue.update({
+          where: { id: issueId },
+          data: { upvoteCount: { increment: 1 } }
+        })
+      ]);
 
-    return upvote;
+      return upvote;
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new BadRequestError('Bu sorunu zaten desteklediniz.');
+      }
+      throw error;
+    }
   },
 
   async removeUpvote(issueId: string, userId: string) {
@@ -573,17 +587,24 @@ export const issuesService = {
       throw new BadRequestError('Bu sorunu zaten desteklemediniz.');
     }
 
-    await prisma.$transaction([
-      prisma.issueUpvote.delete({
-        where: {
-          issueId_userId: { issueId, userId }
-        }
-      }),
-      prisma.issue.update({
-        where: { id: issueId },
-        data: { upvoteCount: { decrement: 1 } }
-      })
-    ]);
+    try {
+      await prisma.$transaction([
+        prisma.issueUpvote.delete({
+          where: {
+            issueId_userId: { issueId, userId }
+          }
+        }),
+        prisma.issue.update({
+          where: { id: issueId },
+          data: { upvoteCount: { decrement: 1 } }
+        })
+      ]);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new BadRequestError('Bu sorunu zaten desteklemediniz.');
+      }
+      throw error;
+    }
   },
 
   async getComments(issueId: string) {

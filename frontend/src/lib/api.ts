@@ -8,7 +8,9 @@ import type {
 } from '../types/issue.types';
 import type { User, LoginDto, RegisterDto, AuthResponse } from '../types/auth.types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api' : 'http://etiya-project-api:3001/api');
+// Tarayıcı tarafında (client-side) her zaman '/api' kullanarak Vercel rewrite/proxy üzerinden geç!
+// Böylece HTTPS (Vercel) -> HTTP (Almanya sunucusu) Mixed Content / Network Error hatası kesinlikle yaşanmaz.
+const API_URL = typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://etiya-project-api:3001/api');
 
 export const api = axios.create({
   baseURL: `${API_URL}/v1`,
@@ -31,13 +33,41 @@ api.interceptors.request.use(
 );
 
 // ─── Response interceptor: 401'de token yenileme ────────────────────────────
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const original = error.config;
 
     if (error.response?.status === 401 && !original._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            original.headers.Authorization = `Bearer ${token}`;
+            return api(original);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
       original._retry = true;
+      isRefreshing = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
@@ -51,8 +81,11 @@ api.interceptors.response.use(
         localStorage.setItem('refreshToken', newRefreshToken);
 
         original.headers.Authorization = `Bearer ${accessToken}`;
+        processQueue(null, accessToken);
+        
         return api(original);
-      } catch {
+      } catch (err) {
+        processQueue(err, null);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -76,10 +109,14 @@ api.interceptors.response.use(
 
           const path = window.location.pathname;
           const isProtectedPage = ['/profile', '/my-issues', '/portal'].some(p => path.startsWith(p));
-          if (isProtectedPage) {
-            window.location.href = '/login';
+          
+          if (isProtectedPage && !path.includes('/login')) {
+            window.location.href = `/login?redirect=${encodeURIComponent(path)}`;
           }
         }
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
       }
     }
 
@@ -104,6 +141,12 @@ export const authApi = {
 
   me: () =>
     api.get<ApiResponse<User>, ApiResponse<User>>('/auth/me'),
+
+  exportData: () =>
+    api.get<any, any>('/auth/me/export'),
+
+  deleteAccount: () =>
+    api.delete<any, any>('/auth/me'),
 
   generate2fa: () =>
     api.post<any, any>('/auth/2fa/generate'),

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 import toast from 'react-hot-toast';
+import { IconUser, IconFileText, IconShield } from '@/components/ui/Icon';
 import styles from './page.module.css';
 
 export default function LoginPage() {
@@ -137,7 +138,7 @@ export default function LoginPage() {
         {/* Hızlı Demo Giriş - 3 Hesap Türü */}
         <div style={{ margin: '14px 0 20px', padding: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>⚡ Hızlı Demo Girişi (Tek Tıkla)</span>
+            <span>HIZLI DEMO GİRİŞİ (TEK TIKLA)</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             <button
@@ -147,10 +148,13 @@ export default function LoginPage() {
               style={{
                 padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
                 border: '1px solid #3b82f6', background: '#eff6ff', color: '#1d4ed8',
-                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
               }}
             >
-              <span>👤 Vatandaş</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <IconUser size={15} />
+                <span>Vatandaş</span>
+              </div>
               <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>Ankara</span>
             </button>
             <button
@@ -160,10 +164,13 @@ export default function LoginPage() {
               style={{
                 padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
                 border: '1px solid #10b981', background: '#ecfdf5', color: '#047857',
-                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
               }}
             >
-              <span>🏢 Çalışan</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <IconFileText size={15} />
+                <span>Çalışan</span>
+              </div>
               <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>İstanbul</span>
             </button>
             <button
@@ -173,10 +180,13 @@ export default function LoginPage() {
               style={{
                 padding: '10px 8px', fontSize: '12px', fontWeight: 600, borderRadius: '8px',
                 border: '1px solid #8b5cf6', background: '#f5f3ff', color: '#6d28d9',
-                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+                cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
               }}
             >
-              <span>🛡️ Admin</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <IconShield size={15} />
+                <span>Admin</span>
+              </div>
               <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.85 }}>İzmir</span>
             </button>
           </div>

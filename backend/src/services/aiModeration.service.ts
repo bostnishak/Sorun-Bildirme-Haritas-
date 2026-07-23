@@ -19,10 +19,11 @@ const llmProvider = new OpenAIProvider();
 export interface ModerationResult {
   passed: boolean;
   code: 'OK' | 'PII_DETECTED' | 'HATE_SPEECH_VIOLENCE' | 'TROLL_OR_IRRELEVANT' | 'POLITICAL_RELIGIOUS_JOKE'
-      | 'PROFANITY_HATE' | 'JAILBREAK' | 'PII_LEAK' | 'THREAT_VIOLENCE';
+      | 'PROFANITY_HATE' | 'JAILBREAK' | 'PII_LEAK' | 'THREAT_VIOLENCE' | 'FAIL_OPEN_QUARANTINE';
   reason?: string;
   userFriendlyMessage?: string;
   latencyMs: number;
+  isQuarantined?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -320,10 +321,12 @@ export async function checkSemanticGuardrail(text: string): Promise<ModerationRe
     return finalResult;
   } catch (error) {
     openAIGuardrailFailureTotal.labels('api_error').inc();
-    logger.warn('Semantic Guardrail OpenAI API / Kota hatası — yerel doğrulama katmanı onaylandığı için fail-open prensibiyle kabul ediliyor.', { error: String(error) });
+    logger.warn('Semantic Guardrail OpenAI API / Kota hatası — fail-open kabul, ancak karantinaya alınacak.', { error: String(error) });
     return {
       passed: true,
-      code: 'OK',
+      code: 'FAIL_OPEN_QUARANTINE',
+      isQuarantined: true,
+      reason: 'OpenAI API veya kota yoğunluğu (429) nedeniyle otomatik karantina (Admin onayı gerektirir)',
       latencyMs: Date.now() - start,
     };
   }
@@ -386,23 +389,68 @@ export async function enforceDynamicModeration(text: string, issueId?: string): 
   }
 
   // 3. Katman: Semantik LLM Guardrail (Asenkron çalışır, gecikmeyi önler)
-  checkSemanticGuardrail(text).then(async (semanticResult) => {
-    await logEntry('llm_guardrail', semanticResult, 'gpt-4o-mini');
-    if (!semanticResult.passed) {
-      logger.warn('AI Moderasyon [Katman 3 - LLM Semantic Guardrail] ihlali yakaladı (Asenkron tespit).', {
-        code: semanticResult.code,
-        reason: semanticResult.reason,
-        issueId
-      });
-      // İleride burada kullanıcıyı/IP'yi banlama veya ihbarı pasife alma (flagged) eklenebilir.
-    }
-  }).catch((err) => {
-    logger.error('Asenkron Semantic Guardrail çalıştırılamadı:', { error: String(err) });
-  });
+  if (issueId) {
+    runAsyncSemanticGuardrailForIssue(issueId, text);
+  } else {
+    checkSemanticGuardrail(text).catch(() => {});
+  }
 
   return {
     passed: true,
     code: 'OK',
     latencyMs: Date.now() - totalStart,
   };
+}
+
+/**
+ * İhbar oluşturulduktan hemen sonra asenkron olarak çalışıp semantik guardrail ihlali
+ * veya API kota hatası durumunda ihbarı haritada yayınlanmadan önce karantinaya alır.
+ */
+export async function runAsyncSemanticGuardrailForIssue(issueId: string, text: string): Promise<void> {
+  try {
+    const semanticResult = await checkSemanticGuardrail(text);
+    try {
+      await prisma.aiModerationLog.create({
+        data: {
+          issueId,
+          layer: 'llm_guardrail',
+          passed: semanticResult.passed,
+          code: semanticResult.code,
+          reason: semanticResult.reason,
+          latencyMs: semanticResult.latencyMs,
+          model: 'gpt-4o-mini',
+        }
+      });
+      aiModerationDurationHistogram.labels('llm_guardrail', 'gpt-4o-mini').observe(semanticResult.latencyMs);
+    } catch (e) {
+      logger.error('Failed to save AiModerationLog', { error: String(e) });
+    }
+
+    if (!semanticResult.passed || semanticResult.isQuarantined) {
+      const isQuotaFail = semanticResult.isQuarantined;
+      const reasonText = !semanticResult.passed
+        ? `Asenkron AI Semantic Guardrail İhlali [${semanticResult.code}]: ${semanticResult.reason || 'Sakıncalı içerik tespiti'}`
+        : `Yapay Zeka API Kota/Yoğunluk Karantinası (Fail-Open): ${semanticResult.reason}`;
+
+      logger.warn('AI Moderasyon asenkron kontrolde ihbarı karantinaya alıyor...', {
+        issueId,
+        passed: semanticResult.passed,
+        isQuarantined: semanticResult.isQuarantined,
+        code: semanticResult.code,
+      });
+
+      await prisma.issue.update({
+        where: { id: issueId },
+        data: {
+          status: 'IN_REVIEW',
+          llmGuardPassed: semanticResult.passed && !semanticResult.isQuarantined,
+          llmGuardReason: reasonText,
+          adminReviewNote: 'Yapay Zeka asenkron semantik denetimi veya API kota yoğunluğu nedeniyle haritada direkt yayınlanmadan önce IN_REVIEW karantinaya alındı (Yetkili onayı bekliyor).',
+        }
+      });
+      logger.warn(`İhbar #${issueId} haritada yayınlanmadan önce başarıyla karantinaya alındı (IN_REVIEW).`);
+    }
+  } catch (err) {
+    logger.error(`İhbar #${issueId} için asenkron guardrail çalışırken hata oluştu:`, { error: String(err) });
+  }
 }

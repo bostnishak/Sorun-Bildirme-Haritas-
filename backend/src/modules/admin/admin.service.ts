@@ -4,6 +4,7 @@ import { NotFoundError, BadRequestError } from '../../utils/errors';
 import { auditService } from '../../services/audit.service';
 import { notificationService } from '../../services/notification.service';
 import { notificationQueue } from '../../jobs/queue';
+import { validateWebhookUrlSSRF } from '../../services/webhook.service';
 import { logger } from '../../utils/logger';
 
 export const adminService = {
@@ -90,6 +91,9 @@ export const adminService = {
     name: string; city: string; district: string;
     emailAddress: string; webhookUrl?: string;
   }) {
+    if (data.webhookUrl) {
+      await validateWebhookUrlSSRF(data.webhookUrl);
+    }
     return prisma.institution.create({
       data: {
         name: data.name,
@@ -102,6 +106,9 @@ export const adminService = {
   },
 
   async updateInstitutionWebhook(id: string, webhookUrl: string | null, emailAddress?: string) {
+    if (webhookUrl) {
+      await validateWebhookUrlSSRF(webhookUrl);
+    }
     return prisma.institution.update({
       where: { id },
       data: {
@@ -238,19 +245,20 @@ export const adminService = {
       },
     });
 
-    // Puan & Gamification (Eğer onaylandıysa)
+    // Puan & Gamification (Eğer onaylandıysa) - 1.2 Atomik Güncelleme
     if (decision === 'APPROVE') {
       const scoreChange = targetStatus === 'RESOLVED' ? 10 : -5;
-      const user = await prisma.user.findUnique({
-        where: { id: issue.reportedById },
-        select: { trustScore: true },
-      });
-      if (user) {
-        const newScore = Math.max(0, user.trustScore + scoreChange);
+      if (scoreChange > 0) {
         await prisma.user.update({
           where: { id: issue.reportedById },
-          data: { trustScore: newScore },
+          data: { trustScore: { increment: scoreChange } },
         });
+      } else {
+        await prisma.$executeRaw`
+          UPDATE users
+          SET trust_score = GREATEST(0, trust_score + (${scoreChange})::int)
+          WHERE id = ${issue.reportedById}::uuid
+        `;
       }
     }
 

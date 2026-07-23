@@ -58,9 +58,10 @@ export default function KVKKPage() {
           <ul className={styles.list}>
             <li><strong>Kimlik Verileri:</strong> Ad, soyad, doğum yılı ve T.C. Kimlik Numarası (T.C. Kimlik numaranız açık metin olarak asla saklanmaz; SHA-256 kriptografik tuzlama/peppering yöntemiyle geri döndürülemez özet olarak veritabanında tutulur).</li>
             <li><strong>İletişim Verileri:</strong> E-posta adresi, cep telefonu numarası.</li>
-            <li><strong>Konum Verileri:</strong> Sorun bildiriminde beyan ettiğiniz adres ve fotoğrafların EXIF metaverisinde yer alan coğrafi koordinatlar (enlem/boylam).</li>
+            <li><strong>Konum Verileri:</strong> Sorun bildiriminde beyan ettiğiniz adres, fotoğrafların EXIF metaverisinde yer alan coğrafi koordinatlar ve (açık rızanızla onay vermeniz halinde) tarayıcı/cihazınızın GPS API'si üzerinden alınan <strong>Anlık Konum (Canlı Konum)</strong> verisi.</li>
             <li><strong>İşlem ve İçerik Verileri:</strong> Bildirilen sorun başlığı, açıklaması, yorumlar ve oy hareketleri.</li>
             <li><strong>Özel Nitelikli / Görsel Veriler:</strong> Yüklenen fotoğraflar (fotoğraflardaki yüz ve plaka gibi hassas veriler otomatik olarak bulanıklaştırma işleminden geçirilir).</li>
+            <li><strong>Ses Verileri (Biyometrik Kapsam Dışı):</strong> "Sesli İhbar" veya "Sesli Sohbet" özelliklerini kullanmanız halinde, cihazınızın mikrofonu aracılığıyla ilettiğiniz sesler <strong>asla sunucularımızda bir ses dosyası (.mp3, .wav vb.) olarak saklanmaz.</strong> Ses veriniz, tarayıcınızın anlık konuşma-metin (Speech-to-Text) servisi aracılığıyla metne dökülür ve sadece bu metin (yazı) işlenir.</li>
             <li><strong>İşlem Güvenliği ve Trafik Bilgileri:</strong> 5651 Sayılı Kanun gereğince IP adresi, tarayıcı bilgileri, zaman damgası ve oturum logları.</li>
           </ul>
         </div>

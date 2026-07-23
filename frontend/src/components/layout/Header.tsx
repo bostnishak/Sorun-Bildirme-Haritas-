@@ -53,10 +53,23 @@ export function Header() {
     router.push(url);
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    setActiveView('map');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (pathname !== '/') {
+      router.push('/');
+    }
+  };
+
   return (
     <header className={styles.header} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
       {/* Logo */}
-      <Link href="/" className={styles.logo} onClick={(e) => handleDirectNav(e, '/')}>
+      <Link href="/" className={styles.logo} onClick={handleLogoClick}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px' }}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="34" height="34" style={{ filter: 'drop-shadow(0 2px 5px rgba(37,99,235,0.35))' }}>
             <defs>
@@ -89,7 +102,10 @@ export function Header() {
           className={`${styles.viewBtn} ${activeView === 'map' ? styles.viewBtnActive : ''}`}
           onClick={() => {
             setActiveView('map');
-            if (pathname !== '/') router.push('/?view=map');
+            if (typeof window !== 'undefined') {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            if (pathname !== '/') router.push('/');
           }}
         >
           <IconMap size={15} />
@@ -119,7 +135,7 @@ export function Header() {
               {(user?.role === 'INSTITUTION_OFFICER' || user?.role === 'SUPER_ADMIN') && (
                 <Link href="/portal" className={styles.portalBoxBtn} title="Yönetim Portalı" onClick={(e) => handleDirectNav(e, '/portal')}>
                   <IconFileText size={16} strokeWidth={2.2} />
-                  <span>Yönetim Portalı</span>
+                  <span className={styles.portalBoxText}>Yönetim Portalı</span>
                 </Link>
               )}
             </div>
@@ -285,26 +301,53 @@ export function Header() {
             </div>
           </>
         ) : (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Link
               href="/register"
-              className="btn"
               id="btn-register"
               title="Kayıt Ol"
-              style={{ background: 'transparent', color: 'var(--color-primary)', border: 'none', boxShadow: 'none', padding: '0 8px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                padding: '9px 16px',
+                borderRadius: '9999px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap'
+              }}
             >
-              <IconUser size={18} />
+              <IconUser size={17} />
               <span className={styles.desktopOnly}>Kayıt Ol</span>
             </Link>
             <Link
               href="/login"
-              className="btn btn-primary"
               id="btn-login"
               title="Giriş Yap"
-              style={{ padding: '0 12px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '9999px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                boxShadow: '0 6px 18px -4px rgba(37, 99, 235, 0.4)',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap'
+              }}
             >
               <IconLogin size={18} />
-              <span className={styles.desktopOnly}>Giriş Yap</span>
+              <span>Giriş Yap</span>
             </Link>
           </div>
         )}

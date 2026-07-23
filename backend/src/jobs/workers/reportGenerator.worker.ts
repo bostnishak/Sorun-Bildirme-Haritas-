@@ -103,129 +103,143 @@ async function generatePDFReport(
   institution: any,
   date: Date,
 ): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  let browser: puppeteer.Browser | null = null;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+      ],
+    });
 
-  const page = await browser.newPage();
-  const dateStr = format(date, 'dd MMMM yyyy', { locale: tr });
+    const page = await browser.newPage();
+    const dateStr = format(date, 'dd MMMM yyyy', { locale: tr });
 
-  const priorityLabels: Record<string, string> = {
-    CRITICAL: 'Kritik', HIGH: 'Yüksek', MEDIUM: 'Orta', LOW: 'Düşük',
-  };
-  const categoryLabels: Record<string, string> = {
-    WATER_SANITATION: 'Su ve Kanalizasyon',
-    TRANSPORTATION: 'Yol / Ulaşım',
-    ENVIRONMENT: 'Çevre ve Temizlik',
-    INFRASTRUCTURE: 'Altyapı',
-    SECURITY: 'Güvenlik',
-    LIGHTING: 'Aydınlatma',
-    PARKS: 'Park ve Yeşil Alan',
-  };
+    const priorityLabels: Record<string, string> = {
+      CRITICAL: 'Kritik', HIGH: 'Yüksek', MEDIUM: 'Orta', LOW: 'Düşük',
+    };
+    const categoryLabels: Record<string, string> = {
+      WATER_SANITATION: 'Su ve Kanalizasyon',
+      TRANSPORTATION: 'Yol / Ulaşım',
+      ENVIRONMENT: 'Çevre ve Temizlik',
+      INFRASTRUCTURE: 'Altyapı',
+      SECURITY: 'Güvenlik',
+      LIGHTING: 'Aydınlatma',
+      PARKS: 'Park ve Yeşil Alan',
+    };
 
-  const html = `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; font-size: 12px; }
-    .header { background: linear-gradient(135deg, #1e3a5f, #0f62fe); color: white; padding: 30px; }
-    .header h1 { font-size: 24px; font-weight: 700; }
-    .header p { opacity: 0.8; margin-top: 4px; }
-    .meta { display: flex; gap: 20px; margin-top: 16px; }
-    .meta-item { background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 8px; }
-    .content { padding: 24px; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
-    .stat-card .number { font-size: 32px; font-weight: 700; color: #0f62fe; }
-    .stat-card .label { color: #64748b; margin-top: 4px; font-size: 11px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th { background: #1e3a5f; color: white; padding: 10px 12px; text-align: left; font-size: 11px; }
-    td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    body { font-family: Arial, sans-serif; margin: 40px; color: #1e293b; }
+    .header { border-bottom: 3px solid #0f62fe; padding-bottom: 16px; margin-bottom: 24px; }
+    .title { font-size: 24px; font-weight: bold; color: #0f62fe; }
+    .subtitle { font-size: 14px; color: #64748b; margin-top: 4px; }
+    .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; }
+    .summary-item { text-align: center; }
+    .summary-num { font-size: 28px; font-weight: bold; color: #0f62fe; }
+    .summary-label { font-size: 12px; color: #64748b; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
+    th { background: #1e3a5f; color: white; padding: 10px 8px; text-align: left; }
+    td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr:nth-child(even) { background: #f8fafc; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; display: inline-block; }
-    .badge-critical { background: #fee2e2; color: #dc2626; }
-    .badge-high { background: #ffedd5; color: #ea580c; }
-    .badge-medium { background: #fef3c7; color: #d97706; }
-    .badge-low { background: #dcfce7; color: #16a34a; }
-    .footer { background: #f1f5f9; padding: 16px 24px; font-size: 10px; color: #94a3b8; text-align: center; }
+    .priority-CRITICAL { color: #dc2626; font-weight: bold; }
+    .priority-HIGH { color: #ea580c; font-weight: bold; }
+    .priority-MEDIUM { color: #d97706; }
+    .priority-LOW { color: #16a34a; }
+    .footer { position: fixed; bottom: 20px; left: 40px; right: 40px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>[RAPOR] Etiya Project — Günlük Sorun Raporu</h1>
-    <p>${institution.name} | ${dateStr}</p>
-    <div class="meta">
-      <div class="meta-item">[Konum] ${institution.city} / ${institution.district}</div>
-      <div class="meta-item">[Tarih] ${dateStr}</div>
-      <div class="meta-item">[Özet] ${issues.length} yeni sorun</div>
+    <div class="title">Etiya Project — Günlük Sorun Bildirim Raporu</div>
+    <div class="subtitle">${institution.name} | ${dateStr}</div>
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-item">
+      <div class="summary-num">${issues.length}</div>
+      <div class="summary-label">Toplam Açık Sorun</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-num" style="color:#dc2626;">${issues.filter(i => i.priority === 'CRITICAL').length}</div>
+      <div class="summary-label">Kritik Öncelikli</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-num" style="color:#ea580c;">${issues.filter(i => i.priority === 'HIGH').length}</div>
+      <div class="summary-label">Yüksek Öncelikli</div>
     </div>
   </div>
-  <div class="content">
-    <div class="summary">
-      <div class="stat-card">
-        <div class="number">${issues.length}</div>
-        <div class="label">Toplam Yeni Sorun</div>
-      </div>
-      <div class="stat-card">
-        <div class="number" style="color:#dc2626">${issues.filter((i: any) => i.priority === 'CRITICAL' || i.priority === 'HIGH').length}</div>
-        <div class="label">Yüksek / Kritik Öncelikli</div>
-      </div>
-      <div class="stat-card">
-        <div class="number" style="color:#16a34a">${[...new Set(issues.map((i: any) => i.district))].length}</div>
-        <div class="label">Etkilenen İlçe Sayısı</div>
-      </div>
-    </div>
-    <table>
-      <thead>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Başlık & Kategori</th>
+        <th>Konum</th>
+        <th>Öncelik</th>
+        <th>Bildirim Saati</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${issues.map((issue, idx) => `
         <tr>
-          <th>#</th>
-          <th>Başlık</th>
-          <th>Kategori</th>
-          <th>Öncelik</th>
-          <th>İlçe</th>
-          <th>Saat</th>
+          <td>${idx + 1}</td>
+          <td>
+            <strong>${issue.title}</strong><br/>
+            <span style="color:#64748b; font-size:11px;">${categoryLabels[issue.category] || issue.category}</span>
+          </td>
+          <td>${issue.district ? `${issue.district}, ${issue.city}` : issue.city || 'Belirtilmedi'}</td>
+          <td class="priority-${issue.priority}">${priorityLabels[issue.priority] || issue.priority}</td>
+          <td>${format(new Date(issue.created_at), 'HH:mm', { locale: tr })}</td>
         </tr>
-      </thead>
-      <tbody>
-        ${issues.map((issue: any, idx: number) => `
-          <tr>
-            <td>${idx + 1}</td>
-            <td>${issue.title}</td>
-            <td>${categoryLabels[issue.category] ?? issue.category}</td>
-            <td>
-              <span class="badge badge-${issue.priority.toLowerCase()}">
-                ${priorityLabels[issue.priority] ?? issue.priority}
-              </span>
-            </td>
-            <td>${issue.district}</td>
-            <td>${format(new Date(issue.created_at), 'HH:mm')}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  </div>
+      `).join('')}
+    </tbody>
+  </table>
+
   <div class="footer">
-    Bu rapor Etiya Project platformu tarafından otomatik olarak oluşturulmuştur. |
-    etiya-project.tr | © ${new Date().getFullYear()}
+    Bu rapor Etiya Project sistemi tarafından otomatik olarak oluşturulmuştur. Tarih: ${format(new Date(), 'dd.MM.yyyy HH:mm')}
   </div>
 </body>
 </html>`;
 
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
-  const pdfBytes = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '0', right: '0', bottom: '0', left: '0' },
-  });
+    const pdfBytes = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+    });
 
-  await browser.close();
-
-  return Buffer.from(pdfBytes);
+    return Buffer.from(pdfBytes);
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+        logger.debug('[ReportWorker] Puppeteer tarayıcı başarıyla kapatıldı.');
+      } catch (closeErr) {
+        logger.error('[ReportWorker] Tarayıcı kapatılırken hata, zombi process imhası deneniyor:', { error: String(closeErr) });
+      } finally {
+        const browserProcess = browser.process();
+        if (browserProcess && browserProcess.pid) {
+          try {
+            process.kill(browserProcess.pid, 'SIGKILL');
+            logger.warn(`[ReportWorker] Zombi Puppeteer süreci imha edildi (PID: ${browserProcess.pid})`);
+          } catch (killErr) {
+            // Process zaten durmuş olabilir, yok sayılır
+          }
+        }
+      }
+    }
+  }
 }
 
 function generateEmailHTML(issueCount: number, institutionName: string, dateStr: string): string {

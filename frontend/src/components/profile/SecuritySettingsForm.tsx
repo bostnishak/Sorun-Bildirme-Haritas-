@@ -7,6 +7,7 @@ import styles from '@/app/profile/Profile.module.css';
 
 export function SecuritySettingsForm() {
   const user = useAppStore((state) => state.user);
+  const logout = useAppStore((state) => state.logout);
   const [step, setStep] = useState<'idle' | 'qr' | 'codes'>('idle');
   const [qrData, setQrData] = useState<{ qrCodeUrl: string; secret: string } | null>(null);
   const [token, setToken] = useState('');
@@ -14,6 +15,12 @@ export function SecuritySettingsForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Delete Account States
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const handleStartSetup = async () => {
     setLoading(true);
@@ -69,6 +76,25 @@ export function SecuritySettingsForm() {
     element.click();
     document.body.removeChild(element);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText !== 'SİL') {
+      setDeleteError('Lütfen kutucuğa SİL yazarak onaylayın.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      await authApi.deleteAccount();
+      logout();
+      window.location.href = '/'; // Redirect to home
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Hesap silinirken bir hata oluştu.');
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -205,6 +231,109 @@ export function SecuritySettingsForm() {
           </div>
         </div>
       )}
+
+      {/* ─── VERİ YÖNETİMİ (DATA MANAGEMENT) ─────────────────────────────────── */}
+      <div style={{ marginTop: '40px', paddingTop: '32px', borderTop: '1px solid #e2e8f0' }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#0f172a', fontWeight: 700 }}>
+          Veri Yönetimi (KVKK / GDPR)
+        </h3>
+        <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+          Sistemimizde kayıtlı olan size ait tüm verileri (profil bilgileri, ihbarlar, yorumlar, oylar) bilgisayarınıza indirebilirsiniz. (Veri Taşınabilirliği Hakkı)
+        </p>
+        <button 
+          type="button"
+          onClick={async (e) => {
+            const btn = e.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = 'İndiriliyor...';
+            btn.disabled = true;
+            try {
+              const res = await authApi.exportData();
+              const dataStr = JSON.stringify(res.data || res, null, 2);
+              const blob = new Blob([dataStr], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `benim-verilerim-${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch (err: any) {
+              alert('Veriler indirilirken bir hata oluştu: ' + (err?.message || ''));
+            } finally {
+              btn.innerText = originalText;
+              btn.disabled = false;
+            }
+          }}
+          className="btn btn-secondary"
+          style={{ padding: '10px 16px', fontSize: '13px', background: '#ffffff', color: '#334155', border: '1px solid #cbd5e1', cursor: 'pointer', borderRadius: '8px' }}
+        >
+          Verilerimi İndir (.json)
+        </button>
+      </div>
+
+      {/* ─── DANGER ZONE ──────────────────────────────────────────────────────── */}
+      <div style={{ marginTop: '40px', paddingTop: '32px', borderTop: '1px solid #e2e8f0' }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#b91c1c', fontWeight: 700 }}>
+          Tehlikeli Bölge
+        </h3>
+        <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+          Hesabınızı sildiğinizde, kayıtlı tüm kişisel verileriniz (T.C. Kimlik, İletişim vb.) kalıcı olarak silinir (Unutulma Hakkı). Bu işlem <strong>geri alınamaz.</strong>
+        </p>
+        
+        {!showDeleteConfirm ? (
+          <button 
+            type="button" 
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{ padding: '10px 16px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+          >
+            Hesabımı ve Verilerimi Sil
+          </button>
+        ) : (
+          <form onSubmit={handleDeleteAccount} style={{ background: '#fef2f2', padding: '20px', borderRadius: '12px', border: '1px solid #fca5a5' }}>
+            <h4 style={{ margin: '0 0 12px', color: '#b91c1c', fontSize: '15px' }}>Hesabınızı kalıcı olarak silmek istediğinize emin misiniz?</h4>
+            
+            {deleteError && (
+              <div style={{ color: '#b91c1c', fontSize: '13px', marginBottom: '12px', fontWeight: 600 }}>
+                {deleteError}
+              </div>
+            )}
+            
+            <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#7f1d1d' }}>
+              Onaylamak için aşağıdaki kutucuğa <strong>SİL</strong> yazın.
+            </p>
+            
+            <input 
+              type="text" 
+              placeholder="SİL"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value.toLocaleUpperCase('tr-TR'))}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #fca5a5', marginBottom: '16px' }}
+            />
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); setDeleteError(''); }}
+                style={{ flex: 1, padding: '10px', background: '#ffffff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
+                disabled={deleteLoading}
+              >
+                İptal Et
+              </button>
+              <button
+                type="submit"
+                disabled={deleteLoading || deleteConfirmText !== 'SİL'}
+                style={{ flex: 1, padding: '10px', background: '#b91c1c', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, opacity: deleteConfirmText !== 'SİL' ? 0.5 : 1 }}
+              >
+                {deleteLoading ? 'Siliniyor...' : 'Evet, Hesabımı Kalıcı Olarak Sil'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

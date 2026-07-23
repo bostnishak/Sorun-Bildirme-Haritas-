@@ -62,9 +62,6 @@
 
 /* View Toggle */
 .viewToggle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   background: var(--color-surface-2);
@@ -73,6 +70,15 @@
   padding: 3px;
   gap: 2px;
   z-index: 10;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1280px) {
+  .viewToggle {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 .viewBtn {
@@ -716,6 +722,60 @@
 
 @media (min-width: 769px) {
   .mobileOnly {
+    display: none !important;
+  }
+}
+
+/* Yarı Ekran (Tablet/Mid Desktop) Uyumlaştırmaları */
+@media (max-width: 1200px) {
+  /* Yönetim Portalı butonundaki yazıyı gizle, sadece yuvarlak ikon kalsın */
+  .portalBoxText {
+    display: none !important;
+  }
+  .portalBoxBtn {
+    padding: 8px !important;
+    border-radius: 50% !important;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 1050px) {
+  /* Kullanıcı ünvanını gizle, sadece isim kalsın */
+  .userRole {
+    display: none !important;
+  }
+  .userName {
+    max-width: 120px !important;
+  }
+  .logoName {
+    max-width: 140px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Kullanıcı ismini gizle, sadece avatar kalsın */
+  .userInfo {
+    display: none !important;
+  }
+  .userMenu {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+  .headerLogoutBtn span {
+    display: none !important;
+  }
+  .headerLogoutBtn {
+    padding: 6px !important;
+    width: 36px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 800px) {
+  /* En dar ekranlarda logodaki yazıyı da gizle, sadece amblem kalsın */
+  .logoName {
     display: none !important;
   }
 }

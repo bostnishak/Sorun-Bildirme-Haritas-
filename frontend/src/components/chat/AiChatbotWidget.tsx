@@ -154,13 +154,13 @@ export function AiChatbotWidget() {
     } catch (err: any) {
       const errName = err?.name || '';
       if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-        toast.error('⚠️ Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
+        toast.error('Bilgisayarınızda bağlı veya çalışır durumda bir mikrofon donanımı bulunamadı! Lütfen mikrofonunuzun takılı olduğundan emin olun.');
         return;
       } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
-        toast.error('⚠️ Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
+        toast.error('Mikrofonunuz şu an başka bir program (Zoom, Teams, Discord, OBS vb.) tarafından kullanılıyor/kilitli! Diğer programları kapatıp tekrar deneyin.');
         return;
       } else {
-        toast.error('⚠️ Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
+        toast.error('Mikrofon İzni Engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [Mikrofon Çarpı] simgesine tıklayıp "İzin Ver" (Allow) yapın. Ayrıca Windows Ayarlar > Gizlilik > Mikrofon iznini açın.');
         return;
       }
     }
@@ -172,7 +172,7 @@ export function AiChatbotWidget() {
       recognition.interimResults = true;
 
       setIsRecording(true);
-      const toastId = toast.loading('🎙️ Dinliyorum... Konuşun (Speech to Text)');
+      const toastId = toast.loading('Dinliyorum... Konuşun (Speech to Text)');
 
       let finalTranscript = '';
 
@@ -194,11 +194,11 @@ export function AiChatbotWidget() {
         toast.dismiss(toastId);
         if (micStream) micStream.getTracks().forEach(track => track.stop());
         if (e.error === 'not-allowed' || e.error === 'permission-denied') {
-          toast.error('⚠️ Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [🎙️x] simgesine tıklayıp "İzin Ver" seçin.');
+          toast.error('Ses tanıma izni engellendi! Adres çubuğundaki (ⓘ) simgesine veya sağ üstteki [Mikrofon Çarpı] simgesine tıklayıp "İzin Ver" seçin.');
         } else if (e.error === 'no-speech') {
           // Konuşma algılanmadı, sessizce kapan
         } else {
-          toast.error(`⚠️ Ses tanıma hatası (${e.error}).`);
+          toast.error(`Ses tanıma hatası (${e.error}).`);
         }
       };
 
@@ -266,7 +266,7 @@ export function AiChatbotWidget() {
         if (!navigator.geolocation) {
           toast.error('Tarayıcınız konum servisini desteklemiyor.');
         } else {
-          const geoToast = toast.loading('📍 Konumunuz bulunuyor...');
+          const geoToast = toast.loading('Konumunuz bulunuyor...');
           navigator.geolocation.getCurrentPosition(
             async (pos) => {
               try {

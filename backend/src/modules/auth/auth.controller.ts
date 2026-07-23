@@ -141,6 +141,14 @@ export async function deleteMyAccount(req: Request, res: Response): Promise<void
   });
 }
 
+export async function exportMyData(req: Request, res: Response): Promise<void> {
+  const data = await authService.exportUserData(req.user.sub);
+  res.status(200).json({
+    success: true,
+    data,
+  });
+}
+
 export async function generate2FA(req: Request, res: Response): Promise<void> {
   const result = await authService.generate2FA(req.user.sub, 'Admin');
   res.status(200).json({

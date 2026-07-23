@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
@@ -62,16 +63,6 @@ function MapAreaClientInner() {
           <TableView />
         </div>
 
-        {isAuthenticated && (
-          <button
-            className={styles.issueReportFab}
-            onClick={() => setReportModalOpen(true)}
-            aria-label="Sorun Bildir"
-          >
-            <IconPlus size={20} strokeWidth={2.5} />
-            <span className={styles.issueReportFabText}>Sorun Bildir</span>
-          </button>
-        )}
       </main>
     </div>
   );
@@ -120,6 +111,32 @@ export function ReportModalClient() {
   const setReportModalOpen = useAppStore(state => state.setReportModalOpen);
   if (!isReportModalOpen) return null;
   return <ReportIssueForm onClose={() => setReportModalOpen(false)} />;
+}
+
+export function IssueReportFabClient() {
+  const isAuthenticated = useAppStore(state => state.isAuthenticated);
+  const isReportModalOpen = useAppStore(state => state.isReportModalOpen);
+  const selectedIssue = useAppStore(state => state.selectedIssue);
+  const setReportModalOpen = useAppStore(state => state.setReportModalOpen);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isAuthenticated || isReportModalOpen || Boolean(selectedIssue) || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <button
+      className={styles.issueReportFab}
+      onClick={() => setReportModalOpen(true)}
+      aria-label="Sorun Bildir"
+    >
+      <IconPlus size={20} strokeWidth={2.5} />
+      <span className={styles.issueReportFabText}>Sorun Bildir</span>
+    </button>,
+    document.body
+  );
 }
 
 const CONTACT_DATA = [
