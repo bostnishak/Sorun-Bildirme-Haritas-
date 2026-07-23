@@ -370,26 +370,9 @@ export function MapView() {
           curve: 1.45,
           essential: true
         });
-<<<<<<< HEAD
         
         if (pendingCityZoom) setPendingCityZoom(false);
       }, 400);
-=======
-
-        t2 = setTimeout(() => {
-          mapRef.current?.flyTo({
-            center: [coords.longitude, coords.latitude],
-            zoom: coords.zoom,
-            pitch: calculatePitch(coords.zoom),
-            duration: 3200,
-            curve: 1.45,
-            essential: true
-          });
-
-          if (pendingCityZoom) setPendingCityZoom(false);
-        }, 1100);
-      }, 300);
->>>>>>> 614c6f7f76c2f13c09b51d967f45c12655e14a7b
     };
 
     runAnimation();
