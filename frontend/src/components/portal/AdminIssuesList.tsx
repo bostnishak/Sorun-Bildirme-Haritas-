@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import TableView from '../table/TableView';
+import { TableView } from '../table/TableView';
 
 export default function AdminIssuesList() {
   const [page, setPage] = useState(1);
