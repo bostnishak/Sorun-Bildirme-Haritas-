@@ -21,7 +21,7 @@ export const emailService = {
       </div>
     `;
 
-    logger.info(`[EMAIL] [SIMULATION / LOG] E-posta Doğrulama Kodu Gönderiliyor -> Kime: ${email} | Kod: [ ${code} ]`);
+    logger.info(`[EMAIL] Doğrulama e-postası gönderiliyor`, { to: email });
 
     try {
       await transporter.sendMail({
@@ -62,7 +62,7 @@ export const emailService = {
       </div>
     `;
 
-    logger.info(`[EMAIL] [SIMULATION / LOG] Şifre Sıfırlama Linki Gönderiliyor -> Kime: ${email} | Link: ${resetUrl}`);
+    logger.info(`[EMAIL] Şifre sıfırlama e-postası gönderiliyor`, { to: email });
 
     try {
       await transporter.sendMail({

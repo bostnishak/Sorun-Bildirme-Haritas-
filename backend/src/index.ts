@@ -34,19 +34,34 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
+const allowedOrigins = env.CORS_ORIGIN.split(',').map(o => o.trim());
 app.use(cors({
-  origin: env.CORS_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ─── Body Parsing ──────────────────────────────────────────────────────────
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// ─── Body Parsing ────────────────────────────────────────────────────────
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// NOT: Fotoğraf yükleme endpoint'leri kendi multer limitlerine (30MB) sahip
 
 // ─── Logging ──────────────────────────────────────────────────────────────
-app.use(morgan('combined', {
+morgan.token('filtered-url', (req) => {
+  const url = req.url || '';
+  return url.replace(/(token|password|key|refresh)=[^&]+/gi, '$1=***');
+});
+
+const customLogFormat = ':remote-addr - :remote-user [:date[clf]] ":method :filtered-url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
+
+app.use(morgan(customLogFormat, {
   stream: { write: (message) => logger.http(message.trim()) },
   skip: (req) => req.url === '/health',
 }));
@@ -56,13 +71,21 @@ app.use(metricsMiddleware);
 
 app.get('/metrics', async (req: Request, res: Response) => {
   const clientIp = req.ip || req.socket.remoteAddress || '';
+  // Docker private network aralıklarını doğru CIDR ile kontrol et
   const isInternalOrLoopback =
     clientIp === '127.0.0.1' ||
     clientIp === '::1' ||
     clientIp === '::ffff:127.0.0.1' ||
-    clientIp.startsWith('172.') ||
     clientIp.startsWith('10.') ||
-    clientIp.startsWith('192.168.');
+    clientIp.startsWith('192.168.') ||
+    // 172.16.0.0 - 172.31.255.255 (Docker default bridge)
+    (() => {
+      if (clientIp.startsWith('172.')) {
+        const second = parseInt(clientIp.split('.')[1] ?? '0', 10);
+        return second >= 16 && second <= 31;
+      }
+      return false;
+    })();
   const tokenHeader = req.headers['x-metrics-token'] || (req.headers['authorization'] as string)?.replace('Bearer ', '');
 
   if (env.METRICS_TOKEN && tokenHeader !== env.METRICS_TOKEN) {
@@ -124,12 +147,14 @@ app.get('/health', async (_req: Request, res: Response) => {
 setupSwagger(app);
 
 import { notificationRouter } from './modules/notifications/notification.router';
+import { mediaRouter } from './modules/media/media.router';
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/issues', issuesRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/legal', legalRouter);
 app.use('/api/v1/notifications', notificationRouter);
+app.use('/api/v1/media', mediaRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────
 app.use('*', (req: Request, res: Response) => {
@@ -201,10 +226,36 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     logger.info(`${signal} — sunucu kapatılıyor...`);
     server.close(async () => {
-      const { prisma } = await import('./config/database');
-      await prisma.$disconnect();
-      logger.info('[OK] Sunucu kapatıldı');
-      process.exit(0);
+      try {
+        // Veritabanı bağlantısını kapat
+        const { prisma } = await import('./config/database');
+        await prisma.$disconnect();
+        logger.info('[OK] Prisma bağlantısı kapatıldı');
+
+        // Redis bağlantısını kapat
+        const { redis } = await import('./config/redis');
+        await redis.quit();
+        logger.info('[OK] Redis bağlantısı kapatıldı');
+
+        // BullMQ worker'ları kapat
+        try {
+          const { imageProcessorWorker } = await import('./jobs/workers/imageProcessor.worker');
+          const { reportGeneratorWorker } = await import('./jobs/workers/reportGenerator.worker');
+          await Promise.allSettled([
+            imageProcessorWorker.close(),
+            reportGeneratorWorker.close(),
+          ]);
+          logger.info('[OK] BullMQ worker\'lar kapatıldı');
+        } catch {
+          logger.warn('[WARN] BullMQ worker kapatma hatası (devam ediliyor)');
+        }
+
+        logger.info('[OK] Sunucu temiz şekilde kapatıldı');
+        process.exit(0);
+      } catch (err) {
+        logger.error('Kapatma sırasında hata:', err);
+        process.exit(1);
+      }
     });
 
     // Force exit (30 saniye içinde kapanmazsa)

@@ -8,6 +8,7 @@ const heatmapQuerySchema = z.object({
   city: z.string().min(2),
   category: z.string().optional(),
   days: z.string().default('30').transform(Number),
+  limit: z.string().default('1000').transform(Number),
 });
 
 /**
@@ -20,10 +21,10 @@ export async function getHeatmap(req: Request, res: Response): Promise<void> {
     throw new BadRequestError('Geçersiz parametreler: city zorunludur.');
   }
 
-  const { city, category, days } = parsed.data;
+  const { city, category, days, limit } = parsed.data;
 
-  // Cache key
-  const cacheKey = `heatmap:${city}:${category || 'all'}:${days}`;
+  // Cache key (limit de eklendi)
+  const cacheKey = `heatmap:${city}:${category || 'all'}:${days}:${limit}`;
   const cached = await redis.get(cacheKey);
 
   if (cached) {
@@ -32,6 +33,8 @@ export async function getHeatmap(req: Request, res: Response): Promise<void> {
   }
 
   const categoryEnum = category || null;
+  // Güvenlik: Maksimum 10,000 sınır koyalım
+  const safeLimit = Math.min(limit, 10000);
 
   // Prisma raw query
   // ST_SnapToGrid ile yakın noktaları kümeleyip sayısını (weight) buluyoruz
@@ -47,7 +50,7 @@ export async function getHeatmap(req: Request, res: Response): Promise<void> {
       AND (${categoryEnum}::text IS NULL OR category = ${categoryEnum}::"Category")
     GROUP BY ST_SnapToGrid(location, 0.005), category
     ORDER BY weight DESC
-    LIMIT 1000
+    LIMIT ${safeLimit}
   `;
 
   // 5 dakika (300 saniye) cache

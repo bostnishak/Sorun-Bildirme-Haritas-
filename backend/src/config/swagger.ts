@@ -27,6 +27,7 @@ export function generateOpenApiDocument() {
       description: 'Türkiye Sorun Bildirim Haritası REST API Dokümantasyonu',
     },
     servers: [{ url: `/api/v1` }],
+    security: [{ bearerAuth: [] }],
   });
 }
 

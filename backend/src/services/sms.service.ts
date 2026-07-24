@@ -1,35 +1,38 @@
+import axios from 'axios';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
 
 export const smsService = {
   /**
-   * Telefon numarasına 6 haneli SMS doğrulama kodu gönderir
-   * Not: Ücretsiz ve gerçek zamanlı SMS gönderimi için Türkiye'de Netgsm Test Hesabı,
-   * İletiMerkezi Sandbox, Mutlucell veya Twilio Trial Sandbox entegrasyonları kullanılabilir.
+   * Telefon numarasına 6 haneli SMS doğrulama kodu gönderir.
+   * SORUN-59: Stub'dan Prod (NetGSM) entegrasyonuna geçildi.
    */
   async sendVerificationSms(phone: string, code: string): Promise<void> {
-    logger.info(`[SMS] [SIMULATION / LOG] SMS Doğrulama Kodu Gönderildi -> Tel: +90 ${phone} | SMS KODU: [ ${code} ]`);
-
-    // Geliştiriciler için Ücretsiz SMS Entegrasyon rehberi bilgisi
-    logger.info(`[NOTE] Bilgi: Gerçek SMS gönderimi yapmak için ücretsiz test kredisi veren servisler:
-      1. Netgsm (Test hesabı ile API üzerinden ücretsiz 10-50 SMS gönderimi)
-      2. İletiMerkezi (Geliştirici Sandbox hesabı ile ücretsiz test)
-      3. Twilio Trial Account (Doğrulanmış numaralara ücretsiz uluslararası SMS)`);
-
-    // Gerçek SMS API entegrasyonu aktif edilmek istendiğinde burada Netgsm veya Twilio HTTP isteği tetiklenebilir:
-    /*
     try {
-      await axios.get('https://api.netgsm.com.tr/sms/send/get', {
+      // NetGSM için numara formatı temizliği (başındaki 0 veya +90'ı silebiliriz, api.netgsm 10 haneli ister)
+      let formattedPhone = phone.replace(/\D/g, '');
+      if (formattedPhone.startsWith('90')) formattedPhone = formattedPhone.substring(2);
+      if (formattedPhone.startsWith('0')) formattedPhone = formattedPhone.substring(1);
+
+      if (env.NODE_ENV !== 'production' && !env.NETGSM_USER) {
+        logger.info(`[SMS STUB] Tel: +90 ${formattedPhone} | KOD: [ ${code} ]`);
+        return;
+      }
+
+      const response = await axios.get('https://api.netgsm.com.tr/sms/send/get', {
         params: {
-          usercode: process.env.NETGSM_USER,
-          password: process.env.NETGSM_PASSWORD,
-          gsmno: phone,
-          message: `Sorun Haritası doğrulama kodunuz: ${code}`,
-          msgheader: 'SORUNMAP'
-        }
+          usercode: env.NETGSM_USER || 'TEST_USER',
+          password: env.NETGSM_PASSWORD || 'TEST_PASS',
+          gsmno: formattedPhone,
+          message: `Etiya Projesi doğrulama kodunuz: ${code}`,
+          msgheader: env.NETGSM_HEADER || 'ETIYA_PRJ'
+        },
+        timeout: 5000
       });
+
+      logger.info(`[SMS PROD] SMS gönderildi. Tel: ${formattedPhone} - Sonuç: ${response.data}`);
     } catch (err) {
-      logger.error('SMS gönderim hatası:', err);
+      logger.error('SMS gönderim hatası (NetGSM):', err);
     }
-    */
   }
 };

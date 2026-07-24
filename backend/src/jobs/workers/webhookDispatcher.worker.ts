@@ -47,10 +47,10 @@ export const webhookDispatcherWorker = new Worker<WebhookJobData>(
       SELECT id, name, webhook_url as "webhookUrl", email_address as "emailAddress"
       FROM institutions
       WHERE
-        ST_Within(
+        (boundary IS NULL OR ST_Within(
           ST_SetSRID(ST_MakePoint(${issue.longitude}, ${issue.latitude}), 4326),
           boundary
-        )
+        ))
         AND is_active = true
         AND webhook_url IS NOT NULL
       LIMIT 1

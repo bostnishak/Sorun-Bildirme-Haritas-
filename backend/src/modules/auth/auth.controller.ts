@@ -6,12 +6,15 @@ import multer from 'multer';
 
 // ─── Validation Schemas ────────────────────────────────────────────────────
 
+const passwordSchema = z.string()
+  .min(8, 'Şifre en az 8 karakter olmalı.')
+  .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
+  .regex(/[a-z]/, 'Şifre en az bir küçük harf içermeli.')
+  .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.');
+
 const registerSchema = z.object({
   email: z.string().email('Geçerli bir e-posta adresi girin.'),
-  password: z.string()
-    .min(8, 'Şifre en az 8 karakter olmalı.')
-    .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
-    .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
+  password: passwordSchema,
   firstName: z.string().min(2).max(100),
   lastName: z.string().min(2).max(100),
   city: z.string().min(1, 'Lütfen şehir seçiniz.'),
@@ -150,7 +153,8 @@ export async function exportMyData(req: Request, res: Response): Promise<void> {
 }
 
 export async function generate2FA(req: Request, res: Response): Promise<void> {
-  const result = await authService.generate2FA(req.user.sub, 'Admin');
+  const user = await authService.getUserById(req.user.sub);
+  const result = await authService.generate2FA(req.user.sub, user.email);
   res.status(200).json({
     success: true,
     data: result,
@@ -188,12 +192,7 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
 export async function changePassword(req: Request, res: Response): Promise<void> {
   const schema = z.object({
     currentPassword: z.string().min(1),
-    newPassword: z
-      .string()
-      .min(8, 'Şifre en az 8 karakter olmalı.')
-      .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
-      .regex(/[a-z]/, 'Şifre en az bir küçük harf içermeli.')
-      .regex(/[^A-Za-z0-9]/, 'Şifre en az bir özel karakter içermeli.'),
+    newPassword: passwordSchema,
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -247,11 +246,7 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
 export async function resetPassword(req: Request, res: Response): Promise<void> {
   const schema = z.object({
     token: z.string().min(1, 'Token gerekli.'),
-    newPassword: z
-      .string()
-      .min(8, 'Şifre en az 8 karakter olmalı.')
-      .regex(/[A-Z]/, 'Şifre en az bir büyük harf içermeli.')
-      .regex(/[0-9]/, 'Şifre en az bir rakam içermeli.'),
+    newPassword: passwordSchema,
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {

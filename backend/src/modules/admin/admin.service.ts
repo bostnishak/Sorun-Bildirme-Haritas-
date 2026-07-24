@@ -23,6 +23,20 @@ export const adminService = {
     if (params.category) where.category = params.category;
     if (params.priority) where.priority = params.priority;
 
+    // ROL BAZLI FİLTRELEME (PostGIS Kesişimi)
+    if (role === Role.INSTITUTION_OFFICER) {
+      if (!institutionId) {
+        return { data: [], meta: { total: 0, page: params.page, limit, totalPages: 0 } };
+      }
+      const rawIssues = await prisma.$queryRaw<{id: string}[]>`
+        SELECT i.id 
+        FROM issues i 
+        JOIN institutions inst ON inst.id = ${institutionId}::uuid
+        WHERE (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
+      `;
+      where.id = { in: rawIssues.map(r => r.id) };
+    }
+
     let issues: any[];
     let total: number;
 
@@ -56,10 +70,19 @@ export const adminService = {
   },
 
   async getStats(role: Role, institutionId?: string) {
-    // Admin ve Çalışan tüm sistem verilerine erişerek ortak ekrandan istatistikleri takip eder
+    // ROL BAZLI FİLTRELEME
     const whereFilter: any = {};
+    if (role === Role.INSTITUTION_OFFICER && institutionId) {
+      const rawIssues = await prisma.$queryRaw<{id: string}[]>`
+        SELECT i.id 
+        FROM issues i 
+        JOIN institutions inst ON inst.id = ${institutionId}::uuid
+        WHERE (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
+      `;
+      whereFilter.id = { in: rawIssues.map(r => r.id) };
+    }
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     const [total, openCount, inReviewCount, resolvedCount, thisMonth, slaBreached, byStatus, byCategory] = await Promise.all([
@@ -67,21 +90,22 @@ export const adminService = {
       prisma.issue.count({ where: { ...whereFilter, status: 'OPEN' } }),
       prisma.issue.count({ where: { ...whereFilter, status: 'IN_REVIEW' } }),
       prisma.issue.count({ where: { ...whereFilter, status: 'RESOLVED' } }),
-      prisma.issue.count({ where: { ...whereFilter, createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.issue.count({ where: { ...whereFilter, createdAt: { gte: startOfMonth } } }),
       prisma.issue.count({ where: { ...whereFilter, status: 'OPEN', createdAt: { lt: fortyEightHoursAgo } } }),
       prisma.issue.groupBy({ by: ['status'], _count: true, where: whereFilter }),
       prisma.issue.groupBy({ by: ['category'], _count: true, where: whereFilter }),
     ]);
 
+    // Sunum/Demo amaçlı sahte istatistikler (Kullanıcının isteği üzerine korunuyor)
     return {
       total,
       open_count: openCount,
       in_review_count: inReviewCount,
       resolved_count: resolvedCount,
-      this_month: thisMonth,
+      this_month: thisMonth, 
       sla_breached: slaBreached,
-      avg_open_hours: 14.5,
-      avg_resolution_hours: 28.2,
+      avg_open_hours: 14.5,         // DEMO
+      avg_resolution_hours: 28.2,   // DEMO
       byStatus: byStatus.map(r => ({ status: r.status, _count: r._count })),
       byCategory: byCategory.map(r => ({ category: r.category, _count: r._count }))
     };
@@ -318,7 +342,20 @@ export const adminService = {
   // ─── Personel ve Çalışan Yönetimi (Personnel Management) ──────────────────
   async getPersonnel() {
     const personnel = await prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isVerified: true,
+        trustScore: true,
+        phone: true,
+        city: true,
+        district: true,
+        avatarUrl: true,
+        institutionId: true,
+        createdAt: true,
         institution: {
           select: { id: true, name: true, city: true },
         },
@@ -339,9 +376,9 @@ export const adminService = {
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          { email: { contains: q, mode: 'insensitive' } },
-          { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } },
+          { email: { search: q.split(/\\s+/).map(w => w + ':*').join(' | ') } },
+          { firstName: { search: q.split(/\\s+/).map(w => w + ':*').join(' | ') } },
+          { lastName: { search: q.split(/\\s+/).map(w => w + ':*').join(' | ') } },
         ],
       },
       select: {
@@ -357,6 +394,34 @@ export const adminService = {
     });
     return users;
   },
+
+  async getUserIssues(userId: string) {
+    const issues = await prisma.issue.findMany({
+      where: { reportedById: userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        priority: true,
+        status: true,
+        city: true,
+        district: true,
+        address: true,
+        imageUrl: true,
+        proofImageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        assignedOfficerId: true,
+        assignedOfficer: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
+    return issues;
+  },
+
 
   async updateUserRole(targetUserId: string, newRole: Role, institutionId?: string | null) {
     const user = await prisma.user.findUnique({ where: { id: targetUserId } });

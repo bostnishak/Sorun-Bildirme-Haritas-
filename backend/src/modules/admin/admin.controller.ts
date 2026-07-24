@@ -138,11 +138,7 @@ async function resolveInstitutionId(req: Request): Promise<string> {
   if (req.query.institutionId && typeof req.query.institutionId === 'string') {
     return req.query.institutionId;
   }
-  const firstInst = await prisma.institution.findFirst({ select: { id: true } });
-  if (!firstInst) {
-    throw new BadRequestError('Sistemde kayıtlı kurum bulunmuyor.');
-  }
-  return firstInst.id;
+  throw new BadRequestError('SLA Raporu için institutionId parametresi zorunludur.');
 }
 
 /**
@@ -207,6 +203,15 @@ export async function searchUsers(req: Request, res: Response): Promise<void> {
   const query = (req.query.q as string) || '';
   const users = await adminService.searchUsers(query);
   res.status(200).json({ success: true, data: users });
+}
+
+export async function getUserIssues(req: Request, res: Response): Promise<void> {
+  const userId = req.params.id;
+  if (!userId) {
+    throw new BadRequestError('Kullanıcı ID gereklidir.');
+  }
+  const issues = await adminService.getUserIssues(userId);
+  res.status(200).json({ success: true, data: issues });
 }
 
 export async function updateUserRole(req: Request, res: Response): Promise<void> {

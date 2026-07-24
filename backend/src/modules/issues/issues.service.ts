@@ -121,7 +121,7 @@ export const issuesService = {
           id: issue.reportedBy.id,
           firstName: issue.reportedBy.firstName,
           lastName: issue.reportedBy.lastName,
-          tcKimlikHash: issue.reportedBy.tcKimlikHash,
+          isVerifiedCitizen: !!issue.reportedBy.tcKimlikHash,
         } : null,
       };
     } catch (error: any) {
@@ -295,7 +295,7 @@ export const issuesService = {
       GROUP BY
         ST_SnapToGrid(issues.location, ${gridSize})
       ORDER BY point_count DESC
-      LIMIT 500
+      LIMIT 3000
     `;
 
     // 45 saniye cache
@@ -335,7 +335,7 @@ export const issuesService = {
           FROM issues i
           JOIN institutions inst ON inst.id = ${institutionId}::uuid
           WHERE i.id = ${issueId}::uuid
-          AND ST_Within(i.location, inst.boundary)
+          AND (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         ) AS within
       `;
 
@@ -428,7 +428,7 @@ export const issuesService = {
           FROM issues i
           JOIN institutions inst ON inst.id = ${institutionId}::uuid
           WHERE i.id = ${issueId}::uuid
-          AND ST_Within(i.location, inst.boundary)
+          AND (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         ) AS within
       `;
 
@@ -594,10 +594,12 @@ export const issuesService = {
             issueId_userId: { issueId, userId }
           }
         }),
-        prisma.issue.update({
-          where: { id: issueId },
-          data: { upvoteCount: { decrement: 1 } }
-        })
+        // Atomik decrement: asla negatife düşmez
+        prisma.$executeRaw`
+          UPDATE issues
+          SET upvote_count = GREATEST(0, upvote_count - 1)
+          WHERE id = ${issueId}::uuid
+        `,
       ]);
     } catch (error: any) {
       if (error?.code === 'P2025') {
@@ -754,5 +756,20 @@ export const issuesService = {
 
     await redis.setex(cacheKey, 60, JSON.stringify(stats));
     return stats;
+  },
+
+  async deleteIssue(issueId: string, userId: string, userRole: string) {
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundError('Sorun');
+
+    // Sadece admin veya sorunu bildiren kişi silebilir
+    if (userRole !== 'SUPER_ADMIN' && issue.reportedById !== userId) {
+      throw new ForbiddenError('Bu bildirimi silme yetkiniz yok.');
+    }
+
+    await prisma.issue.delete({ where: { id: issueId } });
+    
+    // Cache'i temizle
+    await this.invalidateClusterCache(issue.latitude, issue.longitude);
   },
 };

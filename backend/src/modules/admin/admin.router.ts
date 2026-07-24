@@ -78,6 +78,12 @@ router.get(
   adminController.searchUsers,
 );
 
+router.get(
+  '/users/:id/issues',
+  requireRole('SUPER_ADMIN', 'INSTITUTION_OFFICER'),
+  adminController.getUserIssues,
+);
+
 router.patch(
   '/users/:id/role',
   requireRole('SUPER_ADMIN'),

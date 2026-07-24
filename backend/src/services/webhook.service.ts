@@ -103,13 +103,13 @@ export async function dispatchWebhook(
     const response = await axios.post(url, body, {
       headers: {
         'Content-Type': 'application/json',
-        'X-Etiya Project-Signature': `sha256=${signature}`,
-        'X-Etiya Project-Event': payload.event,
-        'X-Etiya Project-Timestamp': payload.timestamp,
-        'User-Agent': 'Etiya Project-Webhook/1.0',
+        'X-Etiya-Project-Signature': `sha256=${signature}`,
+        'X-Etiya-Project-Event': payload.event,
+        'X-Etiya-Project-Timestamp': payload.timestamp,
+        'User-Agent': 'Etiya-Project-Webhook/1.0',
       },
       timeout: 15000,
-      maxRedirects: 3,
+      maxRedirects: 0, // SSRF koruması: redirect takip edilmez
     });
 
     logger.info('Webhook gönderildi', {

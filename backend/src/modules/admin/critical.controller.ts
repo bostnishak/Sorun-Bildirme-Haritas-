@@ -17,7 +17,7 @@ export async function getCriticalIssues(req: Request, res: Response): Promise<vo
              i.created_at, i.upvote_count, i.latitude, i.longitude, i.city, i.district
       FROM issues i
       JOIN institutions inst ON inst.id = ${institutionId}::uuid
-      WHERE ST_Within(i.location, inst.boundary)
+      WHERE (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         AND i.priority = 'CRITICAL'
         AND i.status = 'OPEN'
       ORDER BY i.upvote_count DESC, i.created_at ASC

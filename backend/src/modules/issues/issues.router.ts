@@ -101,11 +101,10 @@ router.patch(
   issuesController.officerSubmitIssue,
 );
 
-// DELETE /api/v1/issues/:id — Sadece admin
+// DELETE /api/v1/issues/:id — Admin veya sorunu bildiren kişi (kendi sorunuysa)
 router.delete(
   '/:id',
   isAuthenticated,
-  requireRole('SUPER_ADMIN'),
   issuesController.deleteIssue,
 );
 

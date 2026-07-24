@@ -58,6 +58,11 @@ const envSchema = z.object({
 
   // Uygulama URL'si — webhook ve e-posta bağlantıları için
   APP_URL: z.string().url().default('http://localhost:3000'),
+
+  // NetGSM (SMS) Config
+  NETGSM_USER: z.string().optional(),
+  NETGSM_PASSWORD: z.string().optional(),
+  NETGSM_HEADER: z.string().default('ETIYA_PRJ'),
 });
 
 const parsed = envSchema.safeParse(process.env);

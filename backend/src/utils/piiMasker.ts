@@ -16,7 +16,10 @@ const PII_REGEXES = [
   { regex: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12})\b/g, replacement: '[GİZLENMİŞ_KREDİ_KARTI]' },
   
   // TR IBAN
-  { regex: /\bTR\d{2}\s*(?:\d{4}\s*){5}\d{2}\b/gi, replacement: '[GİZLENMİŞ_IBAN]' }
+  { regex: /\bTR\d{2}\s*(?:\d{4}\s*){5}\d{2}\b/gi, replacement: '[GİZLENMİŞ_IBAN]' },
+
+  // E-posta adresi
+  { regex: /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, replacement: '[GİZLENMİŞ_EPOSTA]' },
 ];
 
 export function maskPII(text: string): string {

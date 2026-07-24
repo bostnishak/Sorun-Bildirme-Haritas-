@@ -17,7 +17,7 @@ export const slaService = {
         COUNT(*) FILTER (WHERE status = 'OPEN' AND created_at < NOW() - INTERVAL '48 hours')::int AS current_sla_breaches
       FROM issues i
       JOIN institutions inst ON inst.id = ${institutionId}::uuid
-      WHERE ST_Within(i.location, inst.boundary)
+      WHERE (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         AND i.created_at >= ${start}
         AND i.created_at <= ${end}
     `;
@@ -34,7 +34,7 @@ export const slaService = {
              EXTRACT(EPOCH FROM (NOW() - i.created_at)) / 3600 AS open_hours
       FROM issues i
       JOIN institutions inst ON inst.id = ${institutionId}::uuid
-      WHERE ST_Within(i.location, inst.boundary)
+      WHERE (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         AND i.status = 'OPEN'
         AND i.created_at < NOW() - INTERVAL '48 hours'
       ORDER BY i.created_at ASC
@@ -63,7 +63,7 @@ export const slaService = {
       LEFT JOIN institutions inst ON inst.id = ${institutionId}::uuid
       LEFT JOIN issues i ON DATE(i.resolved_at) = ds.date
                          AND i.status = 'RESOLVED'
-                         AND ST_Within(i.location, inst.boundary)
+                         AND (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
       GROUP BY ds.date
       ORDER BY ds.date ASC
     `;

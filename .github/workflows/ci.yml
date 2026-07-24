@@ -40,14 +40,26 @@ jobs:
         working-directory: ./backend
         run: npx prisma generate
 
+      - name: Security Scan (Backend)
+        working-directory: ./backend
+        run: npm audit --audit-level=high || echo "Zafiyetler bulundu ancak build devam ediyor"
+
       - name: Build Backend (TypeScript Compiler)
         working-directory: ./backend
         run: npm run build
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: npm run test --if-present
 
       # ── Frontend CI ─────────────────────────────────────────────────────────
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
+
+      - name: Security Scan (Frontend)
+        working-directory: ./frontend
+        run: npm audit --audit-level=high || echo "Zafiyetler bulundu ancak build devam ediyor"
 
       - name: Build Next.js Production Bundle
         working-directory: ./frontend
@@ -55,6 +67,10 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:5001/api/v1
           NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_build
         run: npm run build
+
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm run test --if-present
 
   docker-build-test:
     name: Verify Docker Container Build

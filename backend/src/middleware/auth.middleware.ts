@@ -61,16 +61,39 @@ export async function isAuthenticated(
  * Role-based access control factory
  */
 export function requireRole(...allowedRoles: Role[]) {
-  return (_req: Request, _res: Response, next: NextFunction): void => {
-    const userRole = _req.user?.role;
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userPayload = req.user;
+      if (!userPayload) {
+        throw new UnauthorizedError('Yetkilendirme bilgisi eksik.');
+      }
 
-    if (!userRole || !allowedRoles.includes(userRole)) {
-      throw new ForbiddenError(
-        `Bu işlem için gerekli rol: ${allowedRoles.join(' veya ')}`,
-      );
+      // JWT invalidate mekanizması: Canlı DB'den rol ve kurum değişimi kontrolü (SORUN-51)
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userPayload.sub },
+        select: { role: true, institutionId: true },
+      });
+
+      if (!currentUser) {
+        throw new UnauthorizedError('Kullanıcı bulunamadı.');
+      }
+
+      if (!allowedRoles.includes(currentUser.role)) {
+        throw new ForbiddenError(`Bu işlem için gerekli rol: ${allowedRoles.join(' veya ')}`);
+      }
+
+      // Veritabanı ile JWT arasındaki yetki/kurum farkını kontrol et
+      if (
+        currentUser.role !== userPayload.role ||
+        currentUser.institutionId !== (userPayload.institutionId || null)
+      ) {
+        throw new ForbiddenError('Yetkileriniz veya kurum bilginiz değişmiş. Lütfen çıkış yapıp tekrar giriş yapın.');
+      }
+
+      next();
+    } catch (err) {
+      next(err);
     }
-
-    next();
   };
 }
 

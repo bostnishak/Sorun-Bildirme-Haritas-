@@ -10,7 +10,10 @@ import type { User, LoginDto, RegisterDto, AuthResponse } from '../types/auth.ty
 
 // Tarayıcı tarafında (client-side) her zaman '/api' kullanarak Vercel rewrite/proxy üzerinden geç!
 // Böylece HTTPS (Vercel) -> HTTP (Almanya sunucusu) Mixed Content / Network Error hatası kesinlikle yaşanmaz.
-const API_URL = typeof window !== 'undefined' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://etiya-project-api:3001/api');
+// SORUN-75: Runtime Config Desteği eklendi (window.__ENV__) - Yeniden build (derleme) gerektirmez.
+const API_URL = typeof window !== 'undefined' 
+  ? ((window as any).__ENV__?.API_URL || process.env.NEXT_PUBLIC_API_URL || '/api') 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://etiya-project-api:3001/api');
 
 export const api = axios.create({
   baseURL: `${API_URL}/v1`,
@@ -230,6 +233,9 @@ export const profileApi = {
 
   getMyIssues: () =>
     api.get<any, any>('/issues/my/list'),
+
+  deleteIssue: (id: string) =>
+    api.delete<any, any>(`/issues/${id}`),
 };
 
 // ─── Notification Endpoints ──────────────────────────────────────────────────

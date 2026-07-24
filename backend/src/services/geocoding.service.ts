@@ -208,11 +208,21 @@ async function geocodeWithPhoton(lat: number, lng: number): Promise<StructuredAd
   }
 }
 
+// SORUN-70: Nominatim Rate-Limit (1 req/sec) yönetimi
+let lastNominatimRequestTime = 0;
+
 /**
  * 4. OPENSTREETMAP NOMINATIM API (Yüksek Doğruluklu Zoom=18 Bina Seviyesi)
  */
 async function geocodeWithNominatim(lat: number, lng: number): Promise<StructuredAddress | null> {
   try {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastNominatimRequestTime;
+    if (timeSinceLastRequest < 1100) {
+      await new Promise(resolve => setTimeout(resolve, 1100 - timeSinceLastRequest));
+    }
+    lastNominatimRequestTime = Date.now();
+
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=tr&addressdetails=1&zoom=18`;
     
     const runRequest = async () => axios.get(url, {
@@ -269,20 +279,36 @@ export async function reverseGeocodeHighPrecision(lat: number, lng: number): Pro
   }
 
   // 1. Mapbox'ı dene
-  const mapboxRes = await geocodeWithMapbox(lat, lng);
-  if (mapboxRes) return mapboxRes;
+  try {
+    const mapboxRes = await geocodeWithMapbox(lat, lng);
+    if (mapboxRes) return mapboxRes;
+  } catch (err) {
+    logger.warn('Mapbox geocoding başarısız oldu, Google Maps\'e geçiliyor.', { error: String(err) });
+  }
 
   // 2. Google Maps'i dene
-  const googleRes = await geocodeWithGoogle(lat, lng);
-  if (googleRes) return googleRes;
+  try {
+    const googleRes = await geocodeWithGoogle(lat, lng);
+    if (googleRes) return googleRes;
+  } catch (err) {
+    logger.warn('Google Maps geocoding başarısız oldu, Photon\'a geçiliyor.', { error: String(err) });
+  }
 
   // 3. Photon (Komoot / OSM Yüksek Bina Çözünürlüğü) dene
-  const photonRes = await geocodeWithPhoton(lat, lng);
-  if (photonRes) return photonRes;
+  try {
+    const photonRes = await geocodeWithPhoton(lat, lng);
+    if (photonRes) return photonRes;
+  } catch (err) {
+    logger.warn('Photon geocoding başarısız oldu, Nominatim\'e geçiliyor.', { error: String(err) });
+  }
 
   // 4. Nominatim (Zoom 18) dene
-  const nominatimRes = await geocodeWithNominatim(lat, lng);
-  if (nominatimRes) return nominatimRes;
+  try {
+    const nominatimRes = await geocodeWithNominatim(lat, lng);
+    if (nominatimRes) return nominatimRes;
+  } catch (err) {
+    logger.warn('Nominatim geocoding başarısız oldu, tam fallback uygulanıyor.', { error: String(err) });
+  }
 
   // 5. Son çare koordinat tabanlı adres
   logger.warn('Tüm geocoding servisleri başarısız oldu, tam fallback uygulanıyor.', { lat, lng });

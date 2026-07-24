@@ -1,5 +1,5 @@
 groups:
-  - name: ChaosMap-AI-Alerts
+  - name: Etiya-Project-AI-Alerts
     rules:
       - alert: HighAIErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05

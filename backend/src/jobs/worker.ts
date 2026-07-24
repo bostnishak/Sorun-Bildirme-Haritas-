@@ -23,6 +23,7 @@ logger.info('[WORKER] Worker servisi başlatıldı (Image, Webhook, Report, Noti
 // Cron scheduler
 import { dailyReportCron } from './schedulers/dailyReport.cron';
 import { slaCheckCron } from './schedulers/sla.cron';
+import { notificationCleanupCron } from './schedulers/notification.cron';
 
 // MinIO bucket kontrolü
 import { ensureBucketExists } from '../services/storage.service';
@@ -36,7 +37,8 @@ async function main() {
   // Cron job başlat
   dailyReportCron.start();
   slaCheckCron.start();
-  logger.info('[CRON] Günlük rapor cron\'u ve SLA kontrol cron\'u başlatıldı');
+  notificationCleanupCron.start();
+  logger.info('[CRON] Günlük rapor cron\'u, SLA kontrol cron\'u ve Bildirim temizlik cron\'u başlatıldı');
 
   // Worker sağlık durumları
   logger.info('[WORKER] Image Processing Worker: aktif');
@@ -56,6 +58,7 @@ async function main() {
 
     dailyReportCron.stop();
     slaCheckCron.stop();
+    notificationCleanupCron.stop();
 
     // DB bağlantılarını kapat
     const { prisma } = await import('../config/database');

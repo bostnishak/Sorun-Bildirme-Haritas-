@@ -4,7 +4,7 @@ import { env } from '../config/env';
 import { logger } from './logger';
 
 export function initSentry() {
-  if (process.env.SENTRY_DSN) {
+  if (process.env.SENTRY_DSN && env.NODE_ENV === 'production') {
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       integrations: [

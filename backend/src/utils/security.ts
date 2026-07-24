@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { env } from '../config/env';
 
 /**
  * AES-256-GCM Encryption / Decryption Utility
@@ -8,11 +7,17 @@ import { env } from '../config/env';
 
 const ALGORITHM = 'aes-256-gcm';
 
-// We need a 32-byte key for aes-256. 
-// Ideally loaded from env (e.g. JWT_SECRET or a dedicated ENCRYPTION_KEY).
-// We'll derive a 32-byte key from JWT_SECRET to ensure consistency.
+/**
+ * Şifreleme anahtarını döndürür.
+ * ENCRYPTION_KEY env değişkeninden alınır (JWT_SECRET'tan BAĞIMSIZ).
+ * JWT rotation şifreli verileri bozmaz.
+ * Minimum 32 karakter olmalı; SHA-256 ile 32 byte'a normalize edilir.
+ */
 const getEncryptionKey = (): Buffer => {
-  const secret = env.JWT_ACCESS_SECRET || 'fallback_secret_key_that_should_not_be_used_in_prod';
+  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET || 'fallback_secret_key_that_should_not_be_used_in_prod';
+  if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
+    console.error('[SECURITY] UYARI: ENCRYPTION_KEY tanımlı değil! JWT_ACCESS_SECRET kullanılıyor — bu güvenli değil.');
+  }
   return crypto.createHash('sha256').update(secret).digest();
 };
 

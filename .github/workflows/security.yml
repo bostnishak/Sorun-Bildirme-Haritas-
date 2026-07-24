@@ -1,0 +1,30 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  schedule:
+    - cron: '0 0 * * 0' # Her hafta pazar günü
+
+jobs:
+  npm-audit:
+    name: Run npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit Backend
+        working-directory: ./backend
+        run: npm audit --audit-level=high
+
+      - name: Audit Frontend
+        working-directory: ./frontend
+        run: npm audit --audit-level=high

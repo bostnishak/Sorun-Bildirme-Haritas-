@@ -34,82 +34,78 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
 
     logger.info(`[ImageWorker] İşleniyor: ${issueId}`, { tempImageKey });
 
-    // MinIO'dan geçici görsel indir
-    const buffer = await downloadFromMinio(tempImageKey);
+    try {
+      // MinIO'dan geçici görsel indir
+      const buffer = await downloadFromMinio(tempImageKey);
 
-    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
-    if (!issue) {
-      throw new Error(`Issue not found: ${issueId}`);
-    }
+      const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+      if (!issue) {
+        throw new Error(`Issue not found: ${issueId}`);
+      }
 
-    // Google Vision AI ile hassas içerik blur'u
-    const blurResult = await blurSensitiveContent(buffer);
+      // Google Vision AI ile hassas içerik blur'u
+      const blurResult = await blurSensitiveContent(buffer);
 
-    logger.info(`[ImageWorker] Blur tamamlandı`, {
-      issueId,
-      facesFound: blurResult.facesFound,
-      platesFound: blurResult.platesFound,
-      wasModified: blurResult.wasModified,
-    });
+      logger.info(`[ImageWorker] Blur tamamlandı`, {
+        issueId,
+        facesFound: blurResult.facesFound,
+        platesFound: blurResult.platesFound,
+        wasModified: blurResult.wasModified,
+      });
 
-    // OpenAI Vision AI ile görsel doğrulama
-    // Gizlilik için blur edilmiş versiyonu gönderiyoruz
-    const aiAnalysis = await analyzeImageContent(
-      blurResult.buffer,
-      job.data.mimeType,
-      issue.title,
-      issue.description,
-      issue.category
-    );
+      // OpenAI Vision AI ile görsel doğrulama
+      const aiAnalysis = await analyzeImageContent(
+        blurResult.buffer,
+        job.data.mimeType,
+        issue.title,
+        issue.description,
+      );
 
-    const newStatus = aiAnalysis.isQuarantined
-      ? 'IN_REVIEW'
-      : (aiAnalysis.valid ? 'OPEN' : 'REJECTED');
-    
-    if (aiAnalysis.isQuarantined) {
-      logger.warn(`[ImageWorker] AI Kota/429 hatası -> IN_REVIEW karantinaya alındı`, { reason: aiAnalysis.reason });
-    } else if (aiAnalysis.valid) {
-      logger.info(`[ImageWorker] AI görseli ONAYLADI -> OPEN`);
-    } else {
-      logger.warn(`[ImageWorker] AI görseli REDDETTİ -> REJECTED`, { reason: aiAnalysis.reason });
-    }
+      // İşlenmiş görseli tekrar MinIO'ya kalıcı (public) olarak yükle
+      const { key, url } = await uploadImage(blurResult.buffer, job.data.mimeType);
 
-    // İşlenmiş görsel kalıcı konuma yükle
-    const { key, url } = await uploadImage(blurResult.buffer, 'image/webp');
+      // SLA durumunu belirle
+      const newStatus = aiAnalysis.isQuarantined ? 'IN_REVIEW' : 'OPEN';
 
-    // DB güncelle
-    await prisma.issue.update({
-      where: { id: issueId },
-      data: {
-        imageKey: key,
-        imageUrl: url,
-        imageBlurred: blurResult.wasModified,
-        imageProcessed: true,
+      // DB güncelle
+      await prisma.issue.update({
+        where: { id: issueId },
+        data: {
+          imageKey: key,
+          imageUrl: url,
+          imageBlurred: blurResult.wasModified,
+          imageProcessed: true,
+          status: newStatus,
+          llmGuardPassed: issue.llmGuardPassed && aiAnalysis.valid && !aiAnalysis.isQuarantined,
+          llmGuardReason: aiAnalysis.reason,
+          ...(aiAnalysis.isQuarantined ? {
+            adminReviewNote: 'Yapay Zeka arka plan görsel analizinde kota/API hatası oluştu. İhbar doğrudan haritada açılmadı, IN_REVIEW karantinaya alındı.'
+          } : {}),
+        },
+      });
+
+      // İşlem bittikten sonra Redis'e publish et (socket io için):
+      await redis.publish('image-processed', JSON.stringify({
+        issueId,
+        userId: issue.reportedById || (issue as any).userId,
+        key,
+        url,
         status: newStatus,
-        llmGuardPassed: issue.llmGuardPassed && aiAnalysis.valid && !aiAnalysis.isQuarantined,
-        llmGuardReason: aiAnalysis.reason,
-        ...(aiAnalysis.isQuarantined ? {
-          adminReviewNote: 'Yapay Zeka arka plan görsel analizinde kota/API hatası oluştu. İhbar doğrudan haritada açılmadı, IN_REVIEW karantinaya alındı.'
-        } : {}),
-      },
-    });
+        blurred: blurResult.wasModified,
+      }));
 
-    // İşlem bittikten sonra Redis'e publish et (socket io için):
-    await redis.publish('image-processed', JSON.stringify({
-      issueId,
-      userId: issue.reportedById || (issue as any).userId,
-      key,
-      url,
-      status: newStatus,
-      blurred: blurResult.wasModified,
-    }));
+      logger.info(`[ImageWorker] Tamamlandı: ${issueId}`, { key, url });
 
-    await deleteObject(tempImageKey);
-    logger.debug(`[ImageWorker] Geçici dosya silindi: ${tempImageKey}`);
-
-    logger.info(`[ImageWorker] Tamamlandı: ${issueId}`, { key, url });
-
-    return { issueId, key, url, blurred: blurResult.wasModified };
+      return { issueId, key, url, blurred: blurResult.wasModified };
+    } finally {
+      // Hata olsa dahi temp dosyasını temizle (Memory leak & Disk şişmesi engelleme)
+      try {
+        await deleteObject(tempImageKey);
+        logger.debug(`[ImageWorker] Geçici dosya silindi: ${tempImageKey}`);
+      } catch (cleanupErr) {
+        logger.warn(`[ImageWorker] Geçici dosya silinemedi: ${tempImageKey}`, cleanupErr);
+      }
+    }
   },
   {
     connection: redis as any,

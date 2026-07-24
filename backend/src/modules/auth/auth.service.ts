@@ -225,6 +225,7 @@ export const authService = {
         secret: user.twoFactorSecret,
         encoding: 'base32',
         token: twoFactorToken,
+        window: 2,
       });
 
       // TOTP başarısızsa, kurtarma kodlarını (Recovery Codes) kontrol et
@@ -516,17 +517,17 @@ export const authService = {
       where: { userId, expiresAt: { lt: new Date() } },
     });
 
-    // Kullanıcı başına en fazla 5 aktif session — en eskisini sil
-    const activeTokens = await prisma.refreshToken.findMany({
-      where: { userId, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (activeTokens.length > 5) {
-      const toDelete = activeTokens.slice(0, activeTokens.length - 5);
-      await prisma.refreshToken.deleteMany({
-        where: { id: { in: toDelete.map((t) => t.id) } },
-      });
-    }
+    // SORUN-57: Race condition (findMany + deleteMany yerine tek sorguda "en yeni 5 hariç sil")
+    await prisma.$executeRaw`
+      DELETE FROM refresh_tokens
+      WHERE user_id = ${userId}::uuid
+      AND id NOT IN (
+        SELECT id FROM refresh_tokens
+        WHERE user_id = ${userId}::uuid
+        ORDER BY created_at DESC
+        LIMIT 5
+      )
+    `;
 
     return { accessToken, refreshToken: refreshTokenStr };
   },
@@ -559,6 +560,7 @@ export const authService = {
       secret: user.twoFactorSecret,
       encoding: 'base32',
       token,
+      window: 2,
     });
 
     if (!isTokenValid) {
@@ -570,8 +572,10 @@ export const authService = {
     const hashedRecoveryCodes: string[] = [];
 
     for (let i = 0; i < 10; i++) {
-      const code = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 karakter hex
-      const formatted = `${code.slice(0, 4)}-${code.slice(4)}`; // XXXX-XXXX
+      // 16 byte = 128 bit entropi (OWASP minimum 80 bit tavsiyesi karşılandı)
+      const code = crypto.randomBytes(16).toString('hex').toUpperCase();
+      // Format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (32 hex karakter, 4'erli gruplar)
+      const formatted = code.match(/.{4}/g)!.join('-');
       plainRecoveryCodes.push(formatted);
       const hash = await bcrypt.hash(formatted, 10);
       hashedRecoveryCodes.push(hash);

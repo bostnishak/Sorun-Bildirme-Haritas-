@@ -132,13 +132,10 @@ function sanitizeForXml(str: string): string {
 }
 
 /**
- * TC Kimlik'i SHA-256 ile hash'le — plaintext saklanmaz
- * KVKK gereği: TC_KIMLIK_PEPPER JWT_SECRET'tan bağımsız tutulur;
- * JWT rotation, mevcut kullanıcı hash'lerini geçersiz kılmaz.
+ * SORUN-56: TC Kimlik Hash algoritması SHA-256'dan brute-force'a dirençli (memory-hard) Scrypt'e geçirildi.
+ * Veritabanında birebir eşleşme (unique check) yapabilmek için rastgele salt yerine,
+ * çevresel değişkenden gelen güvenli global PEPPER, salt olarak kullanılmıştır (Deterministic).
  */
 export function hashTCKimlik(tcKimlik: string): string {
-  return crypto
-    .createHash('sha256')
-    .update(tcKimlik + env.TC_KIMLIK_PEPPER)
-    .digest('hex');
+  return crypto.scryptSync(tcKimlik, env.TC_KIMLIK_PEPPER, 64).toString('hex');
 }

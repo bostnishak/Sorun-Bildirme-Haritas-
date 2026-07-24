@@ -25,6 +25,11 @@ export const initSocket = () => {
     socket = io(SOCKET_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'], // Fallback ile websocket kullan
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socket.on('connect', () => {

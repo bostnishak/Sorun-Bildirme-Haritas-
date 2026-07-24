@@ -114,7 +114,7 @@ export function initSocket(server: HttpServer) {
         if (data.userId) {
           io.to(`user:${data.userId}`).emit('image-processed', data);
         } else {
-          io.emit('image-processed', data);
+          logger.warn('[Socket.io] image-processed olayı için userId bulunamadı. Broadcast edilmedi.', data);
         }
       } catch (err) {
         logger.error('image-processed pub/sub parse hatası:', { error: String(err) });

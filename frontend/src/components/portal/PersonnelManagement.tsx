@@ -17,6 +17,31 @@ export default function PersonnelManagement() {
   const [targetInstitutionId, setTargetInstitutionId] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // User Issues State
+  const [isIssuesModalOpen, setIsIssuesModalOpen] = useState(false);
+  const [userIssues, setUserIssues] = useState<any[]>([]);
+  const [isIssuesLoading, setIsIssuesLoading] = useState(false);
+
+  const handleOpenIssuesModal = async (user: any) => {
+    setSelectedUser(user);
+    setIsIssuesModalOpen(true);
+    setIsIssuesLoading(true);
+    try {
+      const response: any = await api.get(`/admin/users/${user.id}/issues`);
+      setUserIssues(response.data || []);
+    } catch (err: any) {
+      toast.error('Kullanıcı ihbarları alınamadı.');
+    } finally {
+      setIsIssuesLoading(false);
+    }
+  };
+
+  const handleCloseIssuesModal = () => {
+    setIsIssuesModalOpen(false);
+    setSelectedUser(null);
+    setUserIssues([]);
+  };
+
   const { data: personnelData, isLoading: isPersonnelLoading } = useQuery({
     queryKey: ['admin-personnel'],
     queryFn: async () => {
@@ -153,13 +178,22 @@ export default function PersonnelManagement() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleOpenAssignModal(user)}
-                    style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Yetki / Kurum Değiştir
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleOpenIssuesModal(user)}
+                      style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 600, fontSize: '12px', border: '1px solid var(--color-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      İhbarları Gör
+                    </button>
+                    <button
+                      onClick={() => handleOpenAssignModal(user)}
+                      style={{ padding: '8px 16px', borderRadius: '8px', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Yetki Değiştir
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -219,13 +253,22 @@ export default function PersonnelManagement() {
                     {format(new Date(p.created_at || p.createdAt || Date.now()), 'dd MMM yyyy', { locale: tr })}
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button
-                      onClick={() => handleOpenAssignModal(p)}
-                      style={{ padding: '8px 14px', borderRadius: '8px', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Düzenle
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => handleOpenIssuesModal(p)}
+                        style={{ padding: '8px 14px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        İhbarlar
+                      </button>
+                      <button
+                        onClick={() => handleOpenAssignModal(p)}
+                        style={{ padding: '8px 14px', borderRadius: '8px', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Düzenle
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -307,6 +350,66 @@ export default function PersonnelManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ISSUES MODAL */}
+      {isIssuesModalOpen && selectedUser && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '800px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text)' }}>Kullanıcı İhbarları</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                  {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.email}) tarafından açılan tüm ihbarlar
+                </p>
+              </div>
+              <button onClick={handleCloseIssuesModal} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            {isIssuesLoading ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>İhbarlar yükleniyor...</div>
+            ) : userIssues.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Bu kullanıcının açtığı herhangi bir ihbar bulunmuyor.</div>
+            ) : (
+              <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--color-surface-hover)', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                      <th style={{ padding: '12px' }}>Tarih</th>
+                      <th style={{ padding: '12px' }}>Başlık & Kategori</th>
+                      <th style={{ padding: '12px' }}>Konum</th>
+                      <th style={{ padding: '12px' }}>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userIssues.map((issue) => (
+                      <tr key={issue.id} style={{ borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>
+                        <td style={{ padding: '12px' }}>{format(new Date(issue.createdAt), 'dd MMM yyyy', { locale: tr })}</td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>{issue.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{issue.category}</div>
+                        </td>
+                        <td style={{ padding: '12px', color: 'var(--color-text-secondary)' }}>{issue.city}, {issue.district}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)' }}>
+                            {issue.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--color-border)' }}>
+              <button onClick={handleCloseIssuesModal} style={{ padding: '10px 18px', borderRadius: '8px', background: 'var(--color-primary)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}

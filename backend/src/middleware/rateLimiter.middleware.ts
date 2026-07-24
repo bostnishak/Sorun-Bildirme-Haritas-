@@ -19,14 +19,14 @@ export const globalLimiter = new RateLimiterRedis({
 
 /**
  * Auth limiter: brute force koruması
- * 10 istek / saat / IP
+ * 5 istek / saat / IP (şifre deneme sınırı)
  */
 export const authLimiter = new RateLimiterRedis({
   storeClient: redis,
   keyPrefix: 'rl_auth',
-  points: 100,
-  duration: 60,
-  blockDuration: 60,
+  points: 5,
+  duration: 3600,    // 1 saat
+  blockDuration: 3600, // 1 saat block
 });
 
 /**
@@ -93,12 +93,39 @@ export const nviLimiter = new RateLimiterRedis({
 
 /**
  * Rate limiter middleware oluşturur
+ * useUserId=true ise kullanıcı ID'si üzerinden, false ise IP üzerinden sınırlar
  */
 export function createRateLimitMiddleware(limiter: RateLimiterRedis, useUserId = false) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Demo ortamı ve Vercel Proxy nedeniyle herkes aynı IP'den gelmiş gibi göründüğü için
-    // Rate Limiter geçici olarak devre dışı bırakıldı.
-    next();
+    // SORUN-74: Manuel 'x-forwarded-for' parse işlemi IP spoofing'e neden olur!
+    // Express'teki "app.set('trust proxy', 1)" sayesinde 'req.ip' zaten en güvenilir proxy arkası IP'yi verir.
+    const finalIp = req.ip || req.socket?.remoteAddress || 'unknown';
+
+    const key = useUserId && (req as any).user?.sub
+      ? `user_${(req as any).user.sub}`
+      : finalIp;
+
+    try {
+      await limiter.consume(key);
+      next();
+    } catch (err) {
+      if (err instanceof RateLimiterRes) {
+        const retryAfter = Math.ceil(err.msBeforeNext / 1000);
+        logger.warn('Rate limit aşıldı', { key, retryAfter });
+        res.setHeader('Retry-After', String(retryAfter));
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'RATE_LIMITED',
+            message: `Çok fazla istek gönderdiniz. Lütfen ${retryAfter} saniye bekleyin.`,
+          },
+        });
+      } else {
+        // Redis bağlantı hatası gibi beklenmeyen durumlarda geçir (fail-open)
+        logger.error('Rate limiter iç hatası — geçiliyor', { error: String(err) });
+        next();
+      }
+    }
   };
 }
 

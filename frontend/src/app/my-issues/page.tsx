@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/useAppStore';
 import { api } from '@/lib/api';
 import { Header } from '@/components/layout/Header';
@@ -33,6 +33,24 @@ export default function MyIssuesPage() {
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
   const user = useAppStore(state => state.user);
   const _hasHydrated = useAppStore(state => state._hasHydrated);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteIssue(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-issues'] });
+    },
+    onError: () => {
+      alert('Bildirim silinemedi.');
+    }
+  });
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    if (confirm('Bu bildirimi kalıcı olarak silmek istediğinize emin misiniz?')) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   useEffect(() => {
     if (_hasHydrated && !isAuthenticated) {
@@ -95,11 +113,10 @@ export default function MyIssuesPage() {
               };
 
               return (
-                <Link
+                <div
                   key={issue.id}
-                  href={`/issues/${issue.id}`}
                   className={styles.card}
-                  style={{ textDecoration: 'none', color: 'inherit' }}
+                  style={{ textDecoration: 'none', color: 'inherit', position: 'relative' }}
                 >
                   <div>
                     <div className={styles.cardHeader}>
@@ -112,13 +129,27 @@ export default function MyIssuesPage() {
                       >
                         {CATEGORY_LABELS[issue.category] || issue.category}
                       </span>
-                      <span className={`${styles.badge} ${statusInfo.badgeClass}`}>
-                        {statusInfo.label}
-                      </span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span className={`${styles.badge} ${statusInfo.badgeClass}`}>
+                          {statusInfo.label}
+                        </span>
+                        <button 
+                          onClick={(e) => handleDelete(e, issue.id)}
+                          style={{
+                            background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer',
+                            fontSize: '18px', padding: '0 4px', lineHeight: 1
+                          }}
+                          title="Bildirimi Sil"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
 
-                    <h2 className={styles.cardTitle}>{issue.title}</h2>
-                    <p className={styles.cardDesc}>{issue.description}</p>
+                    <Link href={`/issues/${issue.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <h2 className={styles.cardTitle}>{issue.title}</h2>
+                      <p className={styles.cardDesc}>{issue.description}</p>
+                    </Link>
                   </div>
 
                   <div className={styles.cardMeta}>
@@ -131,7 +162,7 @@ export default function MyIssuesPage() {
                       })}
                     </span>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

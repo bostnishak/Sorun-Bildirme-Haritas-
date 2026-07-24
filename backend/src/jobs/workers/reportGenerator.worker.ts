@@ -51,7 +51,7 @@ export const reportGeneratorWorker = new Worker<ReportJobData>(
       FROM issues i
       JOIN institutions inst ON inst.id = ${institutionId}::uuid
       WHERE
-        ST_Within(i.location, inst.boundary)
+        (inst.boundary IS NULL OR ST_Within(i.location, inst.boundary))
         AND i.status != 'RESOLVED'::"IssueStatus"
         AND i.status != 'REJECTED'::"IssueStatus"
         AND i.created_at BETWEEN ${startOfYesterday} AND ${endOfYesterday}
@@ -74,17 +74,23 @@ export const reportGeneratorWorker = new Worker<ReportJobData>(
 
     // E-posta gönder
     const dateStr = format(yesterday, 'dd MMMM yyyy', { locale: tr });
-    await transporter.sendMail({
-      from: env.EMAIL_FROM,
-      to: institution.emailAddress,
-      subject: `Etiya Project - ${dateStr} Günlük Sorun Raporu | ${institution.name}`,
-      html: generateEmailHTML(issues.length, institution.name, dateStr),
-      attachments: [{
-        filename: `etiya-project-rapor-${format(yesterday, 'yyyy-MM-dd')}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
-      }],
-    });
+    try {
+      await transporter.sendMail({
+        from: env.EMAIL_FROM,
+        to: institution.emailAddress,
+        subject: `Etiya Project - ${dateStr} Günlük Sorun Raporu | ${institution.name}`,
+        html: generateEmailHTML(issues.length, institution.name, dateStr),
+        attachments: [{
+          filename: `etiya-project-rapor-${format(yesterday, 'yyyy-MM-dd')}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        }],
+      });
+    } catch (emailErr) {
+      logger.error(`[ReportWorker] Rapor e-postası gönderilemedi (Kurum: ${institution.name})`, emailErr);
+      // Fırlatıyoruz ki BullMQ job'u başarısız saysın ve retry yapsın
+      throw new Error(`E-posta gönderimi başarısız: ${String(emailErr)}`);
+    }
 
     logger.info(`[ReportWorker] Rapor gönderildi`, {
       institutionId,
@@ -94,7 +100,7 @@ export const reportGeneratorWorker = new Worker<ReportJobData>(
   },
   {
     connection: redis as any,
-    concurrency: 1,
+    concurrency: 5, // SORUN-71: Aynı anda 5 rapor hazırlanabilir (Concurrency 1 -> 5)
   },
 );
 
@@ -211,34 +217,33 @@ async function generatePDFReport(
 </body>
 </html>`;
 
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // SORUN-53: Ağır Puppeteer yerine Gotenberg Microservice Kullanımı
+    // Gotenberg API, HTML içeriği alır ve Chromium ile izole ortamda PDF üretip döner.
+    const FormData = require('form-data');
+    const form = new FormData();
+    form.append('files', Buffer.from(html), { filename: 'index.html' });
+    form.append('paperWidth', '8.27'); // A4 genişliği
+    form.append('paperHeight', '11.69'); // A4 yüksekliği
+    form.append('marginTop', '0');
+    form.append('marginBottom', '0');
+    form.append('marginLeft', '0');
+    form.append('marginRight', '0');
+    form.append('printBackground', 'true');
 
-    const pdfBytes = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+    const gotenbergUrl = process.env.GOTENBERG_URL || 'http://gotenberg:3000/forms/chromium/convert/html';
+    
+    logger.info(`[ReportWorker] Gotenberg üzerinden PDF oluşturuluyor: ${gotenbergUrl}`);
+    
+    const response = await axios.post(gotenbergUrl, form, {
+      headers: form.getHeaders(),
+      responseType: 'arraybuffer', // PDF byte dizisi alıyoruz
+      timeout: 30000,
     });
 
-    return Buffer.from(pdfBytes);
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-        logger.debug('[ReportWorker] Puppeteer tarayıcı başarıyla kapatıldı.');
-      } catch (closeErr) {
-        logger.error('[ReportWorker] Tarayıcı kapatılırken hata, zombi process imhası deneniyor:', { error: String(closeErr) });
-      } finally {
-        const browserProcess = browser.process();
-        if (browserProcess && browserProcess.pid) {
-          try {
-            process.kill(browserProcess.pid, 'SIGKILL');
-            logger.warn(`[ReportWorker] Zombi Puppeteer süreci imha edildi (PID: ${browserProcess.pid})`);
-          } catch (killErr) {
-            // Process zaten durmuş olabilir, yok sayılır
-          }
-        }
-      }
-    }
+    return Buffer.from(response.data);
+  } catch (error) {
+    logger.error('[ReportWorker] Gotenberg PDF üretim hatası:', error);
+    throw error;
   }
 }
 

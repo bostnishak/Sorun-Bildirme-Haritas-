@@ -43,6 +43,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <head>
+        {/* SORUN-75: Runtime Config Enjeksiyonu */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__ENV__ = { API_URL: "${process.env.NEXT_PUBLIC_API_URL || '/api'}" }`,
+          }}
+        />
+      </head>
         {/* Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

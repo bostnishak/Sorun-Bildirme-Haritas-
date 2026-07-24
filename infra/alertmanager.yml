@@ -9,4 +9,4 @@ route:
 receivers:
   - name: 'web.hook'
     webhook_configs:
-      - url: 'http://127.0.0.1:5001/'
+      - url: 'http://backend:3001/api/v1/webhooks/alerts'

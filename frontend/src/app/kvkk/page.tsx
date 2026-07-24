@@ -118,6 +118,26 @@ export default function KVKKPage() {
             Başvurularınızı sistem üzerinden destek talebi açarak veya doğrudan <strong>destek@sorunharitasi.tr</strong> e-posta adresi üzerinden bize iletebilirsiniz. Başvurularınız en geç 30 gün içinde yanıtlanır.
           </div>
         </div>
+
+        <hr style={{ margin: '40px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+        {/* GDPR / ENGLISH SECTION (SORUN-69) */}
+        <div className={styles.section} id="gdpr-policy">
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.sectionIcon}>EN</span>
+            GDPR & Privacy Policy
+          </h2>
+          <p className={styles.text}>
+            In accordance with the <strong>General Data Protection Regulation (GDPR)</strong>, the <strong>Etiya Project</strong> respects your privacy and is committed to protecting your personal data. This platform operates with data minimization principles.
+          </p>
+          <ul className={styles.list}>
+            <li><strong>Data Controller:</strong> Etiya Project (Non-profit civic technology initiative).</li>
+            <li><strong>What We Collect:</strong> Only necessary identifiers (Name, Email, masked National ID for local validation) and geolocation data related to public issue reports.</li>
+            <li><strong>AI & Automation:</strong> Your uploaded images are processed by automated vision models (Google Vision / Gemini) strictly for categorization and inappropriate content filtering. Data used for AI analysis is anonymized.</li>
+            <li><strong>Right to be Forgotten:</strong> You can delete your account at any time. Erasing your profile permanently deletes your identity records. Publicly submitted reports will remain on the map completely anonymized.</li>
+            <li><strong>Contact:</strong> For GDPR related inquiries, email us at <strong>privacy@etiya-project.tr</strong>.</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

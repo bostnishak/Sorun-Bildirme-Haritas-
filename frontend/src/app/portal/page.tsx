@@ -10,12 +10,13 @@ import styles from './page.module.css';
 import OfficerDashboard from '@/components/portal/OfficerDashboard';
 import ApprovalHub from '@/components/portal/ApprovalHub';
 import PersonnelManagement from '@/components/portal/PersonnelManagement';
+import AdminIssuesList from '@/components/portal/AdminIssuesList';
 
 export default function PortalPage() {
   const router = useRouter();
   const user = useAppStore(state => state.user);
   const isAuthenticated = useAppStore(state => state.isAuthenticated);
-  const [activeTab, setActiveTab] = useState<'APPROVAL_HUB' | 'OFFICER_DASHBOARD' | 'PERSONNEL'>('OFFICER_DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'APPROVAL_HUB' | 'OFFICER_DASHBOARD' | 'PERSONNEL' | 'ISSUES_LIST'>('ISSUES_LIST');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -26,7 +27,7 @@ export default function PortalPage() {
       router.push('/');
     }
     if (user?.role === 'SUPER_ADMIN') {
-      setActiveTab('APPROVAL_HUB');
+      setActiveTab('ISSUES_LIST');
     } else {
       setActiveTab('OFFICER_DASHBOARD');
     }
@@ -106,6 +107,30 @@ export default function PortalPage() {
             overflowX: 'auto'
           }}>
             <button
+              onClick={() => setActiveTab('ISSUES_LIST')}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: activeTab === 'ISSUES_LIST' ? '1px solid #bfdbfe' : '1px solid transparent',
+                cursor: 'pointer',
+                background: activeTab === 'ISSUES_LIST' ? '#eff6ff' : 'transparent',
+                color: activeTab === 'ISSUES_LIST' ? '#1d4ed8' : 'var(--color-text-secondary)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              Vatandaş İhbarları
+            </button>
+
+            <button
               onClick={() => setActiveTab('APPROVAL_HUB')}
               style={{
                 flex: 1,
@@ -184,6 +209,7 @@ export default function PortalPage() {
       <div style={{ padding: '0 24px 40px 24px' }}>
         {user?.role === 'SUPER_ADMIN' ? (
           <>
+            {activeTab === 'ISSUES_LIST' && <AdminIssuesList />}
             {activeTab === 'APPROVAL_HUB' && <ApprovalHub />}
             {activeTab === 'OFFICER_DASHBOARD' && <OfficerDashboard user={user} />}
             {activeTab === 'PERSONNEL' && <PersonnelManagement />}

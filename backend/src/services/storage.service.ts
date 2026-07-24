@@ -23,21 +23,7 @@ export async function ensureBucketExists(): Promise<void> {
     if (!exists) {
       await minio.makeBucket(BUCKET, 'us-east-1');
       logger.info(`MinIO bucket oluşturuldu: ${BUCKET}`);
-
-      // Okuma politikası (public-read ile URL'den erişim)
-      const policy = JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [{
-          Effect: 'Allow',
-          Principal: { AWS: ['*'] },
-          Action: ['s3:GetObject'],
-          Resource: [
-            `arn:aws:s3:::${BUCKET}/issues/*`,
-            `arn:aws:s3:::${BUCKET}/avatars/*`,
-          ],
-        }],
-      });
-      await minio.setBucketPolicy(BUCKET, policy);
+      // SORUN-15: public-read policy kaldırıldı, bucket tamamen private kalacak.
     }
   } catch (err) {
     logger.error('MinIO bucket kontrolü başarısız', err);
@@ -59,7 +45,9 @@ export async function uploadImage(
       'Cache-Control': 'max-age=31536000',
     });
 
-    const url = `${env.MINIO_USE_SSL ? 'https' : 'http'}://${env.MINIO_ENDPOINT}:${env.MINIO_PORT}/${BUCKET}/${key}`;
+    // SORUN-15: Doğrudan MinIO URL'si dönmek yerine proxy endpoint'i dön
+    // Frontend bu endpoint'e istek atacak, backend 302 ile presigned URL'ye yönlendirecek
+    const url = `${env.APP_URL}/api/v1/media/view/${key}`;
 
     logger.debug('MinIO upload tamamlandı', { key, size: buffer.length });
     return { key, url };

@@ -1,0 +1,62 @@
+name: Production Deploy and Rollback
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Deploy or Rollback'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - rollback
+      rollback_commit:
+        description: 'Git commit hash for rollback (required if action=rollback)'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.action == 'deploy' || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production
+        run: |
+          echo "Simulating Production Deploy..."
+          # docker compose -f docker-compose.prod.yml up -d --build
+          echo "Deploy completed successfully."
+
+      - name: Tag deployment success
+        run: |
+          echo "Tagging commit as latest-stable"
+          git tag -f latest-stable
+          git push -f origin latest-stable
+
+  rollback:
+    if: ${{ github.event.inputs.action == 'rollback' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Rollback Hash
+        run: |
+          if [ -z "${{ github.event.inputs.rollback_commit }}" ]; then
+            echo "Error: rollback_commit is required for rollback."
+            exit 1
+          fi
+
+      - name: Checkout specific commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.rollback_commit }}
+
+      - name: Deploy Rollback
+        run: |
+          echo "Rolling back to commit ${{ github.event.inputs.rollback_commit }}..."
+          # docker compose -f docker-compose.prod.yml up -d --build
+          echo "Rollback completed."

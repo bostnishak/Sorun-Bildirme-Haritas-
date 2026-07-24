@@ -314,7 +314,6 @@ export async function getDetailedStats(_req: Request, res: Response): Promise<vo
   res.status(200).json({
     success: true,
     data: stats,
-    ...stats,
   });
 }
 
@@ -415,4 +414,12 @@ export async function assistantSinglePrompt(req: Request, res: Response): Promis
 
   const extraction = await parseSinglePromptIssue(message || '', imageBase64, req.user?.sub, history);
   res.status(200).json({ success: true, data: extraction });
+}
+
+/**
+ * DELETE /api/v1/issues/:id — Bildirim silme (Sadece bildiren kişi veya SUPER_ADMIN silebilir)
+ */
+export async function deleteIssue(req: Request, res: Response): Promise<void> {
+  await issuesService.deleteIssue(req.params.id, req.user.sub, req.user.role);
+  res.status(200).json({ success: true, message: 'Bildirim başarıyla silindi.' });
 }
