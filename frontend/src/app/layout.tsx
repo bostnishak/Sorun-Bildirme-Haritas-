@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `window.__ENV__ = { API_URL: "${process.env.NEXT_PUBLIC_API_URL || '/api'}" }`,
           }}
         />
-      </head>
+
         {/* Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
