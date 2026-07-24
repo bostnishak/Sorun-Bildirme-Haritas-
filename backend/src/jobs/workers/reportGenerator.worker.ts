@@ -1,4 +1,5 @@
 import { Worker, Job } from 'bullmq';
+import axios from 'axios';
 import { redis } from '../../config/redis';
 import { prisma } from '../../config/database';
 import nodemailer from 'nodemailer';

@@ -59,6 +59,7 @@ export const imageProcessorWorker = new Worker<ImageProcessingJobData>(
         job.data.mimeType,
         issue.title,
         issue.description,
+        issue.category,
       );
 
       // İşlenmiş görseli tekrar MinIO'ya kalıcı (public) olarak yükle

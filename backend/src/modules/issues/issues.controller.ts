@@ -274,13 +274,7 @@ export async function officerSubmitIssue(req: Request, res: Response): Promise<v
   });
 }
 
-/**
- * DELETE /api/v1/issues/:id — Sorun sil (sadece SUPER_ADMIN)
- */
-export async function deleteIssue(req: Request, res: Response): Promise<void> {
-  await issuesService.delete(req.params.id);
-  res.status(200).json({ success: true, message: 'Sorun silindi.' });
-}
+
 
 /**
  * POST /api/v1/issues/:id/upvote — Sorunu destekle (upvote)

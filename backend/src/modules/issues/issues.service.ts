@@ -770,6 +770,6 @@ export const issuesService = {
     await prisma.issue.delete({ where: { id: issueId } });
     
     // Cache'i temizle
-    await this.invalidateClusterCache(issue.latitude, issue.longitude);
+    await this.invalidateClusterCache(issue.city, issue.district, issue.latitude, issue.longitude);
   },
 };
