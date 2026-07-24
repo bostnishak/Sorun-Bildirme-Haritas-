@@ -61,7 +61,7 @@ export default function AdminIssuesList() {
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-secondary)' }}>İhbarlar yükleniyor...</div>
       ) : (
-        <TableView issues={data?.data || []} showActions={false} />
+        <TableView issues={data?.data || []} />
       )}
 
       {/* Pagination */}
