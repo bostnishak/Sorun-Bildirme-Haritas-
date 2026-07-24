@@ -17,7 +17,7 @@ export default function AdminIssuesList() {
       const res = await api.get('/admin/portal/issues', {
         params: { page, limit, status: status || undefined, priority: priority || undefined }
       });
-      return res.data;
+      return res;
     }
   });
 
