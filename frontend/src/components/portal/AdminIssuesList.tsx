@@ -14,7 +14,7 @@ export default function AdminIssuesList() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-issues-list', page, status, priority],
     queryFn: async () => {
-      const res = await api.get('/admin/portal/issues', {
+      const res: any = await api.get('/admin/portal/issues', {
         params: { page, limit, status: status || undefined, priority: priority || undefined }
       });
       return res;
