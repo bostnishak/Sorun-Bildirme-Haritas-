@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/useAppStore';
-import { api } from '@/lib/api';
+import { api, profileApi } from '@/lib/api';
 import { Header } from '@/components/layout/Header';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -36,7 +36,7 @@ export default function MyIssuesPage() {
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.deleteIssue(id),
+    mutationFn: (id: string) => profileApi.deleteIssue(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-issues'] });
     },
